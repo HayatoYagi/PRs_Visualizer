@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +36,7 @@ import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.rememberGitHubSessionState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
+import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.buildExplorerRows
@@ -73,8 +73,20 @@ fun App() {
     var focusPath by remember { mutableStateOf("") }
     var selectedPath by remember { mutableStateOf<String?>(null) }
     var viewportResetToken by remember { mutableIntStateOf(0) }
+    var isRepoDialogOpen by remember { mutableStateOf(false) }
+    var repoPickerQuery by remember { mutableStateOf("") }
 
     val scope = rememberCoroutineScope()
+    val filteredRepoOptions = remember(githubSession.repositoryOptions, repoPickerQuery) {
+        val query = repoPickerQuery.trim()
+        if (query.isBlank()) {
+            githubSession.repositoryOptions.take(200)
+        } else {
+            githubSession.repositoryOptions
+                .filter { it.contains(query, ignoreCase = true) }
+                .take(200)
+        }
+    }
 
     val filteredPrs = remember(showDrafts, onlyMine, query, allPrs, currentUser) {
         allPrs.filter { pr ->
@@ -88,6 +100,16 @@ fun App() {
         val available = filteredPrs.map { it.id }.toSet()
         if (selectedPrIds.none { available.contains(it) }) {
             selectedPrIds = available
+        }
+    }
+    LaunchedEffect(githubSession.oauthToken) {
+        if (githubSession.oauthToken.isNotBlank()) {
+            githubSession.ensureRepositoryOptions()
+            if (repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
+                val default = githubSession.repositoryOptions.first()
+                owner = default.substringBefore('/', owner)
+                repo = default.substringAfter('/', default)
+            }
         }
     }
 
@@ -178,20 +200,20 @@ fun App() {
                     .padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                TextField(
-                    value = owner,
-                    onValueChange = { owner = it },
-                    label = { Text("Owner") },
-                    modifier = Modifier.weight(1f).widthIn(min = 120.dp),
-                    singleLine = true,
+                Text(
+                    text = "Repository: ${owner.trim()}/${repo.trim()}",
+                    color = Color(0xFFDCEAF5),
+                    modifier = Modifier.weight(1f).padding(top = 12.dp),
                 )
-                TextField(
-                    value = repo,
-                    onValueChange = { repo = it },
-                    label = { Text("Repo") },
-                    modifier = Modifier.weight(1f).widthIn(min = 120.dp),
-                    singleLine = true,
-                )
+                Button(
+                    enabled = githubSession.oauthToken.isNotBlank(),
+                    onClick = {
+                        repoPickerQuery = "${owner.trim()}/${repo.trim()}".trim().trim('/')
+                        isRepoDialogOpen = true
+                    },
+                ) {
+                    Text("Select Repo")
+                }
             }
             Row(
                 modifier = Modifier
@@ -261,12 +283,12 @@ fun App() {
                 Text(
                     text = if (githubSession.githubSnapshot == null) {
                         if (githubSession.oauthToken.isBlank()) {
-                            "Source: not connected (not logged in)"
+                            "Not connected (not logged in)"
                         } else {
-                            "Source: not connected (logged in)"
+                            "Logged in as: ${currentUser} (not connected)"
                         }
                     } else {
-                        "Source: GitHub (${currentUser})"
+                        "Logged in as: ${currentUser}"
                     },
                     color = Color(0xFF9EC4DD),
                     modifier = Modifier.padding(top = 14.dp),
@@ -280,6 +302,33 @@ fun App() {
                         )
                     }
                 }
+            }
+            if (isRepoDialogOpen) {
+                RepoPickerDialog(
+                    query = repoPickerQuery,
+                    onQueryChange = { repoPickerQuery = it },
+                    options = filteredRepoOptions,
+                    isLoading = githubSession.isLoadingRepositories,
+                    onReload = {
+                        scope.launch { githubSession.loadRepositoryOptions() }
+                    },
+                    onDismiss = { isRepoDialogOpen = false },
+                    onSelect = { fullName ->
+                        val selectedOwner = fullName.substringBefore('/', owner)
+                        val selectedRepo = fullName.substringAfter('/', fullName)
+                        owner = selectedOwner
+                        repo = selectedRepo
+                        isRepoDialogOpen = false
+                        scope.launch {
+                            githubSession.refresh(owner = selectedOwner, repo = selectedRepo)
+                            if (githubSession.githubSnapshot != null) {
+                                focusPath = ""
+                                selectedPath = null
+                                viewportResetToken += 1
+                            }
+                        }
+                    },
+                )
             }
 
             Row(modifier = Modifier.fillMaxSize()) {

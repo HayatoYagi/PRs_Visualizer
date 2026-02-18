@@ -27,6 +27,9 @@ class GitHubSessionState(
     var currentUserOverride by mutableStateOf(initialUser)
     var deviceUserCode by mutableStateOf<String?>(null)
     var deviceVerificationUrl by mutableStateOf<String?>(null)
+    var repositoryOptions by mutableStateOf<List<String>>(emptyList())
+    var isLoadingRepositories by mutableStateOf(false)
+    private var repositoriesLoaded: Boolean = false
 
     val currentUser: String
         get() = githubSnapshot?.viewerLogin ?: currentUserOverride
@@ -59,6 +62,27 @@ class GitHubSessionState(
 
     suspend fun refresh(owner: String, repo: String) {
         connect(owner = owner, repo = repo)
+    }
+
+    suspend fun ensureRepositoryOptions() {
+        if (oauthToken.isBlank()) return
+        if (isLoadingRepositories) return
+        if (repositoriesLoaded && repositoryOptions.isNotEmpty()) return
+        loadRepositoryOptions()
+    }
+
+    suspend fun loadRepositoryOptions() {
+        if (oauthToken.isBlank()) return
+        isLoadingRepositories = true
+        runCatching {
+            apiFactory(oauthToken.trim()).fetchAccessibleRepositoryNames()
+        }.onSuccess { repos ->
+            repositoryOptions = repos
+            repositoriesLoaded = true
+        }.onFailure { error ->
+            connectionError = error.message?.take(220) ?: "Failed to load repositories"
+        }
+        isLoadingRepositories = false
     }
 
     private suspend fun connect(owner: String, repo: String) {

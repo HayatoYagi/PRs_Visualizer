@@ -30,6 +30,14 @@ class GitHubApi(
 ) {
     private val client = HttpClient.newHttpClient()
 
+    suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
+        require(token.isNotBlank()) { "token is required" }
+        val repos = loadRepositoryNamesByPage { page ->
+            requestArray("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
+        }
+        repos.distinct().sortedBy { it.lowercase() }
+    }
+
     suspend fun fetchSnapshot(owner: String, repo: String): GitHubSnapshot = withContext(Dispatchers.IO) {
         require(owner.isNotBlank()) { "owner is required" }
         require(repo.isNotBlank()) { "repo is required" }
@@ -136,6 +144,23 @@ class GitHubApi(
     private fun requestArray(url: String): JSONArray {
         val body = requestBody(url)
         return JSONArray(body)
+    }
+
+    private fun loadRepositoryNamesByPage(requestPage: (Int) -> JSONArray?): List<String> {
+        val repos = mutableListOf<String>()
+        var page = 1
+        while (true) {
+            val response = requestPage(page) ?: break
+            if (response.length() == 0) break
+            repeat(response.length()) { index ->
+                val repo = response.getJSONObject(index)
+                val repoName = repo.optString("full_name")
+                if (repoName.isNotBlank()) repos += repoName
+            }
+            if (response.length() < 100) break
+            page += 1
+        }
+        return repos
     }
 
     private fun requestBody(url: String): String {
