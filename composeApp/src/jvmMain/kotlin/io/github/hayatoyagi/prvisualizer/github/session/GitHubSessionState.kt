@@ -7,10 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
+import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
 import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GitHubSessionState(
     private val uiScope: CoroutineScope,
@@ -30,9 +33,25 @@ class GitHubSessionState(
     var repositoryOptions by mutableStateOf<List<String>>(emptyList())
     var isLoadingRepositories by mutableStateOf(false)
     private var repositoriesLoaded: Boolean = false
+    private var restoreAttempted: Boolean = false
 
     val currentUser: String
         get() = githubSnapshot?.viewerLogin ?: currentUserOverride
+
+    suspend fun restoreTokenAndConnectIfNeeded(owner: String, repo: String) {
+        if (restoreAttempted) return
+        restoreAttempted = true
+
+        val restoredToken = withContext(Dispatchers.IO) {
+            GitHubTokenStore.loadToken(oauthToken)
+        }
+        if (restoredToken.isBlank()) return
+
+        oauthToken = restoredToken
+        if (githubSnapshot == null) {
+            connect(owner = owner, repo = repo)
+        }
+    }
 
     suspend fun loginAndConnect(clientId: String, owner: String, repo: String) {
         isAuthorizing = true
@@ -51,6 +70,9 @@ class GitHubSessionState(
             )
         }.onSuccess { token ->
             oauthToken = token
+            withContext(Dispatchers.IO) {
+                GitHubTokenStore.saveToken(token)
+            }
             deviceUserCode = null
             deviceVerificationUrl = null
             connect(owner = owner, repo = repo)
@@ -80,6 +102,7 @@ class GitHubSessionState(
             repositoryOptions = repos
             repositoriesLoaded = true
         }.onFailure { error ->
+            if (handleAuthExpired(error)) return@onFailure
             connectionError = error.message?.take(220) ?: "Failed to load repositories"
         }
         isLoadingRepositories = false
@@ -97,9 +120,28 @@ class GitHubSessionState(
                 currentUserOverride = snapshot.viewerLogin
             }
         }.onFailure { error ->
+            if (handleAuthExpired(error)) {
+                isConnecting = false
+                return
+            }
             connectionError = error.message?.take(220) ?: "Unknown error"
         }
         isConnecting = false
+    }
+
+    private fun handleAuthExpired(error: Throwable): Boolean {
+        if (error !is GitHubAuthExpiredException) return false
+        oauthToken = ""
+        githubSnapshot = null
+        repositoryOptions = emptyList()
+        repositoriesLoaded = false
+        deviceUserCode = null
+        deviceVerificationUrl = null
+        uiScope.launch(Dispatchers.IO) {
+            GitHubTokenStore.clearToken()
+        }
+        connectionError = error.message?.take(220) ?: "Session expired. Please login again."
+        return true
     }
 }
 

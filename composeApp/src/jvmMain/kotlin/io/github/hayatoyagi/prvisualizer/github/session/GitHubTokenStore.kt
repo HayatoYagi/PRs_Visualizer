@@ -1,0 +1,168 @@
+package io.github.hayatoyagi.prvisualizer.github.session
+
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+
+object GitHubTokenStore {
+    private const val SERVICE_NAME = "io.github.hayatoyagi.prvisualizer.github-token"
+    private const val ACCOUNT_NAME = "default-user"
+    private const val WINDOWS_TOKEN_ENV_PATH = "GHPV_PATH"
+    private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
+
+    fun loadToken(fallback: String): String {
+        val loaded = when {
+            isMacOs() -> loadFromMacKeychain()
+            isWindows() -> loadFromWindowsDpapi()
+            else -> null
+        }
+        return loaded?.takeIf { it.isNotBlank() } ?: fallback
+    }
+
+    fun saveToken(token: String) {
+        if (token.isBlank()) return
+        when {
+            isMacOs() -> saveToMacKeychain(token)
+            isWindows() -> saveToWindowsDpapi(token)
+            else -> Unit // No secure storage implementation for this OS yet.
+        }
+    }
+
+    fun clearToken() {
+        when {
+            isMacOs() -> clearFromMacKeychain()
+            isWindows() -> clearFromWindowsDpapi()
+            else -> Unit
+        }
+    }
+
+    private fun loadFromMacKeychain(): String? {
+        val result = runCommand(
+            "security",
+            "find-generic-password",
+            "-a",
+            ACCOUNT_NAME,
+            "-s",
+            SERVICE_NAME,
+            "-w",
+        ) ?: return null
+        if (result.exitCode != 0) return null
+        return result.stdout.trim()
+    }
+
+    private fun saveToMacKeychain(token: String) {
+        runCommand(
+            "security",
+            "add-generic-password",
+            "-U",
+            "-a",
+            ACCOUNT_NAME,
+            "-s",
+            SERVICE_NAME,
+            "-w",
+            token,
+        )
+    }
+
+    private fun clearFromMacKeychain() {
+        runCommand(
+            "security",
+            "delete-generic-password",
+            "-a",
+            ACCOUNT_NAME,
+            "-s",
+            SERVICE_NAME,
+        )
+    }
+
+    private fun loadFromWindowsDpapi(): String? {
+        val path = windowsTokenFilePath()
+        if (!Files.exists(path)) return null
+        val script = """
+            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+            ${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
+            if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
+            ${'$'}secure = ConvertTo-SecureString ${'$'}enc
+            ${'$'}bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR(${'$'}secure)
+            try {
+              [Runtime.InteropServices.Marshal]::PtrToStringBSTR(${'$'}bstr)
+            } finally {
+              [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
+            }
+        """.trimIndent()
+        val result = runCommand(
+            command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
+            extraEnv = mapOf(WINDOWS_TOKEN_ENV_PATH to path.toString()),
+        ) ?: return null
+        if (result.exitCode != 0) return null
+        return result.stdout.trim()
+    }
+
+    private fun saveToWindowsDpapi(token: String) {
+        val path = windowsTokenFilePath()
+        val script = """
+            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+            ${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
+            if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
+            ${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
+            ${'$'}enc = ConvertFrom-SecureString ${'$'}secure
+            Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
+        """.trimIndent()
+        runCommand(
+            command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
+            extraEnv = mapOf(
+                WINDOWS_TOKEN_ENV_PATH to path.toString(),
+                WINDOWS_TOKEN_ENV_VALUE to token,
+            ),
+        )
+    }
+
+    private fun clearFromWindowsDpapi() {
+        val path = windowsTokenFilePath()
+        runCatching { Files.deleteIfExists(path) }
+    }
+
+    private fun windowsTokenFilePath(): Path {
+        val appData = System.getenv("APPDATA")
+        val base = if (appData.isNullOrBlank()) {
+            Path.of(System.getProperty("user.home"), "AppData", "Roaming")
+        } else {
+            Path.of(appData)
+        }
+        return base.resolve("GitHubPRsVisualizer").resolve("oauth_token.dpapi")
+    }
+
+    private fun runCommand(
+        command: Array<String>,
+        extraEnv: Map<String, String> = emptyMap(),
+    ): CommandResult? {
+        return runCatching {
+            val builder = ProcessBuilder(*command)
+            if (extraEnv.isNotEmpty()) {
+                builder.environment().putAll(extraEnv)
+            }
+            val process = builder.start()
+            val finished = process.waitFor(5, TimeUnit.SECONDS)
+            if (!finished) {
+                process.destroyForcibly()
+                return null
+            }
+            CommandResult(
+                exitCode = process.exitValue(),
+                stdout = process.inputStream.bufferedReader().readText(),
+            )
+        }.getOrNull()
+    }
+
+    private fun runCommand(vararg command: String): CommandResult? {
+        return runCommand(command = arrayOf(*command))
+    }
+
+    private fun isMacOs(): Boolean = System.getProperty("os.name").contains("mac", ignoreCase = true)
+    private fun isWindows(): Boolean = System.getProperty("os.name").contains("windows", ignoreCase = true)
+
+    private data class CommandResult(
+        val exitCode: Int,
+        val stdout: String,
+    )
+}

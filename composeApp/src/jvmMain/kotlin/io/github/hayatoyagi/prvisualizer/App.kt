@@ -102,6 +102,14 @@ fun App() {
             selectedPrIds = available
         }
     }
+    LaunchedEffect(Unit) {
+        githubSession.restoreTokenAndConnectIfNeeded(owner = owner, repo = repo)
+        if (githubSession.githubSnapshot != null) {
+            focusPath = ""
+            selectedPath = null
+            viewportResetToken += 1
+        }
+    }
     LaunchedEffect(githubSession.oauthToken) {
         if (githubSession.oauthToken.isNotBlank()) {
             githubSession.ensureRepositoryOptions()

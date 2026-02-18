@@ -171,6 +171,9 @@ class GitHubApi(
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() == 401) {
+            throw GitHubAuthExpiredException("GitHub token expired or revoked. Please login again.")
+        }
         if (response.statusCode() !in 200..299) {
             error("GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
