@@ -1,0 +1,154 @@
+package io.github.hayatoyagi.prvisualizer.github
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.awt.Desktop
+import java.net.URI
+import java.net.URLEncoder
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
+
+class GitHubOAuthDesktopAuthenticator {
+    private val client = HttpClient.newHttpClient()
+
+    suspend fun authenticate(
+        clientId: String,
+        scope: String = "repo",
+        onDeviceFlowStart: ((DeviceFlowPrompt) -> Unit)? = null,
+    ): String = withContext(Dispatchers.IO) {
+        require(clientId.isNotBlank()) { "client_id is required" }
+        authenticateWithDeviceFlow(clientId = clientId, scope = scope, onDeviceFlowStart = onDeviceFlowStart)
+    }
+
+    private suspend fun authenticateWithDeviceFlow(
+        clientId: String,
+        scope: String,
+        onDeviceFlowStart: ((DeviceFlowPrompt) -> Unit)?,
+    ): String {
+        val start = requestDeviceCode(clientId = clientId, scope = scope)
+        val autoVerificationUrl = start.verificationUriComplete
+            ?: "${start.verificationUri}?user_code=${enc(start.userCode)}"
+        onDeviceFlowStart?.invoke(
+            DeviceFlowPrompt(
+                userCode = start.userCode,
+                verificationUri = start.verificationUri,
+                verificationUriComplete = start.verificationUriComplete,
+                openedUrl = autoVerificationUrl,
+            ),
+        )
+        openVerificationPage(autoVerificationUrl)
+
+        var pollIntervalSeconds = start.intervalSeconds.coerceAtLeast(5)
+        val startedAt = System.currentTimeMillis()
+        val expiresInMillis = start.expiresInSeconds * 1_000L
+
+        while (System.currentTimeMillis() - startedAt < expiresInMillis) {
+            delay(pollIntervalSeconds * 1_000L)
+            val body = exchangeDeviceCode(clientId = clientId, deviceCode = start.deviceCode)
+            val json = JSONObject(body)
+            val token = json.optString("access_token")
+            if (token.isNotBlank()) return token
+
+            when (val error = json.optString("error")) {
+                "authorization_pending" -> Unit
+                "slow_down" -> pollIntervalSeconds += 5
+                "expired_token" -> error("Device code expired. Please click Login with GitHub again.")
+                "access_denied" -> error("Authorization canceled by user.")
+                "device_flow_disabled" -> error("Device Flow is disabled for this GitHub App. Enable 'Device Flow' in app settings.")
+                "incorrect_client_credentials" -> error("Incorrect GitHub client_id. Check GITHUB_CLIENT_ID.")
+                "" -> error("OAuth response missing access_token: $body")
+                else -> {
+                    val desc = json.optString("error_description")
+                    if (desc.isNotBlank()) error("$error: $desc") else error("$error: $body")
+                }
+            }
+        }
+
+        error("Timed out waiting for GitHub authorization.")
+    }
+
+    private fun requestDeviceCode(clientId: String, scope: String): DeviceFlowStart {
+        val body = listOf(
+            "client_id" to clientId,
+            "scope" to scope,
+        ).joinToString("&") { (k, v) -> "${enc(k)}=${enc(v)}" }
+
+        val request = HttpRequest.newBuilder(URI("https://github.com/login/device/code"))
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build()
+
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() !in 200..299) {
+            error("Failed to start Device Flow: ${response.statusCode()} ${response.body()}")
+        }
+        val json = JSONObject(response.body())
+        return DeviceFlowStart(
+            deviceCode = json.optString("device_code").ifBlank {
+                error("Device Flow response missing device_code: ${response.body()}")
+            },
+            userCode = json.optString("user_code").ifBlank {
+                error("Device Flow response missing user_code: ${response.body()}")
+            },
+            verificationUri = json.optString("verification_uri").ifBlank {
+                error("Device Flow response missing verification_uri: ${response.body()}")
+            },
+            verificationUriComplete = json.optString("verification_uri_complete").ifBlank { null },
+            expiresInSeconds = json.optInt("expires_in", 900),
+            intervalSeconds = json.optInt("interval", 5),
+        )
+    }
+
+    private fun exchangeDeviceCode(
+        clientId: String,
+        deviceCode: String,
+    ): String {
+        val body = listOf(
+            "client_id" to clientId,
+            "device_code" to deviceCode,
+            "grant_type" to "urn:ietf:params:oauth:grant-type:device_code",
+        ).joinToString("&") { (k, v) -> "${enc(k)}=${enc(v)}" }
+
+        val request = HttpRequest.newBuilder(URI("https://github.com/login/oauth/access_token"))
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build()
+
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() !in 200..299) {
+            error("OAuth device token poll failed: ${response.statusCode()} ${response.body()}")
+        }
+        return response.body()
+    }
+
+    private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
+
+    private fun openVerificationPage(url: String) {
+        if (!Desktop.isDesktopSupported()) {
+            error("Desktop browser is not supported in this environment. Open this URL manually: $url")
+        }
+        Desktop.getDesktop().browse(URI(url))
+    }
+
+    data class DeviceFlowPrompt(
+        val userCode: String,
+        val verificationUri: String,
+        val verificationUriComplete: String?,
+        val openedUrl: String,
+    )
+
+    private data class DeviceFlowStart(
+        val deviceCode: String,
+        val userCode: String,
+        val verificationUri: String,
+        val verificationUriComplete: String?,
+        val expiresInSeconds: Int,
+        val intervalSeconds: Int,
+    )
+}
