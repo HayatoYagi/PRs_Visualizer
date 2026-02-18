@@ -60,9 +60,10 @@ fun App() {
         // TODO: Replace with authenticated GitHub login (or user-configurable value) instead of hard-coded user.
         initialUser = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
     )
+    val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
 
-    val root = githubSession.githubSnapshot?.rootNode ?: SampleData.rootNode
-    val allPrs = githubSession.githubSnapshot?.pullRequests ?: SampleData.pullRequests
+    val root = githubSession.githubSnapshot?.rootNode ?: emptyRoot
+    val allPrs = githubSession.githubSnapshot?.pullRequests ?: emptyList()
     val currentUser = githubSession.currentUser
 
     var showDrafts by remember { mutableStateOf(true) }
@@ -235,9 +236,6 @@ fun App() {
                 ) {
                     Text(if (githubSession.isConnecting) "Refreshing..." else "Refresh")
                 }
-                Button(onClick = { githubSession.useSample() }) {
-                    Text("Use Sample")
-                }
                 if (oauthClientId.isBlank()) {
                     Text(
                         text = "Missing GITHUB_CLIENT_ID in .env",
@@ -262,7 +260,11 @@ fun App() {
                 }
                 Text(
                     text = if (githubSession.githubSnapshot == null) {
-                        if (githubSession.oauthToken.isBlank()) "Source: sample (not logged in)" else "Source: sample (logged in)"
+                        if (githubSession.oauthToken.isBlank()) {
+                            "Source: not connected (not logged in)"
+                        } else {
+                            "Source: not connected (logged in)"
+                        }
                     } else {
                         "Source: GitHub (${currentUser})"
                     },
@@ -315,6 +317,7 @@ fun App() {
                     onRelatedPrsDetected = { related ->
                         if (related.isNotEmpty()) selectedPrIds = selectedPrIds + related
                     },
+                    repoFullName = "${owner.trim()}/${repo.trim()}",
                 )
 
                 PrListPane(

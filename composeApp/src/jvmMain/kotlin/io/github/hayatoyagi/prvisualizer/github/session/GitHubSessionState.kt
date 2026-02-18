@@ -61,10 +61,6 @@ class GitHubSessionState(
         connect(owner = owner, repo = repo)
     }
 
-    fun useSample() {
-        githubSnapshot = null
-    }
-
     private suspend fun connect(owner: String, repo: String) {
         if (oauthToken.isBlank()) return
         isConnecting = true

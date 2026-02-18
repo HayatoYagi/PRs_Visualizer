@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
-import io.github.hayatoyagi.prvisualizer.SampleData
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.computeTreemap
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
@@ -55,6 +54,7 @@ fun TreemapPane(
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
     onRelatedPrsDetected: (Set<String>) -> Unit,
+    repoFullName: String,
     modifier: Modifier = Modifier,
 ) {
     var zoom by remember { mutableStateOf(1f) }
@@ -170,7 +170,7 @@ fun TreemapPane(
                         if (node.isDirectory) {
                             onFocusPathChange(node.path)
                         } else {
-                            openUrl("https://github.com/${SampleData.repoName}/blob/main/${node.path}")
+                            openUrl("https://github.com/${repoFullName}/blob/main/${node.path}")
                         }
                     }
                     lastClickKey = key
