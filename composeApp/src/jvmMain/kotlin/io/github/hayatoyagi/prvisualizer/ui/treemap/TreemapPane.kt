@@ -59,7 +59,7 @@ fun TreemapPane(
     repoFullName: String,
     modifier: Modifier = Modifier,
 ) {
-    var zoom by remember { mutableStateOf(1f) }
+    var zoom by remember { mutableStateOf(0.8f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(IntSize(1, 1)) }
     var pointerPos by remember { mutableStateOf(Offset.Zero) }
@@ -69,7 +69,7 @@ fun TreemapPane(
     var lastClickAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(focusPath, viewportResetToken) {
-        zoom = 1f
+        zoom = 0.8f
         pan = Offset.Zero
     }
 
