@@ -188,7 +188,7 @@ fun buildExplorerRows(
                 Pair(overlay?.dominantType, (overlay?.prs?.size ?: 0) > 1)
             }
         }
-        
+
         rows += ExplorerRow(
             path = node.path,
             name = if (node.path.isBlank()) "repo" else node.name,

@@ -24,6 +24,8 @@ import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+private data class StatusLabel(val text: String, val color: Color)
+
 @Composable
 fun ExplorerPane(
     rows: List<ExplorerRow>,
@@ -79,8 +81,6 @@ fun ExplorerPane(
                     
                     // Show status label with color
                     if (row.dominantType != null || row.hasConflict) {
-                        data class StatusLabel(val text: String, val color: Color)
-                        
                         val statusLabel = when {
                             row.hasConflict -> StatusLabel("CONFLICT", AppColors.treemapConflictStripe)
                             row.dominantType == ChangeType.Addition -> StatusLabel("ADD", AppColors.treemapAddition)
