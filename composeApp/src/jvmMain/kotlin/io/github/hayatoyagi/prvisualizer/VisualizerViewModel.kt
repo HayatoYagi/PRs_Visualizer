@@ -41,8 +41,6 @@ class VisualizerViewModel(
     // PR color management
     var prColorMap by mutableStateOf<Map<String, Color>>(emptyMap())
         private set
-    var colorShuffleToken by mutableIntStateOf(0)
-        private set
 
     // Navigation
     var focusPath by mutableStateOf("")
@@ -124,15 +122,12 @@ class VisualizerViewModel(
 
     // PR color management intents
     fun ensurePrColors(prs: List<PullRequest>) {
-        val newMap = prColorMap.toMutableMap()
-        var changed = false
-        prs.forEach { pr ->
-            if (!newMap.containsKey(pr.id)) {
+        val prsNeedingColors = prs.filter { !prColorMap.containsKey(it.id) }
+        if (prsNeedingColors.isNotEmpty()) {
+            val newMap = prColorMap.toMutableMap()
+            prsNeedingColors.forEach { pr ->
                 newMap[pr.id] = randomColor()
-                changed = true
             }
-        }
-        if (changed) {
             prColorMap = newMap
         }
     }
@@ -143,7 +138,6 @@ class VisualizerViewModel(
             newMap[pr.id] = randomColor()
         }
         prColorMap = newMap
-        colorShuffleToken += 1
     }
 
     fun setPrColor(prId: String, color: Color) {
