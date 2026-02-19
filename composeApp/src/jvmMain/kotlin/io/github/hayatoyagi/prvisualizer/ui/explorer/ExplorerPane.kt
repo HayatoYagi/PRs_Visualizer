@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
@@ -75,11 +76,33 @@ fun ExplorerPane(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(modifier = Modifier.width((row.depth * 12).dp))
-                    Text(
-                        text = if (row.isDirectory) "[D]" else "[F]",
-                        color = if (row.isDirectory) AppColors.explorerNodeDir else AppColors.explorerNodeFile,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    
+                    // Show status label with color
+                    if (row.dominantType != null || row.hasConflict) {
+                        val labelText = when {
+                            row.hasConflict -> "CONFLICT"
+                            row.dominantType == ChangeType.Addition -> "ADD"
+                            row.dominantType == ChangeType.Modification -> "MOD"
+                            row.dominantType == ChangeType.Deletion -> "DEL"
+                            else -> ""
+                        }
+                        val labelColor = when {
+                            row.hasConflict -> AppColors.treemapConflictStripe
+                            row.dominantType == ChangeType.Addition -> AppColors.treemapAddition
+                            row.dominantType == ChangeType.Modification -> AppColors.treemapModification
+                            row.dominantType == ChangeType.Deletion -> AppColors.treemapDeletion
+                            else -> AppColors.textBody
+                        }
+                        if (labelText.isNotEmpty()) {
+                            Text(
+                                text = "[$labelText]",
+                                color = labelColor,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                    }
+                    
                     Text(
                         text = if (row.isDirectory) "${row.name}/" else row.name,
                         color = when {

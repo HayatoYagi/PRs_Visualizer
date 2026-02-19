@@ -170,15 +170,34 @@ private fun pointOnRectPerimeter(topLeft: Offset, size: Size, distance: Float): 
     }
 }
 
-fun buildExplorerRows(root: FileNode.Directory): List<ExplorerRow> {
+fun buildExplorerRows(
+    root: FileNode.Directory,
+    fileOverlayByPath: Map<String, FileOverlay>,
+    directoryOverlayByPath: Map<String, DirectoryOverlay>,
+): List<ExplorerRow> {
     val rows = mutableListOf<ExplorerRow>()
 
     fun visit(node: FileNode, depth: Int) {
+        val dominantType: ChangeType?
+        val hasConflict: Boolean
+        
+        if (node is FileNode.Directory) {
+            val overlay = directoryOverlayByPath[node.path]
+            dominantType = overlay?.dominantType
+            hasConflict = (overlay?.prs?.size ?: 0) > 1
+        } else {
+            val overlay = fileOverlayByPath[node.path]
+            dominantType = overlay?.dominantType
+            hasConflict = (overlay?.prs?.size ?: 0) > 1
+        }
+        
         rows += ExplorerRow(
             path = node.path,
             name = if (node.path.isBlank()) "repo" else node.name,
             depth = depth,
             isDirectory = node is FileNode.Directory,
+            dominantType = dominantType,
+            hasConflict = hasConflict,
         )
         if (node is FileNode.Directory) {
             node.children
