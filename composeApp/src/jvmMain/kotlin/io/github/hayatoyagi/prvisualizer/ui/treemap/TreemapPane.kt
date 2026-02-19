@@ -62,6 +62,7 @@ fun TreemapPane(
     var zoom by remember { mutableStateOf(0.8f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(IntSize(1, 1)) }
+    var pendingViewportCentering by remember { mutableStateOf(true) }
     var pointerPos by remember { mutableStateOf(Offset.Zero) }
     var dragPointerPos by remember { mutableStateOf<Offset?>(null) }
     var hoveredNode by remember { mutableStateOf<TreemapNode?>(null) }
@@ -70,7 +71,13 @@ fun TreemapPane(
 
     LaunchedEffect(focusPath, viewportResetToken) {
         zoom = 0.8f
-        pan = Offset.Zero
+        pendingViewportCentering = true
+        if (canvasSize.width > 1 && canvasSize.height > 1) {
+            pan = centeredPan(canvasSize = canvasSize, zoom = zoom)
+            pendingViewportCentering = false
+        } else {
+            pan = Offset.Zero
+        }
     }
 
     val allLayoutNodes = remember(focusRoot, canvasSize) {
@@ -124,7 +131,13 @@ fun TreemapPane(
                 .fillMaxSize()
                 .clipToBounds()
                 .background(AppColors.backgroundCanvas)
-                .onSizeChanged { canvasSize = it }
+                .onSizeChanged {
+                    canvasSize = it
+                    if (pendingViewportCentering && it.width > 1 && it.height > 1) {
+                        pan = centeredPan(canvasSize = it, zoom = zoom)
+                        pendingViewportCentering = false
+                    }
+                }
                 .onPointerEvent(PointerEventType.Move) { event ->
                     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
                     pointerPos = position
@@ -203,4 +216,12 @@ fun TreemapPane(
             )
         }
     }
+}
+
+private fun centeredPan(canvasSize: IntSize, zoom: Float): Offset {
+    if (canvasSize.width <= 0 || canvasSize.height <= 0) return Offset.Zero
+    return Offset(
+        x = canvasSize.width * (1f - zoom) / 2f,
+        y = canvasSize.height * (1f - zoom) / 2f,
+    )
 }
