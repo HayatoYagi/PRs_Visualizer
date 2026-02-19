@@ -4,9 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlin.random.Random
 
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
@@ -35,6 +38,10 @@ class VisualizerViewModel(
     var selectedPrIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
+    // PR color management
+    var prColorMap by mutableStateOf<Map<String, Color>>(emptyMap())
+        private set
+
     // Navigation
     var focusPath by mutableStateOf("")
         private set
@@ -42,6 +49,9 @@ class VisualizerViewModel(
         private set
     var viewportResetToken by mutableIntStateOf(0)
         private set
+    
+    // Navigation history for back/forward buttons
+    private val navigationHistory = NavigationHistory()
 
     // Dialog intents
     fun openRepoDialog() {
@@ -62,6 +72,7 @@ class VisualizerViewModel(
         repo = fullName.substringAfter('/', fullName)
         isRepoDialogOpen = false
         selectedPrIds = emptySet()
+        prColorMap = emptyMap()
         resetNavigation()
     }
 
@@ -85,17 +96,21 @@ class VisualizerViewModel(
 
     // Navigation intents
     fun selectDirectory(path: String) {
+        navigationHistory.recordFocusPath(path)
         focusPath = path
         viewportResetToken += 1
     }
 
     fun selectFile(path: String) {
         selectedPath = path
-        focusPath = parentPathOf(path)
+        val parentPath = parentPathOf(path)
+        navigationHistory.recordFocusPath(parentPath)
+        focusPath = parentPath
         viewportResetToken += 1
     }
 
     fun changeFocusPath(path: String) {
+        navigationHistory.recordFocusPath(path)
         focusPath = path
         viewportResetToken += 1
     }
@@ -107,9 +122,91 @@ class VisualizerViewModel(
     fun resetNavigation() {
         focusPath = ""
         selectedPath = null
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(focusPath)
     }
 
     fun resetViewport() {
         viewportResetToken += 1
+    }
+
+    /**
+     * Navigates back in history. Returns true if navigation occurred.
+     */
+    fun navigateBack(): Boolean {
+        val previousPath = navigationHistory.navigateBack()
+        return if (previousPath != null) {
+            focusPath = previousPath
+            viewportResetToken += 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Navigates forward in history. Returns true if navigation occurred.
+     */
+    fun navigateForward(): Boolean {
+        val nextPath = navigationHistory.navigateForward()
+        return if (nextPath != null) {
+            focusPath = nextPath
+            viewportResetToken += 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Returns true if back navigation is possible.
+     */
+    fun canNavigateBack(): Boolean = navigationHistory.canNavigateBack()
+
+    /**
+     * Returns true if forward navigation is possible.
+     */
+    fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
+
+    // PR color management intents
+    fun ensurePrColors(prs: List<PullRequest>) {
+        val prsNeedingColors = prs.filter { !prColorMap.containsKey(it.id) }
+        if (prsNeedingColors.isNotEmpty()) {
+            val newMap = prColorMap.toMutableMap()
+            prsNeedingColors.forEach { pr ->
+                newMap[pr.id] = randomColorAvoidingMap(newMap)
+            }
+            prColorMap = newMap
+        }
+    }
+
+    fun shufflePrColors(prs: List<PullRequest>) {
+        val newMap = mutableMapOf<String, Color>()
+        prs.forEach { pr ->
+            newMap[pr.id] = randomColorAvoidingMap(newMap)
+        }
+        prColorMap = newMap
+    }
+
+    fun cyclePrColor(prId: String) {
+        val currentColor = prColorMap[prId]
+        val currentIndex = if (currentColor != null) {
+            AppColors.authorPalette.indexOf(currentColor)
+        } else {
+            -1
+        }
+        val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
+        prColorMap = prColorMap + (prId to AppColors.authorPalette[nextIndex])
+    }
+
+    private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
+        // Avoid the 5 most recently assigned colors (map preserves insertion order)
+        val recentColors = assignedMap.values.toList().takeLast(5).toSet()
+        val availableColors = AppColors.authorPalette.filter { it !in recentColors }
+        return if (availableColors.isNotEmpty()) {
+            availableColors[Random.nextInt(availableColors.size)]
+        } else {
+            AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
+        }
     }
 }

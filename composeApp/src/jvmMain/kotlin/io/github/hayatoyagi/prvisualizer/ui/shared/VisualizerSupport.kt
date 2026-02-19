@@ -20,8 +20,8 @@ fun authorColor(author: String): Color {
     return AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
 }
 
-fun prColor(pr: PullRequest): Color {
-    return authorColor("${pr.author}:${pr.number}")
+fun prColor(pr: PullRequest, colorMap: Map<String, Color>): Color {
+    return colorMap[pr.id] ?: authorColor("${pr.author}:${pr.number}")
 }
 
 fun findDirectory(root: FileNode.Directory, path: String): FileNode.Directory? {
@@ -56,6 +56,7 @@ fun DrawScope.drawPrBorder(
     topLeft: Offset,
     size: Size,
     prs: List<PullRequest>,
+    colorMap: Map<String, Color>,
     fallback: Color,
     borderWidth: Float,
 ) {
@@ -72,7 +73,7 @@ fun DrawScope.drawPrBorder(
 
         uniquePrs.size == 1 -> {
             drawRect(
-                color = prColor(uniquePrs.first()),
+                color = prColor(uniquePrs.first(), colorMap),
                 topLeft = topLeft,
                 size = size,
                 style = Stroke(width = borderWidth),
@@ -83,7 +84,7 @@ fun DrawScope.drawPrBorder(
             drawDashedMulticolorRectBorder(
                 topLeft = topLeft,
                 size = size,
-                colors = uniquePrs.map(::prColor),
+                colors = uniquePrs.map { prColor(it, colorMap) },
                 strokeWidth = borderWidth,
                 dashLength = 14f,
                 gapLength = 8f,

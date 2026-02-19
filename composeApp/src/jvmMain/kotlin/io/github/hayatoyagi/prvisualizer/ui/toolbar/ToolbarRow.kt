@@ -18,6 +18,7 @@ fun ToolbarRow(
     repo: String,
     isLoggedIn: Boolean,
     onOpenRepoDialog: () -> Unit,
+    onShuffleColors: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -32,6 +33,12 @@ fun ToolbarRow(
             color = AppColors.textPrimary,
             modifier = Modifier.weight(1f).padding(top = 12.dp),
         )
+        Button(
+            enabled = isLoggedIn,
+            onClick = onShuffleColors,
+        ) {
+            Text("Shuffle Colors")
+        }
         Button(
             enabled = isLoggedIn,
             onClick = onOpenRepoDialog,

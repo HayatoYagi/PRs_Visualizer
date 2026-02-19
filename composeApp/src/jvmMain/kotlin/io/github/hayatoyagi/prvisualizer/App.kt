@@ -18,6 +18,9 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
@@ -101,6 +104,11 @@ fun App() {
         filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
     }
 
+    // Ensure all PRs have colors assigned
+    LaunchedEffect(allPrs) {
+        vm.ensurePrColors(allPrs)
+    }
+
     val focusRoot = remember(root, vm.focusPath) {
         findDirectory(root, vm.focusPath) ?: root
     }
@@ -129,6 +137,17 @@ fun App() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.backgroundMain)
+                .onPointerEvent(PointerEventType.Release) { event ->
+                    when (event.button) {
+                        PointerButton.Back -> {
+                            vm.navigateBack()
+                        }
+                        PointerButton.Forward -> {
+                            vm.navigateForward()
+                        }
+                        else -> {}
+                    }
+                }
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false
@@ -151,6 +170,7 @@ fun App() {
                 repo = vm.repo,
                 isLoggedIn = githubSession.oauthToken.isNotBlank(),
                 onOpenRepoDialog = { vm.openRepoDialog() },
+                onShuffleColors = { vm.shufflePrColors(allPrs) },
             )
             AuthRow(
                 oauthClientId = oauthClientId,
@@ -229,6 +249,7 @@ fun App() {
                     selectedPath = vm.selectedPath,
                     fileOverlayByPath = fileOverlayByPath,
                     directoryOverlayByPath = directoryOverlayByPath,
+                    prColorMap = vm.prColorMap,
                     viewportResetToken = vm.viewportResetToken,
                     onFocusPathChange = { vm.changeFocusPath(it) },
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
@@ -240,6 +261,7 @@ fun App() {
                     filteredPrs = filteredPrs,
                     selectedPrIds = effectiveSelectedIds,
                     selectedPath = vm.selectedPath,
+                    prColorMap = vm.prColorMap,
                     query = vm.query,
                     showDrafts = vm.showDrafts,
                     onlyMine = vm.onlyMine,
@@ -252,6 +274,7 @@ fun App() {
                         vm.togglePr(prId, checked)
                     },
                     onOpenPr = { openUrl(it) },
+                    onCyclePrColor = { vm.cyclePrColor(it) },
                 )
             }
         }

@@ -23,6 +23,7 @@ fun TreemapCanvas(
     visibleFiles: List<TreemapNode>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
     fileOverlayByPath: Map<String, FileOverlay>,
+    prColorMap: Map<String, Color>,
     hoveredNode: TreemapNode?,
     selectedPath: String?,
     zoom: Float,
@@ -65,6 +66,7 @@ fun TreemapCanvas(
                 topLeft = topLeft,
                 size = size,
                 prs = overlay?.prs.orEmpty(),
+                colorMap = prColorMap,
                 fallback = AppColors.treemapFallbackBorderDir,
                 borderWidth = borderWidth,
             )
@@ -139,6 +141,7 @@ fun TreemapCanvas(
                 topLeft = topLeft,
                 size = size,
                 prs = prs,
+                colorMap = prColorMap,
                 fallback = AppColors.treemapFallbackBorderFile,
                 borderWidth = borderWidth,
             )
