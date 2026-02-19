@@ -123,6 +123,7 @@ class VisualizerViewModel(
         focusPath = ""
         selectedPath = null
         navigationHistory.clear()
+        navigationHistory.recordFocusPath(focusPath)
     }
 
     fun resetViewport() {
