@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun ExplorerPane(
@@ -35,14 +36,14 @@ fun ExplorerPane(
         modifier = modifier
             .width(340.dp)
             .fillMaxHeight()
-            .background(Color(0xFF18212B))
+            .background(AppColors.backgroundPane)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Explorer", color = Color(0xFFE8F1F8), style = MaterialTheme.typography.titleLarge)
+        Text("Explorer", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
         Text(
             text = "Current: /${focusPath.ifBlank { "" }}",
-            color = Color(0xFF9EC4DD),
+            color = AppColors.textSecondary,
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -50,7 +51,7 @@ fun ExplorerPane(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF13202B)),
+                .background(AppColors.backgroundPaneList),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
@@ -62,8 +63,8 @@ fun ExplorerPane(
                         .fillMaxWidth()
                         .background(
                             when {
-                                isCurrentDir -> Color(0xFF2A455B)
-                                isSelectedFile -> Color(0xFF2B3A4A)
+                                isCurrentDir -> AppColors.explorerSelectionFocused
+                                isSelectedFile -> AppColors.explorerSelectionFile
                                 else -> Color.Transparent
                             },
                         )
@@ -76,15 +77,15 @@ fun ExplorerPane(
                     Spacer(modifier = Modifier.width((row.depth * 12).dp))
                     Text(
                         text = if (row.isDirectory) "[D]" else "[F]",
-                        color = if (row.isDirectory) Color(0xFFFFD37A) else Color(0xFF96B2C8),
+                        color = if (row.isDirectory) AppColors.explorerNodeDir else AppColors.explorerNodeFile,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (row.isDirectory) "${row.name}/" else row.name,
                         color = when {
                             isCurrentDir -> Color.White
-                            isAncestor -> Color(0xFFFFE4A5)
-                            else -> Color(0xFFD7E4EE)
+                            isAncestor -> AppColors.explorerAncestorText
+                            else -> AppColors.textBody
                         },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

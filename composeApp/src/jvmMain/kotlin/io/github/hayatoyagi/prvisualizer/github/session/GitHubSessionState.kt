@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
 import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
@@ -23,7 +24,7 @@ class GitHubSessionState(
     initialUser: String,
 ) {
     var githubSnapshot by mutableStateOf<GitHubSnapshot?>(null)
-    var connectionError by mutableStateOf<String?>(null)
+    var connectionError by mutableStateOf<AppError?>(null)
     var isConnecting by mutableStateOf(false)
     var isAuthorizing by mutableStateOf(false)
     var oauthToken by mutableStateOf(initialToken)
@@ -77,7 +78,7 @@ class GitHubSessionState(
             deviceVerificationUrl = null
             connect(owner = owner, repo = repo)
         }.onFailure { error ->
-            connectionError = error.message?.take(220) ?: "OAuth failed"
+            connectionError = AppError.OAuthFailed(error.message ?: "OAuth failed")
         }
         isAuthorizing = false
     }
@@ -103,7 +104,7 @@ class GitHubSessionState(
             repositoriesLoaded = true
         }.onFailure { error ->
             if (handleAuthExpired(error)) return@onFailure
-            connectionError = error.message?.take(220) ?: "Failed to load repositories"
+            connectionError = AppError.Network(error.message ?: "Failed to load repositories")
         }
         isLoadingRepositories = false
     }
@@ -124,7 +125,11 @@ class GitHubSessionState(
                 isConnecting = false
                 return
             }
-            connectionError = error.message?.take(220) ?: "Unknown error"
+            connectionError = when (error) {
+                is java.net.ConnectException, is java.net.UnknownHostException ->
+                    AppError.Network(error.message ?: "Network error")
+                else -> AppError.Unknown(error.message ?: "Unknown error")
+            }
         }
         isConnecting = false
     }
@@ -140,7 +145,7 @@ class GitHubSessionState(
         uiScope.launch(Dispatchers.IO) {
             GitHubTokenStore.clearToken()
         }
-        connectionError = error.message?.take(220) ?: "Session expired. Please login again."
+        connectionError = AppError.AuthExpired()
         return true
     }
 }

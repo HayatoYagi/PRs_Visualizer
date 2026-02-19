@@ -15,6 +15,7 @@ import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.drawPrBorder
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun TreemapCanvas(
@@ -47,10 +48,10 @@ fun TreemapCanvas(
             if (size.width <= 0f || size.height <= 0f) return@forEach
 
             val fill = when (overlay?.dominantType) {
-                ChangeType.Addition -> Color(0xFF3CA65F)
-                ChangeType.Modification -> Color(0xFFD2A43F)
-                ChangeType.Deletion -> Color(0xFFCB4A44)
-                null -> Color(0xFF264155)
+                ChangeType.Addition -> AppColors.treemapAddition
+                ChangeType.Modification -> AppColors.treemapModification
+                ChangeType.Deletion -> AppColors.treemapDeletion
+                null -> AppColors.treemapNeutralDir
             }
             val alpha = if (overlay?.dominantType == null) 0.20f
             else (0.18f + overlay.density * 0.78f).coerceIn(0.18f, 0.96f)
@@ -64,7 +65,7 @@ fun TreemapCanvas(
                 topLeft = topLeft,
                 size = size,
                 prs = overlay?.prs.orEmpty(),
-                fallback = Color(0xFF2F4A5F),
+                fallback = AppColors.treemapFallbackBorderDir,
                 borderWidth = borderWidth,
             )
             if (hoveredNode?.path == node.path) {
@@ -87,7 +88,7 @@ fun TreemapCanvas(
                     var x = topLeft.x - size.height
                     while (x < topLeft.x + size.width) {
                         drawLine(
-                            color = Color(0xAAFFE082),
+                            color = AppColors.treemapConflictStripe,
                             start = Offset(x, topLeft.y + size.height),
                             end = Offset(x + size.height, topLeft.y),
                             strokeWidth = 1f,
@@ -106,7 +107,7 @@ fun TreemapCanvas(
             if (widthPx < 2f || heightPx < 2f) {
                 if (node.hasActivePr) {
                     drawCircle(
-                        color = Color(0xFFFFB800),
+                        color = AppColors.treemapActivePrDot,
                         radius = 1.5f,
                         center = node.rect.center * zoom + pan,
                     )
@@ -115,10 +116,10 @@ fun TreemapCanvas(
             }
 
             val fill = when (overlay?.dominantType) {
-                ChangeType.Addition -> Color(0xFF3CA65F)
-                ChangeType.Modification -> Color(0xFFD2A43F)
-                ChangeType.Deletion -> Color(0xFFCB4A44)
-                null -> Color(0xFF1C2A36)
+                ChangeType.Addition -> AppColors.treemapAddition
+                ChangeType.Modification -> AppColors.treemapModification
+                ChangeType.Deletion -> AppColors.treemapDeletion
+                null -> AppColors.treemapNeutralFile
             }
             val alpha = (0.18f + (overlay?.density ?: 0f) * 0.78f).coerceIn(0.18f, 0.96f)
             val prs = overlay?.prs.orEmpty()
@@ -138,7 +139,7 @@ fun TreemapCanvas(
                 topLeft = topLeft,
                 size = size,
                 prs = prs,
-                fallback = Color(0xFF2A3D4E),
+                fallback = AppColors.treemapFallbackBorderFile,
                 borderWidth = borderWidth,
             )
             if (node.path == hoveredNode?.path || node.path == selectedPath) {
@@ -161,7 +162,7 @@ fun TreemapCanvas(
                     var x = topLeft.x - size.height
                     while (x < topLeft.x + size.width) {
                         drawLine(
-                            color = Color(0xAAFFE082),
+                            color = AppColors.treemapConflictStripe,
                             start = Offset(x, topLeft.y + size.height),
                             end = Offset(x + size.height, topLeft.y),
                             strokeWidth = 1f,

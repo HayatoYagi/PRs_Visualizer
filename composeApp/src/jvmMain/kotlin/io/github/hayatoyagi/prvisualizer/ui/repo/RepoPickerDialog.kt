@@ -18,8 +18,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun RepoPickerDialog(
@@ -49,7 +49,7 @@ fun RepoPickerDialog(
                     }
                     Text(
                         text = "${options.size} results",
-                        color = Color(0xFF9EC4DD),
+                        color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 12.dp),
                     )
                 }
@@ -57,13 +57,13 @@ fun RepoPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 120.dp, max = 360.dp)
-                        .background(Color(0xFF13202A), RoundedCornerShape(8.dp))
+                        .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     items(options) { fullName ->
                         Text(
                             text = fullName,
-                            color = Color(0xFFF3FBFF),
+                            color = AppColors.textRepoOption,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onSelect(fullName) }

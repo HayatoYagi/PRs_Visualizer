@@ -6,42 +6,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.net.URI
 
 fun authorColor(author: String): Color {
-    val palette = listOf(
-        Color(0xFF4FC3F7),
-        Color(0xFF81C784),
-        Color(0xFFFF8A65),
-        Color(0xFFBA68C8),
-        Color(0xFFFFD54F),
-        Color(0xFF90A4AE),
-        Color(0xFF64B5F6),
-        Color(0xFFA5D6A7),
-        Color(0xFFFFB74D),
-        Color(0xFFE57373),
-        Color(0xFF4DB6AC),
-        Color(0xFFF06292),
-        Color(0xFF7986CB),
-        Color(0xFFFFA726),
-        Color(0xFF26A69A),
-        Color(0xFFDCE775),
-        Color(0xFF9575CD),
-        Color(0xFFFF7043),
-        Color(0xFF29B6F6),
-        Color(0xFF8D6E63),
-        Color(0xFF9CCC65),
-        Color(0xFFFFCA28),
-        Color(0xFF66BB6A),
-        Color(0xFF42A5F5),
-    )
-    return palette[(author.hashCode().ushr(1)) % palette.size]
+    return AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
 }
 
 fun prColor(pr: PullRequest): Color {
@@ -232,5 +208,77 @@ fun copyToClipboard(text: String) {
     runCatching {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         clipboard.setContents(StringSelection(text), null)
+    }
+}
+
+fun filterRepoOptions(repositoryOptions: List<String>, query: String): List<String> {
+    val q = query.trim()
+    return if (q.isBlank()) {
+        repositoryOptions.take(200)
+    } else {
+        repositoryOptions
+            .filter { it.contains(q, ignoreCase = true) }
+            .take(200)
+    }
+}
+
+fun filterPrs(
+    allPrs: List<PullRequest>,
+    showDrafts: Boolean,
+    onlyMine: Boolean,
+    query: String,
+    currentUser: String,
+): List<PullRequest> {
+    return allPrs.filter { pr ->
+        (showDrafts || !pr.isDraft) &&
+            (!onlyMine || pr.author == currentUser) &&
+            (query.isBlank() || pr.title.contains(query, ignoreCase = true) || "#${pr.number}".contains(query))
+    }
+}
+
+fun computeFileOverlayByPath(
+    visiblePrs: List<PullRequest>,
+    visibleFiles: List<FileNode.File>,
+): Map<String, FileOverlay> {
+    val fileLines = visibleFiles.associateBy({ it.path }, { it.totalLines.coerceAtLeast(1) })
+    return visiblePrs
+        .flatMap { pr -> pr.files.map { change -> pr to change } }
+        .filter { fileLines.containsKey(it.second.path) }
+        .groupBy({ it.second.path }, { it })
+        .mapValues { (_, items) ->
+            val totalChanged = items.sumOf { it.second.changedLines }
+            val dominant = items
+                .groupBy { it.second.changeType }
+                .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
+                ?.key ?: ChangeType.Modification
+            val prs = items.map { it.first }.distinctBy { it.id }
+            val lines = fileLines[items.first().second.path] ?: 1
+            val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)
+            FileOverlay(prs = prs, dominantType = dominant, density = density)
+        }
+}
+
+fun computeDirectoryOverlayByPath(
+    visiblePrs: List<PullRequest>,
+    visibleDirectories: List<FileNode.Directory>,
+): Map<String, DirectoryOverlay> {
+    return visibleDirectories.associate { dir ->
+        val relatedChanges = visiblePrs
+            .flatMap { pr -> pr.files.map { change -> pr to change } }
+            .filter { (_, change) -> change.path.startsWith("${dir.path}/") }
+
+        val relatedPrs = relatedChanges.map { it.first }.distinctBy { it.id }
+        val dominantType = relatedChanges
+            .groupBy { it.second.changeType }
+            .maxByOrNull { (_, items) -> items.sumOf { it.second.changedLines } }
+            ?.key
+        val totalChanged = relatedChanges.sumOf { it.second.changedLines }
+        val density = (totalChanged.toFloat() / totalLines(dir).coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+
+        dir.path to DirectoryOverlay(
+            prs = relatedPrs,
+            dominantType = dominantType,
+            density = density,
+        )
     }
 }

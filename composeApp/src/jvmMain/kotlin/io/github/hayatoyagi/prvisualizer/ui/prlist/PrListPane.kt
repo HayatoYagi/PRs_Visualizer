@@ -22,12 +22,12 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.shared.prColor
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun PrListPane(
@@ -48,11 +48,11 @@ fun PrListPane(
         modifier = modifier
             .width(340.dp)
             .fillMaxHeight()
-            .background(Color(0xFF18212B))
+            .background(AppColors.backgroundPane)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Open PRs", color = Color(0xFFE8F1F8), style = MaterialTheme.typography.titleLarge)
+        Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
         TextField(
             value = query,
             onValueChange = onQueryChange,
@@ -61,13 +61,13 @@ fun PrListPane(
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Switch(checked = showDrafts, onCheckedChange = onShowDraftsChange)
-            Text("Show draft", color = Color(0xFFD1DEEB))
+            Text("Show draft", color = AppColors.textBodyMuted)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Switch(checked = onlyMine, onCheckedChange = onOnlyMineChange)
-            Text("Only my PRs", color = Color(0xFFD1DEEB))
+            Text("Only my PRs", color = AppColors.textBodyMuted)
         }
-        HorizontalDivider(color = Color(0xFF2C3D4E))
+        HorizontalDivider(color = AppColors.prListDivider)
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -85,7 +85,7 @@ fun PrListPane(
                             shape = MaterialTheme.shapes.medium,
                         )
                         .padding(8.dp),
-                    color = if (pr.isDraft) Color(0xFF253748) else Color(0xFF203041),
+                    color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
                     onClick = { onOpenPr(pr.url) },
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
@@ -103,14 +103,14 @@ fun PrListPane(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "#${pr.number} ${pr.title}",
-                                color = Color(0xFFEAF2F8),
+                                color = AppColors.textPrItem,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 fontWeight = if (relatedToSelection) FontWeight.Bold else FontWeight.Normal,
                             )
                             Text(
                                 text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
-                                color = Color(0xFFB5C8D8),
+                                color = AppColors.textMeta,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -120,7 +120,7 @@ fun PrListPane(
         }
         Text(
             text = "Cmd+R: reset view  /  Cmd+F: clear search",
-            color = Color(0xFF8FA8BC),
+            color = AppColors.textHint,
             style = MaterialTheme.typography.bodySmall,
         )
     }

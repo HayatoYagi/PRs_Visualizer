@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun TreemapOverlay(
@@ -41,7 +42,7 @@ fun TreemapOverlay(
         val label = if (node.isDirectory) "${node.name}/" else node.name
         Text(
             text = label,
-            color = if (node.isDirectory) Color(0xFFFFD37A) else Color(0xFFDAE8F3),
+            color = if (node.isDirectory) AppColors.explorerNodeDir else AppColors.textCanvasLabel,
             style = MaterialTheme.typography.labelSmall,
             modifier = modifier
                 .offset {
@@ -62,7 +63,7 @@ fun TreemapOverlay(
         val suffix = if (overlay.prs.size > 3) " +" else ""
         Text(
             text = "$prText$suffix",
-            color = Color(0xFFEAF2F8),
+            color = AppColors.textPrItem,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -85,21 +86,21 @@ fun TreemapOverlay(
                         y = (pointerPos.y + 12f).toInt(),
                     )
                 }
-                .border(1.dp, Color(0xFF3E5A72)),
-            color = Color(0xFF12212F),
+                .border(1.dp, AppColors.tooltipBorder),
+            color = AppColors.tooltipBackground,
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(hoveredNode.name, color = Color.White, fontWeight = FontWeight.SemiBold)
                 Text(
                     text = if (hoveredNode.isDirectory) "Type: Directory" else "Type: File",
-                    color = Color(0xFFC5D8E7),
+                    color = AppColors.textTooltip,
                 )
-                Text("Path: ${hoveredNode.path}", color = Color(0xFFC5D8E7))
-                Text("LOC: ${hoveredNode.totalLines}", color = Color(0xFFC5D8E7))
+                Text("Path: ${hoveredNode.path}", color = AppColors.textTooltip)
+                Text("LOC: ${hoveredNode.totalLines}", color = AppColors.textTooltip)
                 val prs = if (hoveredNode.isDirectory) hoveredDirOverlay?.prs.orEmpty() else hoveredOverlay?.prs.orEmpty()
                 Text(
                     text = if (prs.isEmpty()) "PR: none" else "PR: ${prs.joinToString { "#${it.number} ${it.author}" }}",
-                    color = if (prs.size > 1) Color(0xFFFFD37A) else Color(0xFFC5D8E7),
+                    color = if (prs.size > 1) AppColors.textTooltipMultiPr else AppColors.textTooltip,
                 )
             }
         }

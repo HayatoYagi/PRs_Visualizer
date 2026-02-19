@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.nodeKey
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -88,7 +90,7 @@ fun TreemapPane(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(androidx.compose.ui.graphics.Color(0xFF0F2832))
+                .background(AppColors.backgroundHeader)
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -104,7 +106,7 @@ fun TreemapPane(
             }
             Text(
                 text = "Focus: /${focusPath.ifBlank { "" }}",
-                color = androidx.compose.ui.graphics.Color(0xFFDCEAF5),
+                color = AppColors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -114,13 +116,14 @@ fun TreemapPane(
             }
             Text(
                 text = "Visible PRs: ${visiblePrs.size}",
-                color = androidx.compose.ui.graphics.Color(0xFF9EC4DD),
+                color = AppColors.textSecondary,
             )
         }
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(androidx.compose.ui.graphics.Color(0xFF0B1117))
+                .clipToBounds()
+                .background(AppColors.backgroundCanvas)
                 .onSizeChanged { canvasSize = it }
                 .onPointerEvent(PointerEventType.Move) { event ->
                     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
