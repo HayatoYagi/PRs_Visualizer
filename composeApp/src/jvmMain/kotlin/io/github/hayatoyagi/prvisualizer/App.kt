@@ -104,6 +104,11 @@ fun App() {
         filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
     }
 
+    // Ensure all PRs have colors assigned
+    LaunchedEffect(allPrs) {
+        vm.ensurePrColors(allPrs)
+    }
+
     val focusRoot = remember(root, vm.focusPath) {
         findDirectory(root, vm.focusPath) ?: root
     }
@@ -163,6 +168,7 @@ fun App() {
                 repo = vm.repo,
                 isLoggedIn = githubSession.oauthToken.isNotBlank(),
                 onOpenRepoDialog = { vm.openRepoDialog() },
+                onShuffleColors = { vm.shufflePrColors(allPrs) },
             )
             AuthRow(
                 oauthClientId = oauthClientId,
@@ -241,6 +247,7 @@ fun App() {
                     selectedPath = vm.selectedPath,
                     fileOverlayByPath = fileOverlayByPath,
                     directoryOverlayByPath = directoryOverlayByPath,
+                    prColorMap = vm.prColorMap,
                     viewportResetToken = vm.viewportResetToken,
                     onFocusPathChange = { vm.changeFocusPath(it) },
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
@@ -252,6 +259,7 @@ fun App() {
                     filteredPrs = filteredPrs,
                     selectedPrIds = effectiveSelectedIds,
                     selectedPath = vm.selectedPath,
+                    prColorMap = vm.prColorMap,
                     query = vm.query,
                     showDrafts = vm.showDrafts,
                     onlyMine = vm.onlyMine,
@@ -264,6 +272,7 @@ fun App() {
                         vm.togglePr(prId, checked)
                     },
                     onOpenPr = { openUrl(it) },
+                    onCyclePrColor = { vm.cyclePrColor(it) },
                 )
             }
         }

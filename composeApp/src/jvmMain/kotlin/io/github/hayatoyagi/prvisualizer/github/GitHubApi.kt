@@ -175,7 +175,7 @@ class GitHubApi(
             throw GitHubAuthExpiredException("GitHub token expired or revoked. Please login again.")
         }
         if (response.statusCode() !in 200..299) {
-            error("GitHub API error ${response.statusCode()} for $url: ${response.body()}")
+            throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
         return response.body()
     }
