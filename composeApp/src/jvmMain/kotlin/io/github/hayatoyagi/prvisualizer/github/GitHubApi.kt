@@ -195,6 +195,10 @@ class GitHubApi(
             return dirsByPath.getOrPut(path) {
                 val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
                 val dirName = path.substringAfterLast('/')
+                // Validate that directory names starting with . are handled correctly
+                if (dirName.isEmpty() && path.isNotEmpty()) {
+                    println("GitHubApi: ERROR - Empty directory name for path: '$path'")
+                }
                 // Log directory creation for hidden directories to help diagnose issues
                 if (dirName.startsWith(".")) {
                     println("GitHubApi: Creating hidden directory: path='$path', name='$dirName', parent='$parentPath'")
@@ -245,7 +249,23 @@ class GitHubApi(
             )
         }
 
-        return freeze(root)
+        val frozenRoot = freeze(root)
+        
+        // Verify that hidden directories are in the final tree
+        fun countHiddenDirs(node: FileNode): Int {
+            return when (node) {
+                is FileNode.Directory -> {
+                    val isHidden = node.name.startsWith(".") || node.path.contains("/.")
+                    (if (isHidden) 1 else 0) + node.children.sumOf { countHiddenDirs(it) }
+                }
+                else -> 0
+            }
+        }
+        
+        val hiddenDirCount = countHiddenDirs(frozenRoot)
+        println("GitHubApi: Frozen tree contains $hiddenDirCount hidden directories")
+        
+        return frozenRoot
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
