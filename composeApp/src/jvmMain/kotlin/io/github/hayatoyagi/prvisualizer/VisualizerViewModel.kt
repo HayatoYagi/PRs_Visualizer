@@ -150,6 +150,17 @@ class VisualizerViewModel(
         prColorMap = prColorMap + (prId to color)
     }
 
+    fun cyclePrColor(prId: String) {
+        val currentColor = prColorMap[prId]
+        val currentIndex = if (currentColor != null) {
+            AppColors.authorPalette.indexOf(currentColor)
+        } else {
+            -1
+        }
+        val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
+        prColorMap = prColorMap + (prId to AppColors.authorPalette[nextIndex])
+    }
+
     private fun randomColor(): Color {
         return AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
     }

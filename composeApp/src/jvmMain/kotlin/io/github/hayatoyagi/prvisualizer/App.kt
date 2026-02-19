@@ -258,6 +258,7 @@ fun App() {
                         vm.togglePr(prId, checked)
                     },
                     onOpenPr = { openUrl(it) },
+                    onCyclePrColor = { vm.cyclePrColor(it) },
                 )
             }
         }

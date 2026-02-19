@@ -22,6 +22,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,7 @@ fun PrListPane(
     onOnlyMineChange: (Boolean) -> Unit,
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
     onOpenPr: (String) -> Unit,
+    onCyclePrColor: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -100,7 +102,14 @@ fun PrListPane(
                                 .width(12.dp)
                                 .fillMaxHeight(0.2f)
                                 .background(prColor(pr, prColorMap)),
-                        )
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxHeight(),
+                                color = androidx.compose.ui.graphics.Color.Transparent,
+                                onClick = { onCyclePrColor(pr.id) },
+                            ) {}
+                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "#${pr.number} ${pr.title}",
