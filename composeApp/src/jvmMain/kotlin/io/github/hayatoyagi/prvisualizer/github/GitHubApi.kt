@@ -129,10 +129,15 @@ class GitHubApi(
             if (node.optString("type") != "blob") return@repeat
             val path = node.optString("path")
             if (path.isBlank()) return@repeat
+            // Log files that start with . to help diagnose issues with hidden directories
+            if (path.startsWith(".")) {
+                println("GitHubApi: Processing hidden file: $path")
+            }
             val size = node.optInt("size", 0)
             val estimatedLines = maxOf(1, size / 40)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
         }
+        println("GitHubApi: Total files processed: ${files.size}, hidden files: ${files.count { it.path.startsWith(".") }}")
         return files
     }
 
@@ -190,6 +195,10 @@ class GitHubApi(
             return dirsByPath.getOrPut(path) {
                 val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
                 val dirName = path.substringAfterLast('/')
+                // Log directory creation for hidden directories to help diagnose issues
+                if (dirName.startsWith(".")) {
+                    println("GitHubApi: Creating hidden directory: path='$path', name='$dirName', parent='$parentPath'")
+                }
                 val parent = ensureDir(parentPath)
                 val newDir = MutableDir(path = path, name = dirName)
                 parent.children += newDir
@@ -202,6 +211,9 @@ class GitHubApi(
             val dir = ensureDir(parentPath)
             dir.children += file
         }
+
+        println("GitHubApi: Total directories created: ${dirsByPath.size}, hidden directories: ${dirsByPath.keys.count { it.startsWith(".") || it.contains("/.") }}")
+        println("GitHubApi: Directories: ${dirsByPath.keys.filter { it.startsWith(".") || it.contains("/.") }.sorted()}")
 
         fun freeze(dir: MutableDir): FileNode.Directory {
             val frozenChildren = dir.children.map { child ->
