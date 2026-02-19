@@ -34,6 +34,7 @@ fun PrListPane(
     filteredPrs: List<PullRequest>,
     selectedPrIds: Set<String>,
     selectedPath: String?,
+    prColorMap: Map<String, Color>,
     query: String,
     showDrafts: Boolean,
     onlyMine: Boolean,
@@ -75,7 +76,7 @@ fun PrListPane(
             items(filteredPrs, key = { it.id }) { pr ->
                 val checked = selectedPrIds.contains(pr.id)
                 val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
-                val listBorderColor = if (checked) prColor(pr) else prColor(pr).copy(alpha = 0.45f)
+                val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -98,7 +99,7 @@ fun PrListPane(
                                 .padding(top = 8.dp, end = 8.dp)
                                 .width(12.dp)
                                 .fillMaxHeight(0.2f)
-                                .background(prColor(pr)),
+                                .background(prColor(pr, prColorMap)),
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(

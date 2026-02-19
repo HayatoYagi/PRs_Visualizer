@@ -4,9 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlin.random.Random
 
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
@@ -33,6 +36,12 @@ class VisualizerViewModel(
     var query by mutableStateOf("")
         private set
     var selectedPrIds by mutableStateOf<Set<String>>(emptySet())
+        private set
+
+    // PR color management
+    var prColorMap by mutableStateOf<Map<String, Color>>(emptyMap())
+        private set
+    var colorShuffleToken by mutableIntStateOf(0)
         private set
 
     // Navigation
@@ -111,5 +120,37 @@ class VisualizerViewModel(
 
     fun resetViewport() {
         viewportResetToken += 1
+    }
+
+    // PR color management intents
+    fun ensurePrColors(prs: List<PullRequest>) {
+        val newMap = prColorMap.toMutableMap()
+        var changed = false
+        prs.forEach { pr ->
+            if (!newMap.containsKey(pr.id)) {
+                newMap[pr.id] = randomColor()
+                changed = true
+            }
+        }
+        if (changed) {
+            prColorMap = newMap
+        }
+    }
+
+    fun shufflePrColors(prs: List<PullRequest>) {
+        val newMap = mutableMapOf<String, Color>()
+        prs.forEach { pr ->
+            newMap[pr.id] = randomColor()
+        }
+        prColorMap = newMap
+        colorShuffleToken += 1
+    }
+
+    fun setPrColor(prId: String, color: Color) {
+        prColorMap = prColorMap + (prId to color)
+    }
+
+    private fun randomColor(): Color {
+        return AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
     }
 }
