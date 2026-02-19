@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -98,13 +99,18 @@ fun PrListPane(
                             onCheckedChange = { onTogglePr(pr.id, it) },
                         )
                         Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .padding(top = 8.dp, end = 8.dp)
-                                .width(12.dp)
-                                .fillMaxHeight(0.2f)
-                                .background(prColor(pr, prColorMap))
+                                .padding(top = 4.dp, end = 4.dp)
+                                .size(24.dp)
                                 .clickable { onCyclePrColor(pr.id) },
-                        )
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(prColor(pr, prColorMap)),
+                            )
+                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "#${pr.number} ${pr.title}",

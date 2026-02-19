@@ -69,6 +69,7 @@ class VisualizerViewModel(
         repo = fullName.substringAfter('/', fullName)
         isRepoDialogOpen = false
         selectedPrIds = emptySet()
+        prColorMap = emptyMap()
         resetNavigation()
     }
 
@@ -126,7 +127,7 @@ class VisualizerViewModel(
         if (prsNeedingColors.isNotEmpty()) {
             val newMap = prColorMap.toMutableMap()
             prsNeedingColors.forEach { pr ->
-                newMap[pr.id] = randomColor()
+                newMap[pr.id] = randomColorAvoidingMap(newMap)
             }
             prColorMap = newMap
         }
@@ -135,13 +136,9 @@ class VisualizerViewModel(
     fun shufflePrColors(prs: List<PullRequest>) {
         val newMap = mutableMapOf<String, Color>()
         prs.forEach { pr ->
-            newMap[pr.id] = randomColor()
+            newMap[pr.id] = randomColorAvoidingMap(newMap)
         }
         prColorMap = newMap
-    }
-
-    fun setPrColor(prId: String, color: Color) {
-        prColorMap = prColorMap + (prId to color)
     }
 
     fun cyclePrColor(prId: String) {
@@ -155,15 +152,13 @@ class VisualizerViewModel(
         prColorMap = prColorMap + (prId to AppColors.authorPalette[nextIndex])
     }
 
-    private fun randomColor(): Color {
-        // Try to avoid selecting the same color as recently used
-        val recentColors = prColorMap.values.toList().takeLast(5).toSet()
+    private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
+        // Avoid the 5 most recently assigned colors (map preserves insertion order)
+        val recentColors = assignedMap.values.toList().takeLast(5).toSet()
         val availableColors = AppColors.authorPalette.filter { it !in recentColors }
-        
         return if (availableColors.isNotEmpty()) {
             availableColors[Random.nextInt(availableColors.size)]
         } else {
-            // Fall back to any color if all are recently used
             AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
         }
     }
