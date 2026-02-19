@@ -42,6 +42,9 @@ class VisualizerViewModel(
         private set
     var viewportResetToken by mutableIntStateOf(0)
         private set
+    
+    // Navigation history for back/forward buttons
+    private val navigationHistory = NavigationHistory()
 
     // Dialog intents
     fun openRepoDialog() {
@@ -85,17 +88,21 @@ class VisualizerViewModel(
 
     // Navigation intents
     fun selectDirectory(path: String) {
+        navigationHistory.recordFocusPath(path)
         focusPath = path
         viewportResetToken += 1
     }
 
     fun selectFile(path: String) {
         selectedPath = path
-        focusPath = parentPathOf(path)
+        val parentPath = parentPathOf(path)
+        navigationHistory.recordFocusPath(parentPath)
+        focusPath = parentPath
         viewportResetToken += 1
     }
 
     fun changeFocusPath(path: String) {
+        navigationHistory.recordFocusPath(path)
         focusPath = path
         viewportResetToken += 1
     }
@@ -107,9 +114,48 @@ class VisualizerViewModel(
     fun resetNavigation() {
         focusPath = ""
         selectedPath = null
+        navigationHistory.clear()
     }
 
     fun resetViewport() {
         viewportResetToken += 1
     }
+
+    /**
+     * Navigates back in history. Returns true if navigation occurred.
+     */
+    fun navigateBack(): Boolean {
+        val previousPath = navigationHistory.navigateBack()
+        return if (previousPath != null) {
+            focusPath = previousPath
+            viewportResetToken += 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Navigates forward in history. Returns true if navigation occurred.
+     */
+    fun navigateForward(): Boolean {
+        val nextPath = navigationHistory.navigateForward()
+        return if (nextPath != null) {
+            focusPath = nextPath
+            viewportResetToken += 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Returns true if back navigation is possible.
+     */
+    fun canNavigateBack(): Boolean = navigationHistory.canNavigateBack()
+
+    /**
+     * Returns true if forward navigation is possible.
+     */
+    fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 }

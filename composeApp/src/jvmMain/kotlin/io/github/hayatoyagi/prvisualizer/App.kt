@@ -18,6 +18,9 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
@@ -127,6 +130,17 @@ fun App() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.backgroundMain)
+                .onPointerEvent(PointerEventType.Release) { event ->
+                    when (event.button) {
+                        PointerButton.Back -> {
+                            vm.navigateBack()
+                        }
+                        PointerButton.Forward -> {
+                            vm.navigateForward()
+                        }
+                        else -> {}
+                    }
+                }
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false
