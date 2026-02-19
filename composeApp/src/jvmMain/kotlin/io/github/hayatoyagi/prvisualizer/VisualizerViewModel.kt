@@ -157,7 +157,7 @@ class VisualizerViewModel(
 
     private fun randomColor(): Color {
         // Try to avoid selecting the same color as recently used
-        val recentColors = prColorMap.values.takeLast(5).toSet()
+        val recentColors = prColorMap.values.toList().takeLast(5).toSet()
         val availableColors = AppColors.authorPalette.filter { it !in recentColors }
         
         return if (availableColors.isNotEmpty()) {
