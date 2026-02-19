@@ -24,4 +24,4 @@ jobs:
         cache-read-only: ${{ github.event_name == 'pull_request' }}
         
     - name: Build with Gradle
-      run: ./gradlew :composeApp:build
+      run: ./gradlew :composeApp:build --stacktrace
