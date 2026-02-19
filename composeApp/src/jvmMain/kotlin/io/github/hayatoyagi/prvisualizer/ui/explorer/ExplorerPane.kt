@@ -79,24 +79,20 @@ fun ExplorerPane(
                     
                     // Show status label with color
                     if (row.dominantType != null || row.hasConflict) {
-                        val labelText = when {
-                            row.hasConflict -> "CONFLICT"
-                            row.dominantType == ChangeType.Addition -> "ADD"
-                            row.dominantType == ChangeType.Modification -> "MOD"
-                            row.dominantType == ChangeType.Deletion -> "DEL"
-                            else -> ""
+                        data class StatusLabel(val text: String, val color: Color)
+                        
+                        val statusLabel = when {
+                            row.hasConflict -> StatusLabel("CONFLICT", AppColors.treemapConflictStripe)
+                            row.dominantType == ChangeType.Addition -> StatusLabel("ADD", AppColors.treemapAddition)
+                            row.dominantType == ChangeType.Modification -> StatusLabel("MOD", AppColors.treemapModification)
+                            row.dominantType == ChangeType.Deletion -> StatusLabel("DEL", AppColors.treemapDeletion)
+                            else -> null
                         }
-                        val labelColor = when {
-                            row.hasConflict -> AppColors.treemapConflictStripe
-                            row.dominantType == ChangeType.Addition -> AppColors.treemapAddition
-                            row.dominantType == ChangeType.Modification -> AppColors.treemapModification
-                            row.dominantType == ChangeType.Deletion -> AppColors.treemapDeletion
-                            else -> AppColors.textBody
-                        }
-                        if (labelText.isNotEmpty()) {
+                        
+                        statusLabel?.let {
                             Text(
-                                text = "[$labelText]",
-                                color = labelColor,
+                                text = "[${it.text}]",
+                                color = it.color,
                                 style = MaterialTheme.typography.labelSmall,
                             )
                             Spacer(modifier = Modifier.width(6.dp))

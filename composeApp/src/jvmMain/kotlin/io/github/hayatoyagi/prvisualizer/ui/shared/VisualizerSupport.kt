@@ -178,17 +178,15 @@ fun buildExplorerRows(
     val rows = mutableListOf<ExplorerRow>()
 
     fun visit(node: FileNode, depth: Int) {
-        val dominantType: ChangeType?
-        val hasConflict: Boolean
-        
-        if (node is FileNode.Directory) {
-            val overlay = directoryOverlayByPath[node.path]
-            dominantType = overlay?.dominantType
-            hasConflict = (overlay?.prs?.size ?: 0) > 1
-        } else {
-            val overlay = fileOverlayByPath[node.path]
-            dominantType = overlay?.dominantType
-            hasConflict = (overlay?.prs?.size ?: 0) > 1
+        val (dominantType, hasConflict) = when (node) {
+            is FileNode.Directory -> {
+                val overlay = directoryOverlayByPath[node.path]
+                Pair(overlay?.dominantType, (overlay?.prs?.size ?: 0) > 1)
+            }
+            is FileNode.File -> {
+                val overlay = fileOverlayByPath[node.path]
+                Pair(overlay?.dominantType, (overlay?.prs?.size ?: 0) > 1)
+            }
         }
         
         rows += ExplorerRow(
