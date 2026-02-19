@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.PointerButton
@@ -52,6 +53,7 @@ fun TreemapPane(
     selectedPath: String?,
     fileOverlayByPath: Map<String, FileOverlay>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    prColorMap: Map<String, Color>,
     viewportResetToken: Int,
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
@@ -198,6 +200,7 @@ fun TreemapPane(
                 visibleFiles = visibleFiles,
                 directoryOverlayByPath = directoryOverlayByPath,
                 fileOverlayByPath = fileOverlayByPath,
+                prColorMap = prColorMap,
                 hoveredNode = hoveredNode,
                 selectedPath = selectedPath,
                 zoom = zoom,

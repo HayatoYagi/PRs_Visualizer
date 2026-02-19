@@ -4,9 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlin.random.Random
 
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
@@ -33,6 +36,10 @@ class VisualizerViewModel(
     var query by mutableStateOf("")
         private set
     var selectedPrIds by mutableStateOf<Set<String>>(emptySet())
+        private set
+
+    // PR color management
+    var prColorMap by mutableStateOf<Map<String, Color>>(emptyMap())
         private set
 
     // Navigation
@@ -62,6 +69,7 @@ class VisualizerViewModel(
         repo = fullName.substringAfter('/', fullName)
         isRepoDialogOpen = false
         selectedPrIds = emptySet()
+        prColorMap = emptyMap()
         resetNavigation()
     }
 
@@ -111,5 +119,47 @@ class VisualizerViewModel(
 
     fun resetViewport() {
         viewportResetToken += 1
+    }
+
+    // PR color management intents
+    fun ensurePrColors(prs: List<PullRequest>) {
+        val prsNeedingColors = prs.filter { !prColorMap.containsKey(it.id) }
+        if (prsNeedingColors.isNotEmpty()) {
+            val newMap = prColorMap.toMutableMap()
+            prsNeedingColors.forEach { pr ->
+                newMap[pr.id] = randomColorAvoidingMap(newMap)
+            }
+            prColorMap = newMap
+        }
+    }
+
+    fun shufflePrColors(prs: List<PullRequest>) {
+        val newMap = mutableMapOf<String, Color>()
+        prs.forEach { pr ->
+            newMap[pr.id] = randomColorAvoidingMap(newMap)
+        }
+        prColorMap = newMap
+    }
+
+    fun cyclePrColor(prId: String) {
+        val currentColor = prColorMap[prId]
+        val currentIndex = if (currentColor != null) {
+            AppColors.authorPalette.indexOf(currentColor)
+        } else {
+            -1
+        }
+        val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
+        prColorMap = prColorMap + (prId to AppColors.authorPalette[nextIndex])
+    }
+
+    private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
+        // Avoid the 5 most recently assigned colors (map preserves insertion order)
+        val recentColors = assignedMap.values.toList().takeLast(5).toSet()
+        val availableColors = AppColors.authorPalette.filter { it !in recentColors }
+        return if (availableColors.isNotEmpty()) {
+            availableColors[Random.nextInt(availableColors.size)]
+        } else {
+            AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
+        }
     }
 }
