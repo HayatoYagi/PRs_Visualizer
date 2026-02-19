@@ -44,9 +44,9 @@ class GitHubApiTest {
     }
     
     @Test
-    fun testBuildTreeWithHiddenDirectories() {
-        // This test will help us understand how buildTree handles .github directory
-        // We need to make buildTree accessible for testing
+    fun testPathExtractionForHiddenDirectories() {
+        // This test verifies path extraction logic for hidden files and directories
+        // Note: To test buildTree itself, it would need to be made internal or public
         
         // Simulate file paths from a real repository
         val testPaths = listOf(
@@ -56,15 +56,14 @@ class GitHubApiTest {
             "src/main.kt"
         )
         
-        // For now, just verify path extraction logic
+        // Verify path extraction logic for each file
         testPaths.forEach { path ->
             val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
             
-            // If path contains directory separator, parent should not be empty for most cases
-            // Except for root-level files
+            // Files with directory separator should have a parent path
             if (path.contains('/')) {
-                assertTrue(parentPath.isNotEmpty() || path.startsWith('.'), 
-                    "Parent path should not be empty for $path, got: '$parentPath'")
+                assertTrue(parentPath.isNotEmpty(),
+                    "Parent path should not be empty for $path with /, got: '$parentPath'")
             }
         }
     }

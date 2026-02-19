@@ -216,8 +216,8 @@ class GitHubApi(
             dir.children += file
         }
 
-        println("GitHubApi: Total directories created: ${dirsByPath.size}, hidden directories: ${dirsByPath.keys.count { it.startsWith(".") || it.contains("/.") }}")
-        println("GitHubApi: Directories: ${dirsByPath.keys.filter { it.startsWith(".") || it.contains("/.") }.sorted()}")
+        println("GitHubApi: Total directories created: ${dirsByPath.size}, hidden directories: ${dirsByPath.keys.count { it.split('/').any { part -> part.startsWith(".") } }}")
+        println("GitHubApi: Directories: ${dirsByPath.keys.filter { it.split('/').any { part -> part.startsWith(".") } }.sorted()}")
 
         fun freeze(dir: MutableDir): FileNode.Directory {
             val frozenChildren = dir.children.map { child ->
@@ -255,7 +255,8 @@ class GitHubApi(
         fun countHiddenDirs(node: FileNode): Int {
             return when (node) {
                 is FileNode.Directory -> {
-                    val isHidden = node.name.startsWith(".") || node.path.contains("/.")
+                    // A directory is hidden only if its name starts with '.'
+                    val isHidden = node.name.startsWith(".")
                     (if (isHidden) 1 else 0) + node.children.sumOf { countHiddenDirs(it) }
                 }
                 else -> 0
