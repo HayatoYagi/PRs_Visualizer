@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.explorer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,7 +80,6 @@ fun ExplorerPane(
                 ) {
                     Spacer(modifier = Modifier.width((row.depth * 12).dp))
                     
-                    // Show status label with color
                     val statusLabel = when {
                         row.hasConflict -> StatusLabel("CONFLICT", AppColors.treemapConflictStripe)
                         row.dominantType == ChangeType.Addition -> StatusLabel("ADD", AppColors.treemapAddition)
@@ -87,16 +87,17 @@ fun ExplorerPane(
                         row.dominantType == ChangeType.Deletion -> StatusLabel("DEL", AppColors.treemapDeletion)
                         else -> null
                     }
-                    
-                    statusLabel?.let {
-                        Text(
-                            text = "[${it.text}]",
-                            color = it.color,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+
+                    Box(modifier = Modifier.width(84.dp)) {
+                        statusLabel?.let {
+                            Text(
+                                text = "[${it.text}]",
+                                color = it.color,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                     }
-                    
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (row.isDirectory) "${row.name}/" else row.name,
                         color = when {
