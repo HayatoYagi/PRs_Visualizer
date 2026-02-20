@@ -52,7 +52,15 @@ class GitHubApi(
             .map { it.path }
             .toSet()
 
-        val rootNode = buildTree(fileSeeds, activePaths)
+        // Include files that are newly added in PRs (not in default branch)
+        val allPrFileChanges = pullRequests.flatMap { it.files }
+        val newlyAddedFiles = allPrFileChanges
+            .filter { it.additions > 0 && it.deletions == 0 }
+            .filter { change -> fileSeeds.none { seed -> seed.path == change.path } }
+            .map { change -> FileSeed(path = change.path, estimatedLines = maxOf(1, change.additions)) }
+        
+        val allFileSeeds = fileSeeds + newlyAddedFiles
+        val rootNode = buildTree(allFileSeeds, activePaths)
         GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
     }
 

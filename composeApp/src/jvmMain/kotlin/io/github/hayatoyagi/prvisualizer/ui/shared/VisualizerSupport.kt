@@ -276,16 +276,17 @@ fun computeFileOverlayByPath(
     val fileLines = visibleFiles.associateBy({ it.path }, { it.totalLines.coerceAtLeast(1) })
     return visiblePrs
         .flatMap { pr -> pr.files.map { change -> pr to change } }
-        .filter { fileLines.containsKey(it.second.path) }
+        // Don't filter out newly added files that aren't in the default branch
         .groupBy({ it.second.path }, { it })
-        .mapValues { (_, items) ->
+        .mapValues { (path, items) ->
             val totalChanged = items.sumOf { it.second.changedLines }
             val dominant = items
                 .groupBy { it.second.changeType }
                 .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
                 ?.key ?: ChangeType.Modification
             val prs = items.map { it.first }.distinctBy { it.id }
-            val lines = fileLines[items.first().second.path] ?: 1
+            // For newly added files, use additions as the line count
+            val lines = fileLines[path] ?: items.first().second.additions.coerceAtLeast(1)
             val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)
             FileOverlay(prs = prs, dominantType = dominant, density = density)
         }
