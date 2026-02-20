@@ -124,7 +124,7 @@ class GitHubApi(
         val extension = path.substringAfterLast('.', "").lowercase()
         val binaryExtensions = setOf(
             // Images
-            "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "svg", "tiff", "tif",
+            "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif",
             // Archives
             "zip", "tar", "gz", "bz2", "7z", "rar", "xz",
             // Executables and libraries
