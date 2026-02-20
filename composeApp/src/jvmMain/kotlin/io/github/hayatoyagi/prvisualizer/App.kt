@@ -112,22 +112,41 @@ fun App() {
     val focusRoot = remember(root, vm.focusPath) {
         findDirectory(root, vm.focusPath) ?: root
     }
-    val explorerRows = remember(root) {
-        buildExplorerRows(root)
-    }
-    val visibleFiles = remember(focusRoot) {
-        focusRoot.children.filterIsInstance<FileNode.File>()
-    }
-    val visibleDirectories = remember(focusRoot) {
-        focusRoot.children.filterIsInstance<FileNode.Directory>()
+    
+    val allFiles = remember(root) {
+        buildList {
+            fun collectFiles(node: FileNode) {
+                when (node) {
+                    is FileNode.File -> add(node)
+                    is FileNode.Directory -> node.children.forEach(::collectFiles)
+                }
+            }
+            collectFiles(root)
+        }
     }
 
-    val fileOverlayByPath = remember(visiblePrs, visibleFiles) {
-        computeFileOverlayByPath(visiblePrs, visibleFiles)
+    val allDirectories = remember(root) {
+        buildList {
+            fun collectDirectories(dir: FileNode.Directory) {
+                add(dir)
+                dir.children.forEach { child ->
+                    if (child is FileNode.Directory) collectDirectories(child)
+                }
+            }
+            collectDirectories(root)
+        }
     }
 
-    val directoryOverlayByPath = remember(visiblePrs, visibleDirectories) {
-        computeDirectoryOverlayByPath(visiblePrs, visibleDirectories)
+    val fileOverlayByPath = remember(visiblePrs, allFiles) {
+        computeFileOverlayByPath(visiblePrs, allFiles)
+    }
+
+    val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
+        computeDirectoryOverlayByPath(visiblePrs, allDirectories)
+    }
+
+    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
+        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
     }
 
     MaterialTheme {
