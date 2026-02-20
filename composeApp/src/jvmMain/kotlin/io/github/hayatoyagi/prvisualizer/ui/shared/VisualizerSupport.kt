@@ -285,8 +285,8 @@ fun computeFileOverlayByPath(
                 .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
                 ?.key ?: ChangeType.Modification
             val prs = items.map { it.first }.distinctBy { it.id }
-            // For newly added files, use additions as the line count
-            val lines = fileLines[path] ?: items.first().second.additions.coerceAtLeast(1)
+            // For newly added files, use the maximum additions as the line count estimate
+            val lines = fileLines[path] ?: items.maxOf { it.second.additions }.coerceAtLeast(1)
             val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)
             FileOverlay(prs = prs, dominantType = dominant, density = density)
         }

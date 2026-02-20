@@ -57,7 +57,11 @@ class GitHubApi(
         val newlyAddedFiles = allPrFileChanges
             .filter { it.additions > 0 && it.deletions == 0 }
             .filter { change -> fileSeeds.none { seed -> seed.path == change.path } }
-            .map { change -> FileSeed(path = change.path, estimatedLines = maxOf(1, change.additions)) }
+            .groupBy { it.path }
+            .map { (path, changes) -> 
+                // Use max additions if multiple PRs add the same file
+                FileSeed(path = path, estimatedLines = maxOf(1, changes.maxOf { it.additions }))
+            }
         
         val allFileSeeds = fileSeeds + newlyAddedFiles
         val rootNode = buildTree(allFileSeeds, activePaths)
