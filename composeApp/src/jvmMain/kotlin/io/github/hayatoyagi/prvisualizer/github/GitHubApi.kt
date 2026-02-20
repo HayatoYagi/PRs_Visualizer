@@ -30,6 +30,23 @@ class GitHubApi(
 ) {
     private val client = HttpClient.newHttpClient()
 
+    companion object {
+        private val BINARY_EXTENSIONS = setOf(
+            // Images
+            "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif",
+            // Archives
+            "zip", "tar", "gz", "bz2", "7z", "rar", "xz",
+            // Executables and libraries
+            "exe", "dll", "so", "dylib", "bin", "app",
+            // Documents and fonts
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "ttf", "otf", "woff", "woff2",
+            // Media
+            "mp3", "mp4", "avi", "mov", "wav", "flac", "ogg",
+            // Other binary formats
+            "class", "jar", "war", "pyc", "o", "a", "lib",
+        )
+    }
+
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { "token is required" }
         val repos = loadRepositoryNamesByPage { page ->
@@ -121,22 +138,10 @@ class GitHubApi(
     }
 
     private fun isBinaryFile(path: String): Boolean {
-        val extension = path.substringAfterLast('.', "").lowercase()
-        val binaryExtensions = setOf(
-            // Images
-            "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif",
-            // Archives
-            "zip", "tar", "gz", "bz2", "7z", "rar", "xz",
-            // Executables and libraries
-            "exe", "dll", "so", "dylib", "bin", "app",
-            // Documents and fonts
-            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "ttf", "otf", "woff", "woff2",
-            // Media
-            "mp3", "mp4", "avi", "mov", "wav", "flac", "ogg",
-            // Other binary formats
-            "class", "jar", "war", "pyc", "o", "a", "lib",
-        )
-        return extension in binaryExtensions
+        val lastDotIndex = path.lastIndexOf('.')
+        if (lastDotIndex == -1 || lastDotIndex == path.lastIndex) return false
+        val extension = path.substring(lastDotIndex + 1).lowercase()
+        return extension in BINARY_EXTENSIONS
     }
 
     private fun fetchRepositoryFiles(owner: String, repo: String, branch: String): List<FileSeed> {
