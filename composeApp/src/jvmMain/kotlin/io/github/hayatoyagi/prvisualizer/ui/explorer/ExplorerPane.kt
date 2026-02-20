@@ -91,60 +91,61 @@ fun ExplorerPane(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .background(AppColors.backgroundPaneList),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
-                val isCurrentDir = row.isDirectory && row.path == focusPath
-                val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
-                val isSelectedFile = !row.isDirectory && row.path == selectedPath
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            when {
-                                isCurrentDir -> AppColors.explorerSelectionFocused
-                                isSelectedFile -> AppColors.explorerSelectionFile
-                                else -> Color.Transparent
-                            },
-                        )
-                        .clickable {
-                            if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
-                        }
-                        .padding(vertical = 4.dp, horizontal = 6.dp),
-                ) {
-                    val statusKind = row.statusKindOrNull()
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 30.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Spacer(modifier = Modifier.width((row.depth * 12).dp))
-                        Text(
-                            text = if (row.isDirectory) "${row.name}/" else row.name,
-                            color = when {
-                                isCurrentDir -> Color.White
-                                isAncestor -> AppColors.explorerAncestorText
-                                else -> AppColors.textBody
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    val isCurrentDir = row.isDirectory && row.path == focusPath
+                    val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
+                    val isSelectedFile = !row.isDirectory && row.path == selectedPath
                     Box(
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(24.dp),
+                            .fillMaxWidth()
+                            .background(
+                                when {
+                                    isCurrentDir -> AppColors.explorerSelectionFocused
+                                    isSelectedFile -> AppColors.explorerSelectionFile
+                                    else -> Color.Transparent
+                                },
+                            )
+                            .clickable {
+                                if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
+                            }
+                            .padding(vertical = 4.dp, horizontal = 6.dp),
                     ) {
-                        statusKind?.let {
-                            ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
+                        val statusKind = row.statusKindOrNull()
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 30.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Spacer(modifier = Modifier.width((row.depth * 12).dp))
+                            Text(
+                                text = if (row.isDirectory) "${row.name}/" else row.name,
+                                color = when {
+                                    isCurrentDir -> Color.White
+                                    isAncestor -> AppColors.explorerAncestorText
+                                    else -> AppColors.textBody
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(24.dp),
+                        ) {
+                            statusKind?.let {
+                                ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
 }

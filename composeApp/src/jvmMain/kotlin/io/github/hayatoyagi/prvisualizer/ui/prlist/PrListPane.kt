@@ -88,57 +88,57 @@ fun PrListPane(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 items(filteredPrs, key = { it.id }) { pr ->
-                val checked = selectedPrIds.contains(pr.id)
-                val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
-                val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = if (relatedToSelection) 3.dp else 2.dp,
-                            color = listBorderColor,
-                            shape = MaterialTheme.shapes.medium,
-                        )
-                        .padding(8.dp),
-                    color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
-                    onClick = { onOpenPr(pr.url) },
-                ) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { onTogglePr(pr.id, it) },
-                        )
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(top = 4.dp, end = 4.dp)
-                                .size(24.dp)
-                                .clickable { onCyclePrColor(pr.id) },
-                        ) {
+                    val checked = selectedPrIds.contains(pr.id)
+                    val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
+                    val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = if (relatedToSelection) 3.dp else 2.dp,
+                                color = listBorderColor,
+                                shape = MaterialTheme.shapes.medium,
+                            )
+                            .padding(8.dp),
+                        color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
+                        onClick = { onOpenPr(pr.url) },
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { onTogglePr(pr.id, it) },
+                            )
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(12.dp)
-                                    .background(prColor(pr, prColorMap)),
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "#${pr.number} ${pr.title}",
-                                color = AppColors.textPrItem,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                fontWeight = if (relatedToSelection) FontWeight.Bold else FontWeight.Normal,
-                            )
-                            Text(
-                                text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
-                                color = AppColors.textMeta,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                                    .padding(top = 4.dp, end = 4.dp)
+                                    .size(24.dp)
+                                    .clickable { onCyclePrColor(pr.id) },
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(prColor(pr, prColorMap)),
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "#${pr.number} ${pr.title}",
+                                    color = AppColors.textPrItem,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = if (relatedToSelection) FontWeight.Bold else FontWeight.Normal,
+                                )
+                                Text(
+                                    text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
+                                    color = AppColors.textMeta,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
         }
         Text(
             text = "Cmd+R: reset view  /  Cmd+F: clear search",
