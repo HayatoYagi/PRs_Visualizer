@@ -98,8 +98,7 @@ fun PrListPane(
                                 width = if (relatedToSelection) 3.dp else 2.dp,
                                 color = listBorderColor,
                                 shape = MaterialTheme.shapes.medium,
-                            )
-                            .padding(8.dp),
+                            ).padding(8.dp),
                         color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
                         onClick = { onOpenPr(pr.url) },
                     ) {

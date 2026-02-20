@@ -19,11 +19,10 @@ class GitHubOAuthDesktopAuthenticator {
         clientId: String,
         scope: String = "repo",
         onDeviceFlowStart: ((DeviceFlowPrompt) -> Unit)? = null,
-    ): String =
-        withContext(Dispatchers.IO) {
-            require(clientId.isNotBlank()) { "client_id is required" }
-            authenticateWithDeviceFlow(clientId = clientId, scope = scope, onDeviceFlowStart = onDeviceFlowStart)
-        }
+    ): String = withContext(Dispatchers.IO) {
+        require(clientId.isNotBlank()) { "client_id is required" }
+        authenticateWithDeviceFlow(clientId = clientId, scope = scope, onDeviceFlowStart = onDeviceFlowStart)
+    }
 
     private suspend fun authenticateWithDeviceFlow(
         clientId: String,

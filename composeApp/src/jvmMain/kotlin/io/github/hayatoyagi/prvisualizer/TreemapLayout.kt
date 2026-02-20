@@ -9,18 +9,16 @@ fun computeTreemap(
     val nodes = mutableListOf<TreemapNode>()
 
     // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    fun totalLines(node: FileNode): Int =
-        when (node) {
-            is FileNode.File -> node.totalLines
-            is FileNode.Directory -> node.children.sumOf { totalLines(it) }
-        }
+    fun totalLines(node: FileNode): Int = when (node) {
+        is FileNode.File -> node.totalLines
+        is FileNode.Directory -> node.children.sumOf { totalLines(it) }
+    }
 
     // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    fun hasActivePr(node: FileNode): Boolean =
-        when (node) {
-            is FileNode.File -> node.hasActivePr
-            is FileNode.Directory -> node.children.any { hasActivePr(it) }
-        }
+    fun hasActivePr(node: FileNode): Boolean = when (node) {
+        is FileNode.File -> node.hasActivePr
+        is FileNode.Directory -> node.children.any { hasActivePr(it) }
+    }
 
     fun layout(
         node: FileNode,

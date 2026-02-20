@@ -69,10 +69,9 @@ class NavigationHistory {
     /**
      * Returns the current focus path, or null if history is empty.
      */
-    fun currentPath(): String? =
-        if (currentIndex >= 0 && currentIndex < history.size) {
-            history[currentIndex]
-        } else {
-            null
-        }
+    fun currentPath(): String? = if (currentIndex >= 0 && currentIndex < history.size) {
+        history[currentIndex]
+    } else {
+        null
+    }
 }

@@ -38,11 +38,10 @@ data class NavigationState(
     val selectedPath: String? = null,
     val viewportResetToken: Int = 0,
 ) {
-    fun resetNavigation(): NavigationState =
-        copy(
-            focusPath = "",
-            selectedPath = null,
-        )
+    fun resetNavigation(): NavigationState = copy(
+        focusPath = "",
+        selectedPath = null,
+    )
 
     fun resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 }

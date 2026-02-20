@@ -45,11 +45,10 @@ fun parentPathOf(path: String): String {
 
 fun nodeKey(node: TreemapNode): String = if (node.isDirectory) "D:${node.path}" else "F:${node.path}"
 
-fun totalLines(node: FileNode): Int =
-    when (node) {
-        is FileNode.File -> node.totalLines
-        is FileNode.Directory -> node.children.sumOf(::totalLines)
-    }
+fun totalLines(node: FileNode): Int = when (node) {
+    is FileNode.File -> node.totalLines
+    is FileNode.Directory -> node.children.sumOf(::totalLines)
+}
 
 fun DrawScope.drawPrBorder(
     topLeft: Offset,
@@ -301,23 +300,22 @@ fun computeFileOverlayByPath(
 fun computeDirectoryOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleDirectories: List<FileNode.Directory>,
-): Map<String, DirectoryOverlay> =
-    visibleDirectories.associate { dir ->
-        val relatedChanges = visiblePrs
-            .flatMap { pr -> pr.files.map { change -> pr to change } }
-            .filter { (_, change) -> change.path.startsWith("${dir.path}/") }
+): Map<String, DirectoryOverlay> = visibleDirectories.associate { dir ->
+    val relatedChanges = visiblePrs
+        .flatMap { pr -> pr.files.map { change -> pr to change } }
+        .filter { (_, change) -> change.path.startsWith("${dir.path}/") }
 
-        val relatedPrs = relatedChanges.map { it.first }.distinctBy { it.id }
-        val dominantType = relatedChanges
-            .groupBy { it.second.changeType }
-            .maxByOrNull { (_, items) -> items.sumOf { it.second.changedLines } }
-            ?.key
-        val totalChanged = relatedChanges.sumOf { it.second.changedLines }
-        val density = (totalChanged.toFloat() / totalLines(dir).coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+    val relatedPrs = relatedChanges.map { it.first }.distinctBy { it.id }
+    val dominantType = relatedChanges
+        .groupBy { it.second.changeType }
+        .maxByOrNull { (_, items) -> items.sumOf { it.second.changedLines } }
+        ?.key
+    val totalChanged = relatedChanges.sumOf { it.second.changedLines }
+    val density = (totalChanged.toFloat() / totalLines(dir).coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
 
-        dir.path to DirectoryOverlay(
-            prs = relatedPrs,
-            dominantType = dominantType,
-            density = density,
-        )
-    }
+    dir.path to DirectoryOverlay(
+        prs = relatedPrs,
+        dominantType = dominantType,
+        density = density,
+    )
+}

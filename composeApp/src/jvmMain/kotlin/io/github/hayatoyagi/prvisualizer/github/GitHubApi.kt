@@ -30,36 +30,34 @@ class GitHubApi(
 ) {
     private val client = HttpClient.newHttpClient()
 
-    suspend fun fetchAccessibleRepositoryNames(): List<String> =
-        withContext(Dispatchers.IO) {
-            require(token.isNotBlank()) { "token is required" }
-            val repos = loadRepositoryNamesByPage { page ->
-                requestArray("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
-            }
-            repos.distinct().sortedBy { it.lowercase() }
+    suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
+        require(token.isNotBlank()) { "token is required" }
+        val repos = loadRepositoryNamesByPage { page ->
+            requestArray("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
         }
+        repos.distinct().sortedBy { it.lowercase() }
+    }
 
     suspend fun fetchSnapshot(
         owner: String,
         repo: String,
-    ): GitHubSnapshot =
-        withContext(Dispatchers.IO) {
-            require(owner.isNotBlank()) { "owner is required" }
-            require(repo.isNotBlank()) { "repo is required" }
-            require(token.isNotBlank()) { "token is required" }
+    ): GitHubSnapshot = withContext(Dispatchers.IO) {
+        require(owner.isNotBlank()) { "owner is required" }
+        require(repo.isNotBlank()) { "repo is required" }
+        require(token.isNotBlank()) { "token is required" }
 
-            val viewerLogin = fetchViewerLogin()
-            val pullRequests = fetchOpenPullRequests(owner, repo)
-            val defaultBranch = fetchDefaultBranch(owner, repo)
-            val fileSeeds = fetchRepositoryFiles(owner, repo, defaultBranch)
-            val activePaths = pullRequests
-                .flatMap { it.files }
-                .map { it.path }
-                .toSet()
+        val viewerLogin = fetchViewerLogin()
+        val pullRequests = fetchOpenPullRequests(owner, repo)
+        val defaultBranch = fetchDefaultBranch(owner, repo)
+        val fileSeeds = fetchRepositoryFiles(owner, repo, defaultBranch)
+        val activePaths = pullRequests
+            .flatMap { it.files }
+            .map { it.path }
+            .toSet()
 
-            val rootNode = buildTree(fileSeeds, activePaths)
-            GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
-        }
+        val rootNode = buildTree(fileSeeds, activePaths)
+        GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
+    }
 
     private fun fetchViewerLogin(): String? {
         val response = requestJson("https://api.github.com/user")
