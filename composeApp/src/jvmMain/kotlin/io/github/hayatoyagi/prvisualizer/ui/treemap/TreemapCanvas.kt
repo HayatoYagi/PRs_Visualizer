@@ -13,9 +13,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 import io.github.hayatoyagi.prvisualizer.ui.shared.drawPrBorder
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
@@ -59,8 +59,11 @@ fun TreemapCanvas(
                 ChangeType.Deletion -> AppColors.treemapDeletion
                 null -> AppColors.treemapNeutralDir
             }
-            val alpha = if (overlay?.dominantType == null) 0.20f
-            else (0.18f + overlay.density * 0.78f).coerceIn(0.18f, 0.96f)
+            val alpha = if (overlay?.dominantType == null) {
+                0.20f
+            } else {
+                (0.18f + overlay.density * 0.78f).coerceIn(0.18f, 0.96f)
+            }
 
             drawRect(
                 color = fill.copy(alpha = alpha),

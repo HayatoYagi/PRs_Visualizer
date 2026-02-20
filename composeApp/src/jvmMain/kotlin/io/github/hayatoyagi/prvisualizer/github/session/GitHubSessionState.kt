@@ -40,7 +40,10 @@ class GitHubSessionState(
     val currentUser: String
         get() = githubSnapshot?.viewerLogin ?: currentUserOverride
 
-    suspend fun restoreTokenAndConnectIfNeeded(owner: String, repo: String) {
+    suspend fun restoreTokenAndConnectIfNeeded(
+        owner: String,
+        repo: String,
+    ) {
         if (restoreAttempted) return
         restoreAttempted = true
 
@@ -55,7 +58,11 @@ class GitHubSessionState(
         }
     }
 
-    suspend fun loginAndConnect(clientId: String, owner: String, repo: String) {
+    suspend fun loginAndConnect(
+        clientId: String,
+        owner: String,
+        repo: String,
+    ) {
         isAuthorizing = true
         connectionError = null
         deviceUserCode = null
@@ -84,7 +91,10 @@ class GitHubSessionState(
         isAuthorizing = false
     }
 
-    suspend fun refresh(owner: String, repo: String) {
+    suspend fun refresh(
+        owner: String,
+        repo: String,
+    ) {
         connect(owner = owner, repo = repo)
     }
 
@@ -110,7 +120,10 @@ class GitHubSessionState(
         isLoadingRepositories = false
     }
 
-    private suspend fun connect(owner: String, repo: String) {
+    private suspend fun connect(
+        owner: String,
+        repo: String,
+    ) {
         if (oauthToken.isBlank()) return
         isConnecting = true
         connectionError = null
