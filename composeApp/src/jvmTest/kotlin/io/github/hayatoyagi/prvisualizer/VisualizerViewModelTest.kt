@@ -300,4 +300,54 @@ class VisualizerViewModelTest {
         assertTrue(viewModel.navigateBack())
         assertEquals("", viewModel.state.navigationState.focusPath)
     }
+
+    @Test
+    fun `selectFile should record parent path in navigation history`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.selectFile("src/main/App.kt")
+
+        // navigateBack should return to the parent directory of the selected file
+        assertTrue(vm.navigateBack())
+        assertEquals("", vm.state.navigationState.focusPath)
+    }
+
+    @Test
+    fun `navigateBack after selectFile should restore previous focusPath`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.selectDirectory("src")
+        vm.selectFile("src/main/App.kt")
+
+        // Back should go to "src" (before the file selection pushed "src/main")
+        assertTrue(vm.navigateBack())
+        assertEquals("src", vm.state.navigationState.focusPath)
+    }
+
+    @Test
+    fun `changeFocusPath should record path in navigation history`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.changeFocusPath("src/main")
+
+        // navigateBack should return to root (before changeFocusPath)
+        assertTrue(vm.navigateBack())
+        assertEquals("", vm.state.navigationState.focusPath)
+    }
+
+    @Test
+    fun `navigateBack after changeFocusPath should restore previous focusPath`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.selectDirectory("src")
+        vm.changeFocusPath("src/main")
+
+        // Back should go to "src" (before changeFocusPath pushed "src/main")
+        assertTrue(vm.navigateBack())
+        assertEquals("src", vm.state.navigationState.focusPath)
+    }
 }

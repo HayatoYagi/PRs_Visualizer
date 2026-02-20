@@ -119,16 +119,19 @@ class VisualizerViewModel(
     }
 
     fun selectFile(path: String) {
+        val parentPath = parentPathOf(path)
+        navigationHistory.recordFocusPath(parentPath)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 selectedPath = path,
-                focusPath = parentPathOf(path),
+                focusPath = parentPath,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
             )
         )
     }
 
     fun changeFocusPath(path: String) {
+        navigationHistory.recordFocusPath(path)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
