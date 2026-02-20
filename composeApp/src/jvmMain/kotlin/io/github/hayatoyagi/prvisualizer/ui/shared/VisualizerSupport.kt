@@ -20,8 +20,8 @@ fun authorColor(author: String): Color {
     return AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
 }
 
-fun prColor(pr: PullRequest): Color {
-    return authorColor("${pr.author}:${pr.number}")
+fun prColor(pr: PullRequest, colorMap: Map<String, Color>): Color {
+    return colorMap[pr.id] ?: authorColor("${pr.author}:${pr.number}")
 }
 
 fun findDirectory(root: FileNode.Directory, path: String): FileNode.Directory? {
@@ -56,6 +56,7 @@ fun DrawScope.drawPrBorder(
     topLeft: Offset,
     size: Size,
     prs: List<PullRequest>,
+    colorMap: Map<String, Color>,
     fallback: Color,
     borderWidth: Float,
 ) {
@@ -72,7 +73,7 @@ fun DrawScope.drawPrBorder(
 
         uniquePrs.size == 1 -> {
             drawRect(
-                color = prColor(uniquePrs.first()),
+                color = prColor(uniquePrs.first(), colorMap),
                 topLeft = topLeft,
                 size = size,
                 style = Stroke(width = borderWidth),
@@ -83,7 +84,7 @@ fun DrawScope.drawPrBorder(
             drawDashedMulticolorRectBorder(
                 topLeft = topLeft,
                 size = size,
-                colors = uniquePrs.map(::prColor),
+                colors = uniquePrs.map { prColor(it, colorMap) },
                 strokeWidth = borderWidth,
                 dashLength = 14f,
                 gapLength = 8f,
@@ -170,15 +171,47 @@ private fun pointOnRectPerimeter(topLeft: Offset, size: Size, distance: Float): 
     }
 }
 
-fun buildExplorerRows(root: FileNode.Directory): List<ExplorerRow> {
+fun computeConflictedDirectoryPaths(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
+    val conflictedDirectories = mutableSetOf<String>()
+    fileOverlayByPath.forEach { (filePath, overlay) ->
+        if (overlay.prs.size <= 1) return@forEach
+        val segments = filePath.split('/')
+        var current = ""
+        for (i in 0 until segments.lastIndex) {
+            current = if (current.isEmpty()) segments[i] else "$current/${segments[i]}"
+            conflictedDirectories += current
+        }
+    }
+    return conflictedDirectories
+}
+
+fun buildExplorerRows(
+    root: FileNode.Directory,
+    fileOverlayByPath: Map<String, FileOverlay>,
+    directoryOverlayByPath: Map<String, DirectoryOverlay>,
+): List<ExplorerRow> {
     val rows = mutableListOf<ExplorerRow>()
+    val conflictedDirectoryPaths = computeConflictedDirectoryPaths(fileOverlayByPath)
 
     fun visit(node: FileNode, depth: Int) {
+        val (dominantType, hasConflict) = when (node) {
+            is FileNode.Directory -> {
+                val overlay = directoryOverlayByPath[node.path]
+                Pair(overlay?.dominantType, conflictedDirectoryPaths.contains(node.path))
+            }
+            is FileNode.File -> {
+                val overlay = fileOverlayByPath[node.path]
+                Pair(overlay?.dominantType, (overlay?.prs?.size ?: 0) > 1)
+            }
+        }
+
         rows += ExplorerRow(
             path = node.path,
             name = if (node.path.isBlank()) "repo" else node.name,
             depth = depth,
             isDirectory = node is FileNode.Directory,
+            dominantType = dominantType,
+            hasConflict = hasConflict,
         )
         if (node is FileNode.Directory) {
             node.children

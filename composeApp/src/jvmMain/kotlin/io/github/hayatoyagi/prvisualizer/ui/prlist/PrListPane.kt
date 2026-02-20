@@ -2,6 +2,7 @@ package io.github.hayatoyagi.prvisualizer.ui.prlist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +24,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,6 +37,7 @@ fun PrListPane(
     filteredPrs: List<PullRequest>,
     selectedPrIds: Set<String>,
     selectedPath: String?,
+    prColorMap: Map<String, Color>,
     query: String,
     showDrafts: Boolean,
     onlyMine: Boolean,
@@ -42,6 +46,7 @@ fun PrListPane(
     onOnlyMineChange: (Boolean) -> Unit,
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
     onOpenPr: (String) -> Unit,
+    onCyclePrColor: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -75,7 +80,7 @@ fun PrListPane(
             items(filteredPrs, key = { it.id }) { pr ->
                 val checked = selectedPrIds.contains(pr.id)
                 val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
-                val listBorderColor = if (checked) prColor(pr) else prColor(pr).copy(alpha = 0.45f)
+                val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -94,12 +99,18 @@ fun PrListPane(
                             onCheckedChange = { onTogglePr(pr.id, it) },
                         )
                         Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .padding(top = 8.dp, end = 8.dp)
-                                .width(12.dp)
-                                .fillMaxHeight(0.2f)
-                                .background(prColor(pr)),
-                        )
+                                .padding(top = 4.dp, end = 4.dp)
+                                .size(24.dp)
+                                .clickable { onCyclePrColor(pr.id) },
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(prColor(pr, prColorMap)),
+                            )
+                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "#${pr.number} ${pr.title}",
