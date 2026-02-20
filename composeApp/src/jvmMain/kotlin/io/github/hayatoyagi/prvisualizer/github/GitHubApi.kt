@@ -140,8 +140,10 @@ class GitHubApi(
             commits += FileCommit(
                 sha = commitObj.optString("sha", "").take(7),
                 message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
-                author = author?.optString("name", "") ?: committer?.optString("name", "") ?: "Unknown",
-                date = author?.optString("date", "") ?: committer?.optString("date", "") ?: "",
+                author = author?.optString("name")?.takeIf { it.isNotBlank() } 
+                    ?: committer?.optString("name")?.takeIf { it.isNotBlank() } 
+                    ?: "Unknown",
+                date = author?.optString("date") ?: committer?.optString("date") ?: "",
                 url = commitObj.optString("html_url", ""),
             )
         }

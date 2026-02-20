@@ -230,7 +230,7 @@ fun FileDetailsDialog(
                                 .padding(8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            items(commits!!) { commit ->
+                            items(commits) { commit ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -282,10 +282,12 @@ fun FileDetailsDialog(
 private fun formatDate(isoDate: String): String {
     return try {
         // ISO 8601 format: 2026-02-20T13:58:03Z
+        // Returns MM/DD format without year for brevity in UI
+        // Full date is visible on hover and in GitHub when clicking commit
         val date = isoDate.substringBefore('T')
         val parts = date.split('-')
         if (parts.size == 3) {
-            "${parts[1]}/${parts[2]}" // MM/DD format
+            "${parts[1]}/${parts[2]}"
         } else {
             isoDate.take(10)
         }

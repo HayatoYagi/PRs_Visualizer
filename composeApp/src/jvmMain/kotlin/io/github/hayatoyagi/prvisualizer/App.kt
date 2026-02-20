@@ -250,27 +250,28 @@ fun App() {
                 )
             }
 
-            if (vm.state.dialogState.isFileDetailsDialogOpen && vm.state.dialogState.fileDetailsPath != null) {
-                val filePath = vm.state.dialogState.fileDetailsPath!!
-                val fileName = filePath.substringAfterLast('/')
-                val fileNode = remember(root, filePath) {
-                    findFileNode(root, filePath)
-                }
-                val fileOverlay = fileOverlayByPath[filePath]
-                
-                if (fileNode != null && githubSession.oauthToken.isNotBlank()) {
-                    val githubApi = remember(githubSession.oauthToken) { GitHubApi(githubSession.oauthToken) }
-                    FileDetailsDialog(
-                        filePath = filePath,
-                        fileName = fileName,
-                        totalLines = fileNode.totalLines,
-                        fileOverlay = fileOverlay,
-                        repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
-                        defaultBranch = githubSession.githubSnapshot?.defaultBranch ?: "main",
-                        prColorMap = vm.state.colorState.prColorMap,
-                        githubApi = githubApi,
-                        onDismiss = { vm.closeFileDetailsDialog() },
-                    )
+            vm.state.dialogState.fileDetailsPath?.let { filePath ->
+                if (vm.state.dialogState.isFileDetailsDialogOpen) {
+                    val fileName = filePath.substringAfterLast('/')
+                    val fileNode = remember(root, filePath) {
+                        findFileNode(root, filePath)
+                    }
+                    val fileOverlay = fileOverlayByPath[filePath]
+                    
+                    if (fileNode != null && githubSession.oauthToken.isNotBlank()) {
+                        val githubApi = remember(githubSession.oauthToken) { GitHubApi(githubSession.oauthToken) }
+                        FileDetailsDialog(
+                            filePath = filePath,
+                            fileName = fileName,
+                            totalLines = fileNode.totalLines,
+                            fileOverlay = fileOverlay,
+                            repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
+                            defaultBranch = githubSession.githubSnapshot?.defaultBranch ?: "main",
+                            prColorMap = vm.state.colorState.prColorMap,
+                            githubApi = githubApi,
+                            onDismiss = { vm.closeFileDetailsDialog() },
+                        )
+                    }
                 }
             }
 
