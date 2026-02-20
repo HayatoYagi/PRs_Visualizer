@@ -55,12 +55,13 @@ class GitHubApi(
         // Include files that are newly added in PRs (not in default branch)
         val allPrFileChanges = pullRequests.flatMap { it.files }
         val newlyAddedFiles = allPrFileChanges
-            .filter { it.additions > 0 && it.deletions == 0 }
+            .filter { it.changeType == ChangeType.Addition }
             .filter { change -> fileSeeds.none { seed -> seed.path == change.path } }
             .groupBy { it.path }
             .map { (path, changes) -> 
                 // Use max additions if multiple PRs add the same file
-                FileSeed(path = path, estimatedLines = maxOf(1, changes.maxOf { it.additions }))
+                val maxAdditions = changes.maxOf { it.additions }
+                FileSeed(path = path, estimatedLines = maxOf(1, maxAdditions))
             }
         
         val allFileSeeds = fileSeeds + newlyAddedFiles
