@@ -71,12 +71,11 @@ data class VisualizerState(
     fun resetForNewRepo(
         owner: String,
         repo: String,
-    ): VisualizerState =
-        copy(
-            repoState = RepoState(owner, repo),
-            dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
-            filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
-            navigationState = NavigationState(),
-            colorState = ColorState(),
-        )
+    ): VisualizerState = copy(
+        repoState = RepoState(owner, repo),
+        dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
+        filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
+        navigationState = NavigationState(),
+        colorState = ColorState(),
+    )
 }
