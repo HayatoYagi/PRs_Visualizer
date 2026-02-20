@@ -143,6 +143,7 @@ fun TreemapPane(
                     }
                 }
                 .onPointerEvent(PointerEventType.Move) { event ->
+                    if (isLoading) return@onPointerEvent
                     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
                     pointerPos = position
                     val dragging = event.buttons.isSecondaryPressed
@@ -160,6 +161,7 @@ fun TreemapPane(
                     hoveredNode = visibleNodes.asReversed().firstOrNull { it.rect.contains(world) }
                 }
                 .onPointerEvent(PointerEventType.Scroll) { event ->
+                    if (isLoading) return@onPointerEvent
                     val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
                     val factor = if (scrollY > 0f) 0.9f else 1.1f
                     val newZoom = (zoom * factor).coerceIn(0.4f, 8f)
@@ -169,6 +171,7 @@ fun TreemapPane(
                     zoom = newZoom
                 }
                 .onPointerEvent(PointerEventType.Release) { event ->
+                    if (isLoading) return@onPointerEvent
                     dragPointerPos = null
                     val change = event.changes.firstOrNull() ?: return@onPointerEvent
                     if (event.button != PointerButton.Primary) return@onPointerEvent
