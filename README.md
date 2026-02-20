@@ -1,27 +1,62 @@
-This is a Kotlin Multiplatform project targeting Desktop (JVM).
+# GitHub PRs Visualizer
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+🇬🇧 English | [🇯🇵 日本語](./README.ja.md)
 
-### Build and Run Desktop (JVM) Application
+A desktop application for visually understanding the state of open pull requests in GitHub repositories. Inspired by disk space visualizers like WinDirStat and WizTree, it uses a treemap visualization to show at a glance which files and directories are under active development.
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+## 🖼️ Screenshot
 
----
+![GitHub PRs Visualizer screenshot](./docs/images/screenshot-2026-02-20-231900.png)
+*Note: This screenshot shows a development build UI and may differ from future releases.*
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## 🎯 Who Should Use This Tool
+
+### For Team Development
+- Working with multiple developers simultaneously and want to **identify potential conflicts early**
+- Need to prioritize PR reviews
+- Want to understand where active development is happening in the codebase
+
+### For AI Agent Users
+- Using AI agents to create PRs in parallel and want to **monitor their work ranges**
+- Need to visually assess the impact of numerous PRs to prioritize reviews
+
+### For Architecture Improvement
+- Frequent conflicts in one area can be a **trigger for architecture review**
+- Want to visually verify if your code is properly modularized and files are appropriately divided
+
+## ✨ Key Features
+
+- Treemap visualization of file/directory changes across open PRs
+- Color-coded by change type (addition, modification, deletion)
+- Conflict warnings when multiple PRs touch the same file
+- Sidebar to toggle PR visibility individually or filter out drafts
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Java 17 or higher installed
+
+### Running the Application
+
+#### macOS / Linux
+```bash
+./gradlew :composeApp:run
+```
+
+#### Windows
+```bash
+.\gradlew.bat :composeApp:run
+```
+
+
+## 🔧 Tech Stack
+
+Built with Kotlin and [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) (Compose for Desktop).
+
+## 📦 Future Distribution
+
+In the future, we plan to distribute pre-built applications through GitHub release tags, making it easy to use without building locally.
+
+## 🔗 Documentation
+
+For detailed specifications and design documents, see the [docs directory](./docs).
