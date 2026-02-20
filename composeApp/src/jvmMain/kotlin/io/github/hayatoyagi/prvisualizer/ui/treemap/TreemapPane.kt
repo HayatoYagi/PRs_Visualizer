@@ -217,6 +217,13 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                TreemapLegend()
+            }
         }
     }
 }
