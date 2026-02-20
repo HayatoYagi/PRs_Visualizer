@@ -1,7 +1,6 @@
 package io.github.hayatoyagi.prvisualizer.ui.explorer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,21 +20,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hayatoyagi.prvisualizer.ChangeType
+import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
+import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-private data class StatusLabel(
-    val symbol: String,
-    val color: Color,
-    val isConflict: Boolean = false,
-)
+private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
+    if (hasConflict) return ExplorerStatusKind.Conflict
+    return when (dominantType) {
+        ChangeType.Addition -> ExplorerStatusKind.Addition
+        ChangeType.Modification -> ExplorerStatusKind.Modification
+        ChangeType.Deletion -> ExplorerStatusKind.Deletion
+        null -> null
+    }
+}
 
 @Composable
 fun ExplorerPane(
@@ -46,43 +48,6 @@ fun ExplorerPane(
     onSelectFile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    @Composable
-    fun LegendBadge(symbol: String, label: String, color: Color, isConflict: Boolean = false) {
-        val textStyle = TextStyle(
-            fontSize = if (isConflict) 10.sp else 9.sp,
-            fontWeight = if (isConflict) FontWeight.ExtraBold else FontWeight.Bold,
-            lineHeight = 10.sp,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .background(
-                        color = color.copy(alpha = if (isConflict) 0.28f else 0.22f),
-                        shape = if (isConflict) RectangleShape else MaterialTheme.shapes.extraSmall,
-                    )
-                    .then(
-                        if (isConflict) Modifier.border(1.dp, color, RectangleShape) else Modifier,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = symbol,
-                    color = color,
-                    style = textStyle,
-                    maxLines = 1,
-                )
-            }
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
-                text = label,
-                color = AppColors.textSecondary,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-            )
-        }
-    }
-
     Column(
         modifier = modifier
             .width(340.dp)
@@ -98,10 +63,10 @@ fun ExplorerPane(
         ) {
             Text("Explorer", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                LegendBadge("!", "Conf", AppColors.treemapConflictStripe, isConflict = true)
-                LegendBadge("+", "Add", AppColors.treemapAddition)
-                LegendBadge("~", "Mod", AppColors.treemapModification)
-                LegendBadge("-", "Del", AppColors.treemapDeletion)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Conflict, withLabel = true, badgeSize = 14.dp, symbolFontSize = 10.sp)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Addition, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Modification, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
             }
         }
         Text(
@@ -136,13 +101,7 @@ fun ExplorerPane(
                         }
                         .padding(vertical = 4.dp, horizontal = 6.dp),
                 ) {
-                    val statusLabel = when {
-                        row.hasConflict -> StatusLabel("!", AppColors.treemapConflictStripe, isConflict = true)
-                        row.dominantType == ChangeType.Addition -> StatusLabel("+", AppColors.treemapAddition)
-                        row.dominantType == ChangeType.Modification -> StatusLabel("~", AppColors.treemapModification)
-                        row.dominantType == ChangeType.Deletion -> StatusLabel("-", AppColors.treemapDeletion)
-                        else -> null
-                    }
+                    val statusKind = row.statusKindOrNull()
 
                     Row(
                         modifier = Modifier
@@ -167,31 +126,8 @@ fun ExplorerPane(
                             .align(Alignment.CenterEnd)
                             .width(24.dp),
                     ) {
-                        statusLabel?.let {
-                            val textStyle = TextStyle(
-                                fontSize = if (it.isConflict) 11.sp else 10.sp,
-                                fontWeight = if (it.isConflict) FontWeight.ExtraBold else FontWeight.Bold,
-                                lineHeight = 11.sp,
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .background(
-                                        color = it.color.copy(alpha = if (it.isConflict) 0.28f else 0.22f),
-                                        shape = if (it.isConflict) RectangleShape else MaterialTheme.shapes.extraSmall,
-                                    )
-                                    .then(
-                                        if (it.isConflict) Modifier.border(1.dp, it.color, RectangleShape) else Modifier,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = it.symbol,
-                                    color = it.color,
-                                    style = textStyle,
-                                    maxLines = 1,
-                                )
-                            }
+                        statusKind?.let {
+                            ExplorerStatusBadge(kind = it, withLabel = false, badgeSize = 16.dp, symbolFontSize = 11.sp)
                         }
                     }
                 }
