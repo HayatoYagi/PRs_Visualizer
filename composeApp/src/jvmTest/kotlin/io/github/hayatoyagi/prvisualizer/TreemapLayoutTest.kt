@@ -157,7 +157,7 @@ class TreemapLayoutTest {
     }
 
     @Test
-    fun `computeTreemap should not create zero-size rectangles`() {
+    fun `computeTreemap should not create negative-size rectangles`() {
         val files = (1..10).map { i ->
             FileNode.File(
                 path = "file$i.txt",

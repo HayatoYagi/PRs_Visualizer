@@ -70,7 +70,7 @@ fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
             // Layout current row and continue with remaining items
             val rowWeight = current.sumOf { it.weight }
             val remainingBounds = layoutRow(current, bounds, totalWeight, depth)
-            val remainingWeight = remaining.sumOf { it.weight }
+            val remainingWeight = totalWeight - rowWeight
             squarifyRecursive(remaining, mutableListOf(), remainingBounds, remainingWeight, depth)
         }
     }
