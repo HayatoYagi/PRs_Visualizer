@@ -29,7 +29,9 @@ import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-private const val CHEVRON_ICON_WIDTH_DP = 16
+private const val CHEVRON_ICON_WIDTH_DP = 12
+private const val CHEVRON_ICON_PADDING_DP = 4
+private const val CHEVRON_TOTAL_WIDTH_DP = CHEVRON_ICON_WIDTH_DP + CHEVRON_ICON_PADDING_DP
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     if (hasConflict) return ExplorerStatusKind.Conflict
@@ -126,11 +128,11 @@ fun ExplorerPane(
                                     else -> AppColors.textSecondary
                                 },
                                 modifier = Modifier
-                                    .padding(end = 4.dp)
+                                    .padding(end = CHEVRON_ICON_PADDING_DP.dp)
                                     .clickable { onToggleExpanded(row.path) },
                             )
                         } else {
-                            Spacer(modifier = Modifier.width(CHEVRON_ICON_WIDTH_DP.dp))
+                            Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
                         }
                         
                         Text(
