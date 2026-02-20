@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.treemap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.TreemapNode
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.drawPrBorder
@@ -30,13 +32,16 @@ fun TreemapCanvas(
     pan: Offset,
     modifier: Modifier = Modifier,
 ) {
+    val conflictedDirectoryPaths = remember(fileOverlayByPath) {
+        computeConflictedDirectoryPaths(fileOverlayByPath)
+    }
     Canvas(modifier = modifier.fillMaxSize()) {
         visibleDirectories.forEach { node ->
             val widthPx = node.rect.width * zoom
             val heightPx = node.rect.height * zoom
             if (widthPx < 1f || heightPx < 1f) return@forEach
             val overlay = directoryOverlayByPath[node.path]
-            val hasConflict = (overlay?.prs?.size ?: 0) > 1
+            val hasConflict = conflictedDirectoryPaths.contains(node.path)
             val rawTopLeft = node.rect.topLeft * zoom + pan
             val rawSize = node.rect.size * zoom
             val borderWidth = 8f

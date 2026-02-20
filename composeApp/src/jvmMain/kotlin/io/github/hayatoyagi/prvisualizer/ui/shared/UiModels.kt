@@ -20,4 +20,6 @@ data class ExplorerRow(
     val name: String,
     val depth: Int,
     val isDirectory: Boolean,
+    val dominantType: ChangeType?,
+    val hasConflict: Boolean,
 )

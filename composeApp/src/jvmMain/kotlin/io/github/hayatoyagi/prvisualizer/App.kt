@@ -18,6 +18,9 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
@@ -109,22 +112,41 @@ fun App() {
     val focusRoot = remember(root, vm.focusPath) {
         findDirectory(root, vm.focusPath) ?: root
     }
-    val explorerRows = remember(root) {
-        buildExplorerRows(root)
-    }
-    val visibleFiles = remember(focusRoot) {
-        focusRoot.children.filterIsInstance<FileNode.File>()
-    }
-    val visibleDirectories = remember(focusRoot) {
-        focusRoot.children.filterIsInstance<FileNode.Directory>()
+    
+    val allFiles = remember(root) {
+        buildList {
+            fun collectFiles(node: FileNode) {
+                when (node) {
+                    is FileNode.File -> add(node)
+                    is FileNode.Directory -> node.children.forEach(::collectFiles)
+                }
+            }
+            collectFiles(root)
+        }
     }
 
-    val fileOverlayByPath = remember(visiblePrs, visibleFiles) {
-        computeFileOverlayByPath(visiblePrs, visibleFiles)
+    val allDirectories = remember(root) {
+        buildList {
+            fun collectDirectories(dir: FileNode.Directory) {
+                add(dir)
+                dir.children.forEach { child ->
+                    if (child is FileNode.Directory) collectDirectories(child)
+                }
+            }
+            collectDirectories(root)
+        }
     }
 
-    val directoryOverlayByPath = remember(visiblePrs, visibleDirectories) {
-        computeDirectoryOverlayByPath(visiblePrs, visibleDirectories)
+    val fileOverlayByPath = remember(visiblePrs, allFiles) {
+        computeFileOverlayByPath(visiblePrs, allFiles)
+    }
+
+    val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
+        computeDirectoryOverlayByPath(visiblePrs, allDirectories)
+    }
+
+    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
+        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
     }
 
     MaterialTheme {
@@ -132,6 +154,17 @@ fun App() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.backgroundMain)
+                .onPointerEvent(PointerEventType.Release) { event ->
+                    when (event.button) {
+                        PointerButton.Back -> {
+                            vm.navigateBack()
+                        }
+                        PointerButton.Forward -> {
+                            vm.navigateForward()
+                        }
+                        else -> {}
+                    }
+                }
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false

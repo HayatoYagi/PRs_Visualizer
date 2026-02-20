@@ -285,4 +285,15 @@ class VisualizerViewModelTest {
         assertEquals("", initialState.filterState.query)
         assertEquals("test", vm.state.filterState.query)
     }
+
+    @Test
+    fun navigateBackReturnsToRootAfterResetAndFirstNavigation() {
+        val viewModel = VisualizerViewModel()
+
+        viewModel.resetNavigation()
+        viewModel.selectDirectory("src")
+
+        assertTrue(viewModel.navigateBack())
+        assertEquals("", viewModel.focusPath)
+    }
 }

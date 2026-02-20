@@ -37,6 +37,9 @@ class VisualizerViewModel(
     val selectedPath: String? get() = state.navigationState.selectedPath
     val viewportResetToken: Int get() = state.navigationState.viewportResetToken
 
+    // Navigation history for back/forward buttons
+    private val navigationHistory = NavigationHistory()
+
     // Dialog intents
     fun openRepoDialog() {
         state = state.copy(
@@ -63,6 +66,8 @@ class VisualizerViewModel(
         val newOwner = fullName.substringBefore('/', state.repoState.owner)
         val newRepo = fullName.substringAfter('/', fullName)
         state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
     // PR filter intents
@@ -119,6 +124,7 @@ class VisualizerViewModel(
 
     // Navigation intents
     fun selectDirectory(path: String) {
+        navigationHistory.recordFocusPath(path)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
@@ -156,6 +162,8 @@ class VisualizerViewModel(
         state = state.copy(
             navigationState = state.navigationState.resetNavigation()
         )
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
     fun resetViewport() {
@@ -163,6 +171,52 @@ class VisualizerViewModel(
             navigationState = state.navigationState.resetViewport()
         )
     }
+
+    /**
+     * Navigates back in history. Returns true if navigation occurred.
+     */
+    fun navigateBack(): Boolean {
+        val previousPath = navigationHistory.navigateBack()
+        return if (previousPath != null) {
+            state = state.copy(
+                navigationState = state.navigationState.copy(
+                    focusPath = previousPath,
+                    viewportResetToken = state.navigationState.viewportResetToken + 1,
+                )
+            )
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Navigates forward in history. Returns true if navigation occurred.
+     */
+    fun navigateForward(): Boolean {
+        val nextPath = navigationHistory.navigateForward()
+        return if (nextPath != null) {
+            state = state.copy(
+                navigationState = state.navigationState.copy(
+                    focusPath = nextPath,
+                    viewportResetToken = state.navigationState.viewportResetToken + 1,
+                )
+            )
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Returns true if back navigation is possible.
+     */
+    fun canNavigateBack(): Boolean = navigationHistory.canNavigateBack()
+
+    /**
+     * Returns true if forward navigation is possible.
+     */
+    fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 
     // PR color management intents
     fun ensurePrColors(prs: List<PullRequest>) {
