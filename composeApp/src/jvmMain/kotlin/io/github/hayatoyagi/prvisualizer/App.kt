@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.rememberGitHubSessionState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
+import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.buildExplorerRows
@@ -247,6 +248,19 @@ fun App() {
                 )
             }
 
+            if (vm.state.dialogState.isPrDetailsDialogOpen) {
+                vm.state.dialogState.selectedPrForDetails?.let { pr ->
+                    PrDetailsDialog(
+                        pr = pr,
+                        onDismiss = { vm.closePrDetailsDialog() },
+                        onOpenInBrowser = { url -> 
+                            openUrl(url)
+                            vm.closePrDetailsDialog()
+                        },
+                    )
+                }
+            }
+
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
                     rows = explorerRows,
@@ -290,7 +304,7 @@ fun App() {
                         if (vm.state.filterState.selectedPrIds.isEmpty()) vm.selectAllPrs(effectiveSelectedIds)
                         vm.togglePr(prId, checked)
                     },
-                    onOpenPr = { openUrl(it) },
+                    onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
                 )
             }

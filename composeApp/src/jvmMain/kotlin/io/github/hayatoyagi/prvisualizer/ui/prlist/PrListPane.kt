@@ -45,7 +45,7 @@ fun PrListPane(
     onShowDraftsChange: (Boolean) -> Unit,
     onOnlyMineChange: (Boolean) -> Unit,
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
-    onOpenPr: (String) -> Unit,
+    onOpenPr: (PullRequest) -> Unit,
     onCyclePrColor: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -91,7 +91,7 @@ fun PrListPane(
                         )
                         .padding(8.dp),
                     color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
-                    onClick = { onOpenPr(pr.url) },
+                    onClick = { onOpenPr(pr) },
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
                         Checkbox(

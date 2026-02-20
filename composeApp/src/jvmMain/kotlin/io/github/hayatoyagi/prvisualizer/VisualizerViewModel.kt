@@ -47,6 +47,24 @@ class VisualizerViewModel(
         )
     }
 
+    fun openPrDetailsDialog(pr: PullRequest) {
+        state = state.copy(
+            dialogState = state.dialogState.copy(
+                isPrDetailsDialogOpen = true,
+                selectedPrForDetails = pr,
+            )
+        )
+    }
+
+    fun closePrDetailsDialog() {
+        state = state.copy(
+            dialogState = state.dialogState.copy(
+                isPrDetailsDialogOpen = false,
+                selectedPrForDetails = null,
+            )
+        )
+    }
+
     fun selectRepo(fullName: String) {
         val newOwner = fullName.substringBefore('/', state.repoState.owner)
         val newRepo = fullName.substringAfter('/', fullName)

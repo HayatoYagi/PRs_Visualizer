@@ -18,6 +18,8 @@ data class RepoState(
 data class DialogState(
     val isRepoDialogOpen: Boolean = false,
     val repoPickerQuery: String = "",
+    val isPrDetailsDialogOpen: Boolean = false,
+    val selectedPrForDetails: PullRequest? = null,
 )
 
 /**
