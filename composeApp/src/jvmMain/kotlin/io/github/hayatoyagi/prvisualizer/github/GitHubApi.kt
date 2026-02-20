@@ -106,8 +106,10 @@ class GitHubApi(
 
             repeat(response.length()) { idx ->
                 val file = response.getJSONObject(idx)
+                val path = file.optString("filename")
+                if (isBinaryFile(path)) return@repeat
                 files += PrFileChange(
-                    path = file.optString("filename"),
+                    path = path,
                     additions = file.optInt("additions"),
                     deletions = file.optInt("deletions"),
                 )
@@ -116,6 +118,25 @@ class GitHubApi(
             page += 1
         }
         return files
+    }
+
+    private fun isBinaryFile(path: String): Boolean {
+        val extension = path.substringAfterLast('.', "").lowercase()
+        val binaryExtensions = setOf(
+            // Images
+            "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "svg", "tiff", "tif",
+            // Archives
+            "zip", "tar", "gz", "bz2", "7z", "rar", "xz",
+            // Executables and libraries
+            "exe", "dll", "so", "dylib", "bin", "app",
+            // Documents and fonts
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "ttf", "otf", "woff", "woff2",
+            // Media
+            "mp3", "mp4", "avi", "mov", "wav", "flac", "ogg",
+            // Other binary formats
+            "class", "jar", "war", "pyc", "o", "a", "lib",
+        )
+        return extension in binaryExtensions
     }
 
     private fun fetchRepositoryFiles(owner: String, repo: String, branch: String): List<FileSeed> {
@@ -129,6 +150,7 @@ class GitHubApi(
             if (node.optString("type") != "blob") return@repeat
             val path = node.optString("path")
             if (path.isBlank()) return@repeat
+            if (isBinaryFile(path)) return@repeat
             val size = node.optInt("size", 0)
             val estimatedLines = maxOf(1, size / 40)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
