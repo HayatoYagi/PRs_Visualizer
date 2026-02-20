@@ -70,13 +70,13 @@ data class VisualizerState(
 ) {
     /**
      * Resets state when changing repositories.
-     * Clears PR selections, color mappings, and navigation.
+     * Keeps toggle filters while clearing query, selection, colors, and navigation.
      */
     fun resetForNewRepo(owner: String, repo: String): VisualizerState {
         return copy(
             repoState = RepoState(owner, repo),
             dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
-            filterState = FilterState(),
+            filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
             navigationState = NavigationState(),
             colorState = ColorState(),
         )

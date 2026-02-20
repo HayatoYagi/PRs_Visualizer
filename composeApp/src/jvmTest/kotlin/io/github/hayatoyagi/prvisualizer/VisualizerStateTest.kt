@@ -93,7 +93,7 @@ class VisualizerStateTest {
     }
 
     @Test
-    fun `VisualizerState resetForNewRepo should reset all states correctly`() {
+    fun `VisualizerState resetForNewRepo should preserve toggles and clear query selection state`() {
         val state = VisualizerState(
             repoState = RepoState(owner = "OldOwner", repo = "OldRepo"),
             dialogState = DialogState(isRepoDialogOpen = true, repoPickerQuery = "test"),
@@ -123,9 +123,9 @@ class VisualizerStateTest {
         assertFalse(reset.dialogState.isRepoDialogOpen)
         assertEquals("", reset.dialogState.repoPickerQuery)
 
-        // Filter should be reset to defaults
-        assertTrue(reset.filterState.showDrafts)
-        assertFalse(reset.filterState.onlyMine)
+        // Toggle filters are preserved while query and selected IDs are cleared
+        assertFalse(reset.filterState.showDrafts)
+        assertTrue(reset.filterState.onlyMine)
         assertEquals("", reset.filterState.query)
         assertTrue(reset.filterState.selectedPrIds.isEmpty())
 

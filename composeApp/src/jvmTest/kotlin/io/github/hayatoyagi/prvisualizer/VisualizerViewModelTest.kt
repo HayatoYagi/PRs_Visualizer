@@ -45,11 +45,13 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `selectRepo should reset all states and update repo`() {
+    fun `selectRepo should preserve toggles and clear query selection state`() {
         val vm = VisualizerViewModel(initialOwner = "Old", initialRepo = "Repo")
         
         // Set some state
         vm.openRepoDialog()
+        vm.updateShowDrafts(false)
+        vm.updateOnlyMine(true)
         vm.updateQuery("search")
         vm.selectAllPrs(setOf("pr1", "pr2"))
         
@@ -59,6 +61,8 @@ class VisualizerViewModelTest {
         assertEquals("New", vm.state.repoState.owner)
         assertEquals("Repository", vm.state.repoState.repo)
         assertFalse(vm.state.dialogState.isRepoDialogOpen)
+        assertFalse(vm.state.filterState.showDrafts)
+        assertTrue(vm.state.filterState.onlyMine)
         assertEquals("", vm.state.filterState.query)
         assertTrue(vm.state.filterState.selectedPrIds.isEmpty())
         assertTrue(vm.state.colorState.prColorMap.isEmpty())
