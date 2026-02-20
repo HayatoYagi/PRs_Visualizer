@@ -14,8 +14,8 @@ class VisualizerViewModelTest {
     @Test
     fun `ViewModel should initialize with provided owner and repo`() {
         val vm = VisualizerViewModel(initialOwner = "TestOwner", initialRepo = "TestRepo")
-        assertEquals("TestOwner", vm.owner)
-        assertEquals("TestRepo", vm.repo)
+        assertEquals("TestOwner", vm.state.repoState.owner)
+        assertEquals("TestRepo", vm.state.repoState.repo)
     }
 
     @Test
@@ -23,25 +23,25 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
         vm.openRepoDialog()
         
-        assertTrue(vm.isRepoDialogOpen)
-        assertEquals("Owner/Repo", vm.repoPickerQuery)
+        assertTrue(vm.state.dialogState.isRepoDialogOpen)
+        assertEquals("Owner/Repo", vm.state.dialogState.repoPickerQuery)
     }
 
     @Test
     fun `closeRepoDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openRepoDialog()
-        assertTrue(vm.isRepoDialogOpen)
+        assertTrue(vm.state.dialogState.isRepoDialogOpen)
         
         vm.closeRepoDialog()
-        assertFalse(vm.isRepoDialogOpen)
+        assertFalse(vm.state.dialogState.isRepoDialogOpen)
     }
 
     @Test
     fun `updateRepoPickerQuery should update query`() {
         val vm = VisualizerViewModel()
         vm.updateRepoPickerQuery("test/query")
-        assertEquals("test/query", vm.repoPickerQuery)
+        assertEquals("test/query", vm.state.dialogState.repoPickerQuery)
     }
 
     @Test
@@ -56,64 +56,64 @@ class VisualizerViewModelTest {
         // Select new repo
         vm.selectRepo("New/Repository")
         
-        assertEquals("New", vm.owner)
-        assertEquals("Repository", vm.repo)
-        assertFalse(vm.isRepoDialogOpen)
-        assertEquals("", vm.query)
-        assertTrue(vm.selectedPrIds.isEmpty())
-        assertTrue(vm.prColorMap.isEmpty())
-        assertEquals("", vm.focusPath)
-        assertNull(vm.selectedPath)
+        assertEquals("New", vm.state.repoState.owner)
+        assertEquals("Repository", vm.state.repoState.repo)
+        assertFalse(vm.state.dialogState.isRepoDialogOpen)
+        assertEquals("", vm.state.filterState.query)
+        assertTrue(vm.state.filterState.selectedPrIds.isEmpty())
+        assertTrue(vm.state.colorState.prColorMap.isEmpty())
+        assertEquals("", vm.state.navigationState.focusPath)
+        assertNull(vm.state.navigationState.selectedPath)
     }
 
     @Test
     fun `updateShowDrafts should update filter`() {
         val vm = VisualizerViewModel()
-        assertTrue(vm.showDrafts)
+        assertTrue(vm.state.filterState.showDrafts)
         
         vm.updateShowDrafts(false)
-        assertFalse(vm.showDrafts)
+        assertFalse(vm.state.filterState.showDrafts)
     }
 
     @Test
     fun `updateOnlyMine should update filter`() {
         val vm = VisualizerViewModel()
-        assertFalse(vm.onlyMine)
+        assertFalse(vm.state.filterState.onlyMine)
         
         vm.updateOnlyMine(true)
-        assertTrue(vm.onlyMine)
+        assertTrue(vm.state.filterState.onlyMine)
     }
 
     @Test
     fun `updateQuery should update search query`() {
         val vm = VisualizerViewModel()
         vm.updateQuery("test query")
-        assertEquals("test query", vm.query)
+        assertEquals("test query", vm.state.filterState.query)
     }
 
     @Test
     fun `clearQuery should clear search query`() {
         val vm = VisualizerViewModel()
         vm.updateQuery("test")
-        assertEquals("test", vm.query)
+        assertEquals("test", vm.state.filterState.query)
         
         vm.clearQuery()
-        assertEquals("", vm.query)
+        assertEquals("", vm.state.filterState.query)
     }
 
     @Test
     fun `togglePr should add and remove PR IDs`() {
         val vm = VisualizerViewModel()
-        assertTrue(vm.selectedPrIds.isEmpty())
+        assertTrue(vm.state.filterState.selectedPrIds.isEmpty())
         
         vm.togglePr("pr1", checked = true)
-        assertEquals(setOf("pr1"), vm.selectedPrIds)
+        assertEquals(setOf("pr1"), vm.state.filterState.selectedPrIds)
         
         vm.togglePr("pr2", checked = true)
-        assertEquals(setOf("pr1", "pr2"), vm.selectedPrIds)
+        assertEquals(setOf("pr1", "pr2"), vm.state.filterState.selectedPrIds)
         
         vm.togglePr("pr1", checked = false)
-        assertEquals(setOf("pr2"), vm.selectedPrIds)
+        assertEquals(setOf("pr2"), vm.state.filterState.selectedPrIds)
     }
 
     @Test
@@ -122,7 +122,7 @@ class VisualizerViewModelTest {
         val prs = setOf("pr1", "pr2", "pr3")
         
         vm.selectAllPrs(prs)
-        assertEquals(prs, vm.selectedPrIds)
+        assertEquals(prs, vm.state.filterState.selectedPrIds)
     }
 
     @Test
@@ -131,7 +131,7 @@ class VisualizerViewModelTest {
         vm.selectAllPrs(setOf("pr1", "pr2"))
         
         vm.addRelatedPrs(setOf("pr3", "pr4"))
-        assertEquals(setOf("pr1", "pr2", "pr3", "pr4"), vm.selectedPrIds)
+        assertEquals(setOf("pr1", "pr2", "pr3", "pr4"), vm.state.filterState.selectedPrIds)
     }
 
     @Test
@@ -140,45 +140,45 @@ class VisualizerViewModelTest {
         vm.selectAllPrs(setOf("pr1"))
         
         vm.addRelatedPrs(emptySet())
-        assertEquals(setOf("pr1"), vm.selectedPrIds)
+        assertEquals(setOf("pr1"), vm.state.filterState.selectedPrIds)
     }
 
     @Test
     fun `selectDirectory should update focusPath and reset token`() {
         val vm = VisualizerViewModel()
-        val initialToken = vm.viewportResetToken
+        val initialToken = vm.state.navigationState.viewportResetToken
         
         vm.selectDirectory("src/main")
-        assertEquals("src/main", vm.focusPath)
-        assertEquals(initialToken + 1, vm.viewportResetToken)
+        assertEquals("src/main", vm.state.navigationState.focusPath)
+        assertEquals(initialToken + 1, vm.state.navigationState.viewportResetToken)
     }
 
     @Test
     fun `selectFile should update both paths and reset token`() {
         val vm = VisualizerViewModel()
-        val initialToken = vm.viewportResetToken
+        val initialToken = vm.state.navigationState.viewportResetToken
         
         vm.selectFile("src/main/App.kt")
-        assertEquals("src/main/App.kt", vm.selectedPath)
-        assertEquals("src/main", vm.focusPath)
-        assertEquals(initialToken + 1, vm.viewportResetToken)
+        assertEquals("src/main/App.kt", vm.state.navigationState.selectedPath)
+        assertEquals("src/main", vm.state.navigationState.focusPath)
+        assertEquals(initialToken + 1, vm.state.navigationState.viewportResetToken)
     }
 
     @Test
     fun `changeFocusPath should update focusPath and reset token`() {
         val vm = VisualizerViewModel()
-        val initialToken = vm.viewportResetToken
+        val initialToken = vm.state.navigationState.viewportResetToken
         
         vm.changeFocusPath("new/path")
-        assertEquals("new/path", vm.focusPath)
-        assertEquals(initialToken + 1, vm.viewportResetToken)
+        assertEquals("new/path", vm.state.navigationState.focusPath)
+        assertEquals(initialToken + 1, vm.state.navigationState.viewportResetToken)
     }
 
     @Test
     fun `updateSelectedPath should only update selectedPath`() {
         val vm = VisualizerViewModel()
         vm.updateSelectedPath("file.kt")
-        assertEquals("file.kt", vm.selectedPath)
+        assertEquals("file.kt", vm.state.navigationState.selectedPath)
     }
 
     @Test
@@ -187,17 +187,17 @@ class VisualizerViewModelTest {
         vm.selectFile("src/App.kt")
         
         vm.resetNavigation()
-        assertEquals("", vm.focusPath)
-        assertNull(vm.selectedPath)
+        assertEquals("", vm.state.navigationState.focusPath)
+        assertNull(vm.state.navigationState.selectedPath)
     }
 
     @Test
     fun `resetViewport should increment token`() {
         val vm = VisualizerViewModel()
-        val initialToken = vm.viewportResetToken
+        val initialToken = vm.state.navigationState.viewportResetToken
         
         vm.resetViewport()
-        assertEquals(initialToken + 1, vm.viewportResetToken)
+        assertEquals(initialToken + 1, vm.state.navigationState.viewportResetToken)
     }
 
     @Test
@@ -210,9 +210,9 @@ class VisualizerViewModelTest {
         
         vm.ensurePrColors(prs)
         
-        assertEquals(2, vm.prColorMap.size)
-        assertNotNull(vm.prColorMap["pr1"])
-        assertNotNull(vm.prColorMap["pr2"])
+        assertEquals(2, vm.state.colorState.prColorMap.size)
+        assertNotNull(vm.state.colorState.prColorMap["pr1"])
+        assertNotNull(vm.state.colorState.prColorMap["pr2"])
     }
 
     @Test
@@ -221,11 +221,11 @@ class VisualizerViewModelTest {
         val pr1 = PullRequest("pr1", 1, "Title 1", "author1", false, "url1", emptyList())
         
         vm.ensurePrColors(listOf(pr1))
-        val color1 = vm.prColorMap["pr1"]
+        val color1 = vm.state.colorState.prColorMap["pr1"]
         
         // Call again with same PR
         vm.ensurePrColors(listOf(pr1))
-        assertEquals(color1, vm.prColorMap["pr1"])
+        assertEquals(color1, vm.state.colorState.prColorMap["pr1"])
     }
 
     @Test
@@ -237,14 +237,14 @@ class VisualizerViewModelTest {
         )
         
         vm.ensurePrColors(prs)
-        val originalColors = vm.prColorMap.toMap()
+        val originalColors = vm.state.colorState.prColorMap.toMap()
         
         vm.shufflePrColors(prs)
         
-        assertEquals(2, vm.prColorMap.size)
+        assertEquals(2, vm.state.colorState.prColorMap.size)
         // Colors exist but may be different
-        assertNotNull(vm.prColorMap["pr1"])
-        assertNotNull(vm.prColorMap["pr2"])
+        assertNotNull(vm.state.colorState.prColorMap["pr1"])
+        assertNotNull(vm.state.colorState.prColorMap["pr2"])
     }
 
     @Test
@@ -253,12 +253,12 @@ class VisualizerViewModelTest {
         val pr = PullRequest("pr1", 1, "Title", "author", false, "url", emptyList())
         
         vm.ensurePrColors(listOf(pr))
-        val initialColor = vm.prColorMap["pr1"]
+        val initialColor = vm.state.colorState.prColorMap["pr1"]
         val initialIndex = AppColors.authorPalette.indexOf(initialColor)
         
         vm.cyclePrColor("pr1")
         
-        val newColor = vm.prColorMap["pr1"]
+        val newColor = vm.state.colorState.prColorMap["pr1"]
         val expectedIndex = (initialIndex + 1) % AppColors.authorPalette.size
         assertEquals(AppColors.authorPalette[expectedIndex], newColor)
     }
@@ -270,7 +270,7 @@ class VisualizerViewModelTest {
         vm.cyclePrColor("pr1")
         
         // Should assign the first color in the palette
-        assertEquals(AppColors.authorPalette[0], vm.prColorMap["pr1"])
+        assertEquals(AppColors.authorPalette[0], vm.state.colorState.prColorMap["pr1"])
     }
 
     @Test
@@ -294,6 +294,6 @@ class VisualizerViewModelTest {
         viewModel.selectDirectory("src")
 
         assertTrue(viewModel.navigateBack())
-        assertEquals("", viewModel.focusPath)
+        assertEquals("", viewModel.state.navigationState.focusPath)
     }
 }

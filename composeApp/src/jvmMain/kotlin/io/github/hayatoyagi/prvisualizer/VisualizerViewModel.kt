@@ -22,21 +22,6 @@ class VisualizerViewModel(
         )
     )
         private set
-
-    // Convenience accessors for backward compatibility
-    val owner: String get() = state.repoState.owner
-    val repo: String get() = state.repoState.repo
-    val isRepoDialogOpen: Boolean get() = state.dialogState.isRepoDialogOpen
-    val repoPickerQuery: String get() = state.dialogState.repoPickerQuery
-    val showDrafts: Boolean get() = state.filterState.showDrafts
-    val onlyMine: Boolean get() = state.filterState.onlyMine
-    val query: String get() = state.filterState.query
-    val selectedPrIds: Set<String> get() = state.filterState.selectedPrIds
-    val prColorMap: Map<String, Color> get() = state.colorState.prColorMap
-    val focusPath: String get() = state.navigationState.focusPath
-    val selectedPath: String? get() = state.navigationState.selectedPath
-    val viewportResetToken: Int get() = state.navigationState.viewportResetToken
-
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
 
