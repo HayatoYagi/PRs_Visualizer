@@ -98,8 +98,21 @@ fun TreemapOverlay(
                 Text("Path: ${hoveredNode.path}", color = AppColors.textTooltip)
                 Text("LOC: ${hoveredNode.totalLines}", color = AppColors.textTooltip)
                 val prs = if (hoveredNode.isDirectory) hoveredDirOverlay?.prs.orEmpty() else hoveredOverlay?.prs.orEmpty()
+                val prText = if (prs.isEmpty()) {
+                    "PR: none"
+                } else {
+                    val prDetails = prs.joinToString { pr ->
+                        val fileChange = pr.files.find { it.path == hoveredNode.path }
+                        if (fileChange != null && !hoveredNode.isDirectory) {
+                            "#${pr.number} ${pr.author} (+${fileChange.additions}/-${fileChange.deletions})"
+                        } else {
+                            "#${pr.number} ${pr.author}"
+                        }
+                    }
+                    "PR: $prDetails"
+                }
                 Text(
-                    text = if (prs.isEmpty()) "PR: none" else "PR: ${prs.joinToString { "#${it.number} ${it.author}" }}",
+                    text = prText,
                     color = if (prs.size > 1) AppColors.textTooltipMultiPr else AppColors.textTooltip,
                 )
             }
