@@ -38,6 +38,26 @@ class VisualizerViewModelTest {
     }
 
     @Test
+    fun `openFileDetailsDialog should set dialog state correctly`() {
+        val vm = VisualizerViewModel()
+        vm.openFileDetailsDialog("src/main/App.kt")
+        
+        assertTrue(vm.state.dialogState.isFileDetailsDialogOpen)
+        assertEquals("src/main/App.kt", vm.state.dialogState.fileDetailsPath)
+    }
+
+    @Test
+    fun `closeFileDetailsDialog should close the dialog`() {
+        val vm = VisualizerViewModel()
+        vm.openFileDetailsDialog("src/main/App.kt")
+        assertTrue(vm.state.dialogState.isFileDetailsDialogOpen)
+        
+        vm.closeFileDetailsDialog()
+        assertFalse(vm.state.dialogState.isFileDetailsDialogOpen)
+        assertNull(vm.state.dialogState.fileDetailsPath)
+    }
+
+    @Test
     fun `updateRepoPickerQuery should update query`() {
         val vm = VisualizerViewModel()
         vm.updateRepoPickerQuery("test/query")
