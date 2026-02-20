@@ -1,7 +1,6 @@
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
@@ -16,118 +15,149 @@ class VisualizerViewModel(
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
 ) : ViewModel() {
 
-    // Repo identity
-    var owner by mutableStateOf(initialOwner)
+    // Main state container
+    var state by mutableStateOf(
+        VisualizerState(
+            repoState = RepoState(owner = initialOwner, repo = initialRepo),
+        )
+    )
         private set
-    var repo by mutableStateOf(initialRepo)
-        private set
-
-    // Dialog
-    var isRepoDialogOpen by mutableStateOf(false)
-        private set
-    var repoPickerQuery by mutableStateOf("")
-        private set
-
-    // PR filters
-    var showDrafts by mutableStateOf(true)
-        private set
-    var onlyMine by mutableStateOf(false)
-        private set
-    var query by mutableStateOf("")
-        private set
-    var selectedPrIds by mutableStateOf<Set<String>>(emptySet())
-        private set
-
-    // PR color management
-    var prColorMap by mutableStateOf<Map<String, Color>>(emptyMap())
-        private set
-
-    // Navigation
-    var focusPath by mutableStateOf("")
-        private set
-    var selectedPath by mutableStateOf<String?>(null)
-        private set
-    var viewportResetToken by mutableIntStateOf(0)
-        private set
-    
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
 
     // Dialog intents
     fun openRepoDialog() {
-        repoPickerQuery = "$owner/$repo".trim().trim('/')
-        isRepoDialogOpen = true
+        state = state.copy(
+            dialogState = state.dialogState.copy(
+                repoPickerQuery = "${state.repoState.owner}/${state.repoState.repo}".trim().trim('/'),
+                isRepoDialogOpen = true,
+            )
+        )
     }
 
     fun closeRepoDialog() {
-        isRepoDialogOpen = false
+        state = state.copy(
+            dialogState = state.dialogState.copy(isRepoDialogOpen = false)
+        )
     }
 
     fun updateRepoPickerQuery(q: String) {
-        repoPickerQuery = q
+        state = state.copy(
+            dialogState = state.dialogState.copy(repoPickerQuery = q)
+        )
     }
 
     fun selectRepo(fullName: String) {
-        owner = fullName.substringBefore('/', owner)
-        repo = fullName.substringAfter('/', fullName)
-        isRepoDialogOpen = false
-        selectedPrIds = emptySet()
-        prColorMap = emptyMap()
-        resetNavigation()
+        val newOwner = fullName.substringBefore('/', state.repoState.owner)
+        val newRepo = fullName.substringAfter('/', fullName)
+        state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
     // PR filter intents
-    fun updateShowDrafts(value: Boolean) { showDrafts = value }
-    fun updateOnlyMine(value: Boolean) { onlyMine = value }
-    fun updateQuery(value: String) { query = value }
-    fun clearQuery() { query = "" }
+    fun updateShowDrafts(value: Boolean) {
+        state = state.copy(
+            filterState = state.filterState.copy(showDrafts = value)
+        )
+    }
+
+    fun updateOnlyMine(value: Boolean) {
+        state = state.copy(
+            filterState = state.filterState.copy(onlyMine = value)
+        )
+    }
+
+    fun updateQuery(value: String) {
+        state = state.copy(
+            filterState = state.filterState.copy(query = value)
+        )
+    }
+
+    fun clearQuery() {
+        state = state.copy(
+            filterState = state.filterState.copy(query = "")
+        )
+    }
 
     fun togglePr(prId: String, checked: Boolean) {
-        selectedPrIds = if (checked) selectedPrIds + prId else selectedPrIds - prId
+        val newSelectedPrIds = if (checked) {
+            state.filterState.selectedPrIds + prId
+        } else {
+            state.filterState.selectedPrIds - prId
+        }
+        state = state.copy(
+            filterState = state.filterState.copy(selectedPrIds = newSelectedPrIds)
+        )
     }
 
     fun selectAllPrs(available: Set<String>) {
-        selectedPrIds = available
+        state = state.copy(
+            filterState = state.filterState.copy(selectedPrIds = available)
+        )
     }
 
     fun addRelatedPrs(related: Set<String>) {
-        if (related.isNotEmpty()) selectedPrIds = selectedPrIds + related
+        if (related.isNotEmpty()) {
+            state = state.copy(
+                filterState = state.filterState.copy(
+                    selectedPrIds = state.filterState.selectedPrIds + related
+                )
+            )
+        }
     }
 
     // Navigation intents
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
-        focusPath = path
-        viewportResetToken += 1
+        state = state.copy(
+            navigationState = state.navigationState.copy(
+                focusPath = path,
+                viewportResetToken = state.navigationState.viewportResetToken + 1,
+            )
+        )
     }
 
     fun selectFile(path: String) {
-        selectedPath = path
         val parentPath = parentPathOf(path)
         navigationHistory.recordFocusPath(parentPath)
-        focusPath = parentPath
-        viewportResetToken += 1
+        state = state.copy(
+            navigationState = state.navigationState.copy(
+                selectedPath = path,
+                focusPath = parentPath,
+                viewportResetToken = state.navigationState.viewportResetToken + 1,
+            )
+        )
     }
 
     fun changeFocusPath(path: String) {
         navigationHistory.recordFocusPath(path)
-        focusPath = path
-        viewportResetToken += 1
+        state = state.copy(
+            navigationState = state.navigationState.copy(
+                focusPath = path,
+                viewportResetToken = state.navigationState.viewportResetToken + 1,
+            )
+        )
     }
 
     fun updateSelectedPath(path: String?) {
-        selectedPath = path
+        state = state.copy(
+            navigationState = state.navigationState.copy(selectedPath = path)
+        )
     }
 
     fun resetNavigation() {
-        focusPath = ""
-        selectedPath = null
+        state = state.copy(
+            navigationState = state.navigationState.resetNavigation()
+        )
         navigationHistory.clear()
-        navigationHistory.recordFocusPath(focusPath)
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
     fun resetViewport() {
-        viewportResetToken += 1
+        state = state.copy(
+            navigationState = state.navigationState.resetViewport()
+        )
     }
 
     /**
@@ -136,8 +166,12 @@ class VisualizerViewModel(
     fun navigateBack(): Boolean {
         val previousPath = navigationHistory.navigateBack()
         return if (previousPath != null) {
-            focusPath = previousPath
-            viewportResetToken += 1
+            state = state.copy(
+                navigationState = state.navigationState.copy(
+                    focusPath = previousPath,
+                    viewportResetToken = state.navigationState.viewportResetToken + 1,
+                )
+            )
             true
         } else {
             false
@@ -150,8 +184,12 @@ class VisualizerViewModel(
     fun navigateForward(): Boolean {
         val nextPath = navigationHistory.navigateForward()
         return if (nextPath != null) {
-            focusPath = nextPath
-            viewportResetToken += 1
+            state = state.copy(
+                navigationState = state.navigationState.copy(
+                    focusPath = nextPath,
+                    viewportResetToken = state.navigationState.viewportResetToken + 1,
+                )
+            )
             true
         } else {
             false
@@ -170,13 +208,15 @@ class VisualizerViewModel(
 
     // PR color management intents
     fun ensurePrColors(prs: List<PullRequest>) {
-        val prsNeedingColors = prs.filter { !prColorMap.containsKey(it.id) }
+        val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {
-            val newMap = prColorMap.toMutableMap()
+            val newMap = state.colorState.prColorMap.toMutableMap()
             prsNeedingColors.forEach { pr ->
                 newMap[pr.id] = randomColorAvoidingMap(newMap)
             }
-            prColorMap = newMap
+            state = state.copy(
+                colorState = state.colorState.copy(prColorMap = newMap)
+            )
         }
     }
 
@@ -185,18 +225,24 @@ class VisualizerViewModel(
         prs.forEach { pr ->
             newMap[pr.id] = randomColorAvoidingMap(newMap)
         }
-        prColorMap = newMap
+        state = state.copy(
+            colorState = state.colorState.copy(prColorMap = newMap)
+        )
     }
 
     fun cyclePrColor(prId: String) {
-        val currentColor = prColorMap[prId]
+        val currentColor = state.colorState.prColorMap[prId]
         val currentIndex = if (currentColor != null) {
             AppColors.authorPalette.indexOf(currentColor)
         } else {
             -1
         }
         val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
-        prColorMap = prColorMap + (prId to AppColors.authorPalette[nextIndex])
+        state = state.copy(
+            colorState = state.colorState.copy(
+                prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex])
+            )
+        )
     }
 
     private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {

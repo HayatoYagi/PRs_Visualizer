@@ -61,30 +61,30 @@ fun App() {
 
     val scope = rememberCoroutineScope()
 
-    val filteredRepoOptions = remember(githubSession.repositoryOptions, vm.repoPickerQuery) {
-        filterRepoOptions(githubSession.repositoryOptions, vm.repoPickerQuery)
+    val filteredRepoOptions = remember(githubSession.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
+        filterRepoOptions(githubSession.repositoryOptions, vm.state.dialogState.repoPickerQuery)
     }
 
-    val filteredPrs = remember(vm.showDrafts, vm.onlyMine, vm.query, allPrs, currentUser) {
-        filterPrs(allPrs, vm.showDrafts, vm.onlyMine, vm.query, currentUser)
+    val filteredPrs = remember(vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, allPrs, currentUser) {
+        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
     }
 
     // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
     // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
-    val effectiveSelectedIds = remember(vm.selectedPrIds, filteredPrs) {
-        if (vm.selectedPrIds.isEmpty()) filteredPrs.map { it.id }.toSet()
-        else vm.selectedPrIds
+    val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
+        if (vm.state.filterState.selectedPrIds.isEmpty()) filteredPrs.map { it.id }.toSet()
+        else vm.state.filterState.selectedPrIds
     }
 
     // Only reset to all when a filter change leaves the current selection with no overlap.
     LaunchedEffect(filteredPrs) {
         val available = filteredPrs.map { it.id }.toSet()
-        if (vm.selectedPrIds.isNotEmpty() && vm.selectedPrIds.none { available.contains(it) }) {
+        if (vm.state.filterState.selectedPrIds.isNotEmpty() && vm.state.filterState.selectedPrIds.none { available.contains(it) }) {
             vm.selectAllPrs(available)
         }
     }
     LaunchedEffect(Unit) {
-        githubSession.restoreTokenAndConnectIfNeeded(owner = vm.owner, repo = vm.repo)
+        githubSession.restoreTokenAndConnectIfNeeded(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
         if (githubSession.githubSnapshot != null) {
             vm.resetNavigation()
             vm.resetViewport()
@@ -93,7 +93,7 @@ fun App() {
     LaunchedEffect(githubSession.oauthToken) {
         if (githubSession.oauthToken.isNotBlank()) {
             githubSession.ensureRepositoryOptions()
-            if (vm.repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
+            if (vm.state.repoState.repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
                 val default = githubSession.repositoryOptions.first()
                 vm.selectRepo(default)
             }
@@ -109,8 +109,8 @@ fun App() {
         vm.ensurePrColors(allPrs)
     }
 
-    val focusRoot = remember(root, vm.focusPath) {
-        findDirectory(root, vm.focusPath) ?: root
+    val focusRoot = remember(root, vm.state.navigationState.focusPath) {
+        findDirectory(root, vm.state.navigationState.focusPath) ?: root
     }
     
     val allFiles = remember(root) {
@@ -183,8 +183,8 @@ fun App() {
                 },
         ) {
             ToolbarRow(
-                owner = vm.owner,
-                repo = vm.repo,
+                owner = vm.state.repoState.owner,
+                repo = vm.state.repoState.repo,
                 isLoggedIn = githubSession.oauthToken.isNotBlank(),
                 onOpenRepoDialog = { vm.openRepoDialog() },
                 onShuffleColors = { vm.shufflePrColors(allPrs) },
@@ -203,8 +203,8 @@ fun App() {
                     scope.launch {
                         githubSession.loginAndConnect(
                             clientId = oauthClientId,
-                            owner = vm.owner,
-                            repo = vm.repo,
+                            owner = vm.state.repoState.owner,
+                            repo = vm.state.repoState.repo,
                         )
                         if (githubSession.githubSnapshot != null) {
                             vm.resetNavigation()
@@ -214,7 +214,7 @@ fun App() {
                 },
                 onRefresh = {
                     scope.launch {
-                        githubSession.refresh(owner = vm.owner, repo = vm.repo)
+                        githubSession.refresh(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
                         if (githubSession.githubSnapshot != null) {
                             vm.resetNavigation()
                             vm.resetViewport()
@@ -224,9 +224,9 @@ fun App() {
                 onCopyDeviceCode = { copyToClipboard(githubSession.deviceUserCode.orEmpty()) },
                 onOpenVerifyPage = { openUrl(githubSession.deviceVerificationUrl.orEmpty()) },
             )
-            if (vm.isRepoDialogOpen) {
+            if (vm.state.dialogState.isRepoDialogOpen) {
                 RepoPickerDialog(
-                    query = vm.repoPickerQuery,
+                    query = vm.state.dialogState.repoPickerQuery,
                     onQueryChange = { vm.updateRepoPickerQuery(it) },
                     options = filteredRepoOptions,
                     isLoading = githubSession.isLoadingRepositories,
@@ -237,7 +237,7 @@ fun App() {
                     onSelect = { fullName ->
                         vm.selectRepo(fullName)
                         scope.launch {
-                            githubSession.refresh(owner = vm.owner, repo = vm.repo)
+                            githubSession.refresh(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
                             if (githubSession.githubSnapshot != null) {
                                 vm.resetNavigation()
                                 vm.resetViewport()
@@ -250,8 +250,8 @@ fun App() {
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
                     rows = explorerRows,
-                    focusPath = vm.focusPath,
-                    selectedPath = vm.selectedPath,
+                    focusPath = vm.state.navigationState.focusPath,
+                    selectedPath = vm.state.navigationState.selectedPath,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
                 )
@@ -260,34 +260,34 @@ fun App() {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
-                    focusPath = vm.focusPath,
+                    focusPath = vm.state.navigationState.focusPath,
                     visiblePrs = visiblePrs,
                     focusRoot = focusRoot,
-                    selectedPath = vm.selectedPath,
+                    selectedPath = vm.state.navigationState.selectedPath,
                     fileOverlayByPath = fileOverlayByPath,
                     directoryOverlayByPath = directoryOverlayByPath,
-                    prColorMap = vm.prColorMap,
-                    viewportResetToken = vm.viewportResetToken,
+                    prColorMap = vm.state.colorState.prColorMap,
+                    viewportResetToken = vm.state.navigationState.viewportResetToken,
                     onFocusPathChange = { vm.changeFocusPath(it) },
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
-                    repoFullName = "${vm.owner.trim()}/${vm.repo.trim()}",
+                    repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
                 )
 
                 PrListPane(
                     filteredPrs = filteredPrs,
                     selectedPrIds = effectiveSelectedIds,
-                    selectedPath = vm.selectedPath,
-                    prColorMap = vm.prColorMap,
-                    query = vm.query,
-                    showDrafts = vm.showDrafts,
-                    onlyMine = vm.onlyMine,
+                    selectedPath = vm.state.navigationState.selectedPath,
+                    prColorMap = vm.state.colorState.prColorMap,
+                    query = vm.state.filterState.query,
+                    showDrafts = vm.state.filterState.showDrafts,
+                    onlyMine = vm.state.filterState.onlyMine,
                     onQueryChange = { vm.updateQuery(it) },
                     onShowDraftsChange = { vm.updateShowDrafts(it) },
                     onOnlyMineChange = { vm.updateOnlyMine(it) },
                     onTogglePr = { prId, checked ->
                         // Initialize from effectiveSelectedIds on first interaction (selectedPrIds is empty = all)
-                        if (vm.selectedPrIds.isEmpty()) vm.selectAllPrs(effectiveSelectedIds)
+                        if (vm.state.filterState.selectedPrIds.isEmpty()) vm.selectAllPrs(effectiveSelectedIds)
                         vm.togglePr(prId, checked)
                     },
                     onOpenPr = { openUrl(it) },
