@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +61,7 @@ fun TreemapPane(
     onRelatedPrsDetected: (Set<String>) -> Unit,
     repoFullName: String,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     var zoom by remember { mutableStateOf(0.8f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -217,6 +219,16 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             )
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(AppColors.backgroundCanvas.copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = AppColors.textPrimary)
+                }
+            }
         }
     }
 }

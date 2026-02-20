@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -48,6 +49,7 @@ fun PrListPane(
     onOpenPr: (String) -> Unit,
     onCyclePrColor: (String) -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -73,11 +75,19 @@ fun PrListPane(
             Text("Only my PRs", color = AppColors.textBodyMuted)
         }
         HorizontalDivider(color = AppColors.prListDivider)
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            items(filteredPrs, key = { it.id }) { pr ->
+        if (isLoading) {
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = AppColors.textPrimary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(filteredPrs, key = { it.id }) { pr ->
                 val checked = selectedPrIds.contains(pr.id)
                 val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
                 val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
@@ -128,6 +138,7 @@ fun PrListPane(
                     }
                 }
             }
+        }
         }
         Text(
             text = "Cmd+R: reset view  /  Cmd+F: clear search",

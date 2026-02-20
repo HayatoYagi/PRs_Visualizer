@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +48,7 @@ fun ExplorerPane(
     onSelectDirectory: (String) -> Unit,
     onSelectFile: (String) -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -76,13 +78,23 @@ fun ExplorerPane(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppColors.backgroundPaneList),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = AppColors.textPrimary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.backgroundPaneList),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
                 val isCurrentDir = row.isDirectory && row.path == focusPath
                 val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
                 val isSelectedFile = !row.isDirectory && row.path == selectedPath
@@ -132,6 +144,7 @@ fun ExplorerPane(
                     }
                 }
             }
+        }
         }
     }
 }
