@@ -78,7 +78,8 @@ object GitHubTokenStore {
     private fun loadFromWindowsDpapi(): String? {
         val path = windowsTokenFilePath()
         if (!Files.exists(path)) return null
-        val script = """
+        val script =
+            """
             if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
             ${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
             if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
@@ -89,7 +90,7 @@ object GitHubTokenStore {
             } finally {
               [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
             }
-        """.trimIndent()
+            """.trimIndent()
         val result = runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(WINDOWS_TOKEN_ENV_PATH to path.toString()),
@@ -100,14 +101,15 @@ object GitHubTokenStore {
 
     private fun saveToWindowsDpapi(token: String) {
         val path = windowsTokenFilePath()
-        val script = """
+        val script =
+            """
             if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
             ${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
             if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
             ${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
             ${'$'}enc = ConvertFrom-SecureString ${'$'}secure
             Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
-        """.trimIndent()
+            """.trimIndent()
         runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(
@@ -154,11 +156,10 @@ object GitHubTokenStore {
         }.getOrNull()
     }
 
-    private fun runCommand(vararg command: String): CommandResult? {
-        return runCommand(command = arrayOf(*command))
-    }
+    private fun runCommand(vararg command: String): CommandResult? = runCommand(command = arrayOf(*command))
 
     private fun isMacOs(): Boolean = System.getProperty("os.name").contains("mac", ignoreCase = true)
+
     private fun isWindows(): Boolean = System.getProperty("os.name").contains("windows", ignoreCase = true)
 
     private data class CommandResult(

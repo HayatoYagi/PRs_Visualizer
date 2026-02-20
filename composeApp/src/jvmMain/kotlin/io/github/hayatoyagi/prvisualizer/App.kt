@@ -65,21 +65,31 @@ fun App() {
         filterRepoOptions(githubSession.repositoryOptions, vm.state.dialogState.repoPickerQuery)
     }
 
-    val filteredPrs = remember(vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, allPrs, currentUser) {
-        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
-    }
+    val filteredPrs =
+        remember(vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, allPrs, currentUser) {
+            filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
+        }
 
     // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
     // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
     val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
-        if (vm.state.filterState.selectedPrIds.isEmpty()) filteredPrs.map { it.id }.toSet()
-        else vm.state.filterState.selectedPrIds
+        if (vm.state.filterState.selectedPrIds
+                .isEmpty()
+        ) {
+            filteredPrs.map { it.id }.toSet()
+        } else {
+            vm.state.filterState.selectedPrIds
+        }
     }
 
     // Only reset to all when a filter change leaves the current selection with no overlap.
     LaunchedEffect(filteredPrs) {
         val available = filteredPrs.map { it.id }.toSet()
-        if (vm.state.filterState.selectedPrIds.isNotEmpty() && vm.state.filterState.selectedPrIds.none { available.contains(it) }) {
+        if (vm.state.filterState.selectedPrIds
+                .isNotEmpty() &&
+            vm.state.filterState.selectedPrIds
+                .none { available.contains(it) }
+        ) {
             vm.selectAllPrs(available)
         }
     }
@@ -93,7 +103,10 @@ fun App() {
     LaunchedEffect(githubSession.oauthToken) {
         if (githubSession.oauthToken.isNotBlank()) {
             githubSession.ensureRepositoryOptions()
-            if (vm.state.repoState.repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
+            if (vm.state.repoState.repo
+                    .isBlank() &&
+                githubSession.repositoryOptions.isNotEmpty()
+            ) {
                 val default = githubSession.repositoryOptions.first()
                 vm.selectRepo(default)
             }
@@ -112,7 +125,7 @@ fun App() {
     val focusRoot = remember(root, vm.state.navigationState.focusPath) {
         findDirectory(root, vm.state.navigationState.focusPath) ?: root
     }
-    
+
     val allFiles = remember(root) {
         buildList {
             fun collectFiles(node: FileNode) {
@@ -164,8 +177,7 @@ fun App() {
                         }
                         else -> {}
                     }
-                }
-                .onPreviewKeyEvent { event ->
+                }.onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false
                     }
@@ -254,6 +266,7 @@ fun App() {
                     selectedPath = vm.state.navigationState.selectedPath,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
+                    isLoading = githubSession.isConnecting,
                 )
 
                 TreemapPane(
@@ -272,6 +285,7 @@ fun App() {
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
+                    isLoading = githubSession.isConnecting,
                 )
 
                 PrListPane(
@@ -287,11 +301,16 @@ fun App() {
                     onOnlyMineChange = { vm.updateOnlyMine(it) },
                     onTogglePr = { prId, checked ->
                         // Initialize from effectiveSelectedIds on first interaction (selectedPrIds is empty = all)
-                        if (vm.state.filterState.selectedPrIds.isEmpty()) vm.selectAllPrs(effectiveSelectedIds)
+                        if (vm.state.filterState.selectedPrIds
+                                .isEmpty()
+                        ) {
+                            vm.selectAllPrs(effectiveSelectedIds)
+                        }
                         vm.togglePr(prId, checked)
                     },
                     onOpenPr = { openUrl(it) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
+                    isLoading = githubSession.isConnecting,
                 )
             }
         }
