@@ -6,7 +6,7 @@ A desktop application for visually understanding the state of open pull requests
 
 ## 🖼️ Screenshot
 
-![GitHub PRs Visualizer screenshot](<./docs/images/screenshot-2026-02-20-231900.png>)
+![GitHub PRs Visualizer screenshot](./docs/images/screenshot-2026-02-20-231900.png)
 *Note: This screenshot shows a development build UI and may differ from future releases.*
 
 ## 🎯 Who Should Use This Tool
@@ -50,8 +50,6 @@ A desktop application for visually understanding the state of open pull requests
 
 ### Prerequisites
 - Java 17 or higher installed
-- GitHub OAuth App Client ID
-  - Set as `GITHUB_CLIENT_ID` in `.env`
 
 ### Running the Application
 
@@ -64,16 +62,6 @@ A desktop application for visually understanding the state of open pull requests
 ```bash
 .\gradlew.bat :composeApp:run
 ```
-
-### First-Time Setup
-1. Launch the application
-2. Set your GitHub OAuth App Client ID in the `.env` file:
-   ```
-   GITHUB_CLIENT_ID=your_github_oauth_client_id_here
-   ```
-3. Enter the repository owner and repository name
-4. Sign in with GitHub from the app
-5. Start visualizing PRs
 
 ## 💡 Use Cases
 
@@ -91,19 +79,11 @@ By prioritizing PRs with large impact areas or significant overlaps with other P
 
 ## 🔧 Tech Stack
 
-- **Language**: Kotlin
-- **UI Framework**: Compose Multiplatform (Compose for Desktop)
-- **Rendering Engine**: Skia
-- **Networking**: Ktor (GitHub API communication)
-- **Architecture**: MVVM
+Built with Kotlin and [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) (Compose for Desktop).
 
 ## 📦 Future Distribution
 
 In the future, we plan to distribute pre-built applications through GitHub release tags, making it easy to use without building locally.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to report bugs, request features, or submit pull requests.
 
 ## 🔗 Documentation
 
