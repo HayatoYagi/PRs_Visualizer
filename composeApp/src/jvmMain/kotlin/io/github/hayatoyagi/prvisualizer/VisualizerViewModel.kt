@@ -110,10 +110,18 @@ class VisualizerViewModel(
     // Navigation intents
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
+        // Auto-expand the selected directory
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = if (!explorerState.expandedPaths.contains(path)) {
+            explorerState.expandedPaths + path
+        } else {
+            explorerState.expandedPaths
+        }
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             )
         )
     }
@@ -121,21 +129,41 @@ class VisualizerViewModel(
     fun selectFile(path: String) {
         val parentPath = parentPathOf(path)
         navigationHistory.recordFocusPath(parentPath)
+        // Auto-expand parent directories so the file is visible
+        val explorerState = state.navigationState.explorerState
+        val pathSegments = if (parentPath.isNotBlank()) parentPath.split('/') else emptyList()
+        var expandedPaths = explorerState.expandedPaths
+        var currentPath = ""
+        for (segment in pathSegments) {
+            currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
+            if (!expandedPaths.contains(currentPath)) {
+                expandedPaths = expandedPaths + currentPath
+            }
+        }
         state = state.copy(
             navigationState = state.navigationState.copy(
                 selectedPath = path,
                 focusPath = parentPath,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             )
         )
     }
 
     fun changeFocusPath(path: String) {
         navigationHistory.recordFocusPath(path)
+        // Auto-expand the focused directory
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = if (path.isNotBlank() && !explorerState.expandedPaths.contains(path)) {
+            explorerState.expandedPaths + path
+        } else {
+            explorerState.expandedPaths
+        }
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             )
         )
     }
