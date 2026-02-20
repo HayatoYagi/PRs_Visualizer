@@ -143,9 +143,9 @@ class GitHubApi(
 
     private fun isBinaryFile(path: String): Boolean {
         val lastDotIndex = path.lastIndexOf('.')
-        if (lastDotIndex == -1 || lastDotIndex >= path.length - 1) return false
+        if (lastDotIndex == -1) return false
         val extension = path.substring(lastDotIndex + 1).lowercase()
-        return extension in BINARY_EXTENSIONS
+        return extension.isNotEmpty() && extension in BINARY_EXTENSIONS
     }
 
     private fun fetchRepositoryFiles(owner: String, repo: String, branch: String): List<FileSeed> {
