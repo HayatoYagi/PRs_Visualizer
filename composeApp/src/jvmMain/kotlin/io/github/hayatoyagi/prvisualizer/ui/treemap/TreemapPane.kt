@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +61,7 @@ fun TreemapPane(
     onRelatedPrsDetected: (Set<String>) -> Unit,
     repoFullName: String,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     var zoom by remember { mutableStateOf(0.8f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -139,7 +141,9 @@ fun TreemapPane(
                         pan = centeredPan(canvasSize = it, zoom = zoom)
                         pendingViewportCentering = false
                     }
-                }.onPointerEvent(PointerEventType.Move) { event ->
+                }
+                .onPointerEvent(PointerEventType.Move) { event ->
+                    if (isLoading) return@onPointerEvent
                     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
                     pointerPos = position
                     val dragging = event.buttons.isSecondaryPressed
@@ -155,18 +159,19 @@ fun TreemapPane(
 
                     val world = (position - pan) / zoom
                     hoveredNode = visibleNodes.asReversed().firstOrNull { it.rect.contains(world) }
-                }.onPointerEvent(PointerEventType.Scroll) { event ->
-                    val scrollY = event.changes
-                        .firstOrNull()
-                        ?.scrollDelta
-                        ?.y ?: return@onPointerEvent
+                }
+                .onPointerEvent(PointerEventType.Scroll) { event ->
+                    if (isLoading) return@onPointerEvent
+                    val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
                     val factor = if (scrollY > 0f) 0.9f else 1.1f
                     val newZoom = (zoom * factor).coerceIn(0.4f, 8f)
                     val cursor = pointerPos
                     val world = (cursor - pan) / zoom
                     pan = cursor - world * newZoom
                     zoom = newZoom
-                }.onPointerEvent(PointerEventType.Release) { event ->
+                }
+                .onPointerEvent(PointerEventType.Release) { event ->
+                    if (isLoading) return@onPointerEvent
                     dragPointerPos = null
                     val change = event.changes.firstOrNull() ?: return@onPointerEvent
                     if (event.button != PointerButton.Primary) return@onPointerEvent
@@ -217,6 +222,16 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             )
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(AppColors.backgroundCanvas.copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = AppColors.textPrimary)
+                }
+            }
         }
     }
 }
