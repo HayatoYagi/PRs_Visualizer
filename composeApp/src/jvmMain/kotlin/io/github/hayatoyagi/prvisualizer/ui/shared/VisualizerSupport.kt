@@ -16,15 +16,17 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.net.URI
 
-fun authorColor(author: String): Color {
-    return AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
-}
+fun authorColor(author: String): Color = AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
 
-fun prColor(pr: PullRequest, colorMap: Map<String, Color>): Color {
-    return colorMap[pr.id] ?: authorColor("${pr.author}:${pr.number}")
-}
+fun prColor(
+    pr: PullRequest,
+    colorMap: Map<String, Color>,
+): Color = colorMap[pr.id] ?: authorColor("${pr.author}:${pr.number}")
 
-fun findDirectory(root: FileNode.Directory, path: String): FileNode.Directory? {
+fun findDirectory(
+    root: FileNode.Directory,
+    path: String,
+): FileNode.Directory? {
     if (path.isBlank()) return root
     if (root.path == path) return root
     root.children.forEach { child ->
@@ -41,16 +43,13 @@ fun parentPathOf(path: String): String {
     return path.substringBeforeLast('/', missingDelimiterValue = "")
 }
 
-fun nodeKey(node: TreemapNode): String {
-    return if (node.isDirectory) "D:${node.path}" else "F:${node.path}"
-}
+fun nodeKey(node: TreemapNode): String = if (node.isDirectory) "D:${node.path}" else "F:${node.path}"
 
-fun totalLines(node: FileNode): Int {
-    return when (node) {
+fun totalLines(node: FileNode): Int =
+    when (node) {
         is FileNode.File -> node.totalLines
         is FileNode.Directory -> node.children.sumOf(::totalLines)
     }
-}
 
 fun DrawScope.drawPrBorder(
     topLeft: Offset,
@@ -157,7 +156,11 @@ private fun DrawScope.drawPerimeterSegment(
     }
 }
 
-private fun pointOnRectPerimeter(topLeft: Offset, size: Size, distance: Float): Offset {
+private fun pointOnRectPerimeter(
+    topLeft: Offset,
+    size: Size,
+    distance: Float,
+): Offset {
     val w = size.width
     val h = size.height
     val p = (2f * (w + h)).coerceAtLeast(1f)
@@ -193,7 +196,10 @@ fun buildExplorerRows(
     val rows = mutableListOf<ExplorerRow>()
     val conflictedDirectoryPaths = computeConflictedDirectoryPaths(fileOverlayByPath)
 
-    fun visit(node: FileNode, depth: Int) {
+    fun visit(
+        node: FileNode,
+        depth: Int,
+    ) {
         val (dominantType, hasConflict) = when (node) {
             is FileNode.Directory -> {
                 val overlay = directoryOverlayByPath[node.path]
@@ -218,8 +224,7 @@ fun buildExplorerRows(
                 .sortedWith(
                     compareBy<FileNode> { it !is FileNode.Directory }
                         .thenBy { it.name.lowercase() },
-                )
-                .forEach { child ->
+                ).forEach { child ->
                     visit(child, depth + 1)
                 }
         }
@@ -244,7 +249,10 @@ fun copyToClipboard(text: String) {
     }
 }
 
-fun filterRepoOptions(repositoryOptions: List<String>, query: String): List<String> {
+fun filterRepoOptions(
+    repositoryOptions: List<String>,
+    query: String,
+): List<String> {
     val q = query.trim()
     return if (q.isBlank()) {
         repositoryOptions.take(200)
@@ -261,13 +269,12 @@ fun filterPrs(
     onlyMine: Boolean,
     query: String,
     currentUser: String,
-): List<PullRequest> {
-    return allPrs.filter { pr ->
+): List<PullRequest> =
+    allPrs.filter { pr ->
         (showDrafts || !pr.isDraft) &&
             (!onlyMine || pr.author == currentUser) &&
             (query.isBlank() || pr.title.contains(query, ignoreCase = true) || "#${pr.number}".contains(query))
     }
-}
 
 fun computeFileOverlayByPath(
     visiblePrs: List<PullRequest>,
@@ -294,8 +301,8 @@ fun computeFileOverlayByPath(
 fun computeDirectoryOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleDirectories: List<FileNode.Directory>,
-): Map<String, DirectoryOverlay> {
-    return visibleDirectories.associate { dir ->
+): Map<String, DirectoryOverlay> =
+    visibleDirectories.associate { dir ->
         val relatedChanges = visiblePrs
             .flatMap { pr -> pr.files.map { change -> pr to change } }
             .filter { (_, change) -> change.path.startsWith("${dir.path}/") }
@@ -314,4 +321,3 @@ fun computeDirectoryOverlayByPath(
             density = density,
         )
     }
-}

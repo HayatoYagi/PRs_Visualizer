@@ -95,11 +95,9 @@ fun ExplorerPane(
                                 isSelectedFile -> AppColors.explorerSelectionFile
                                 else -> Color.Transparent
                             },
-                        )
-                        .clickable {
+                        ).clickable {
                             if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
-                        }
-                        .padding(vertical = 4.dp, horizontal = 6.dp),
+                        }.padding(vertical = 4.dp, horizontal = 6.dp),
                 ) {
                     val statusKind = row.statusKindOrNull()
 

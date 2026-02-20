@@ -38,16 +38,13 @@ data class NavigationState(
     val selectedPath: String? = null,
     val viewportResetToken: Int = 0,
 ) {
-    fun resetNavigation(): NavigationState {
-        return copy(
+    fun resetNavigation(): NavigationState =
+        copy(
             focusPath = "",
             selectedPath = null,
         )
-    }
 
-    fun resetViewport(): NavigationState {
-        return copy(viewportResetToken = viewportResetToken + 1)
-    }
+    fun resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 }
 
 /**
@@ -72,13 +69,15 @@ data class VisualizerState(
      * Resets state when changing repositories.
      * Keeps toggle filters while clearing query, selection, colors, and navigation.
      */
-    fun resetForNewRepo(owner: String, repo: String): VisualizerState {
-        return copy(
+    fun resetForNewRepo(
+        owner: String,
+        repo: String,
+    ): VisualizerState =
+        copy(
             repoState = RepoState(owner, repo),
             dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
             filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
             navigationState = NavigationState(),
             colorState = ColorState(),
         )
-    }
 }
