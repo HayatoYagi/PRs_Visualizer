@@ -4,6 +4,11 @@
 
 A desktop application for visually understanding the state of open pull requests in GitHub repositories. Inspired by disk space visualizers like WinDirStat and WizTree, it uses a treemap visualization to show at a glance which files and directories are under active development.
 
+## 🖼️ Screenshot
+
+![GitHub PRs Visualizer screenshot](<./docs/images/screenshot-2026-02-20-231900.png>)
+*Note: This screenshot shows a development build UI and may differ from future releases.*
+
 ## 🎯 Who Should Use This Tool
 
 ### For Team Development
@@ -45,8 +50,8 @@ A desktop application for visually understanding the state of open pull requests
 
 ### Prerequisites
 - Java 17 or higher installed
-- GitHub Personal Access Token (PAT)
-  - Required scope: `repo`
+- GitHub OAuth App Client ID
+  - Set as `GITHUB_CLIENT_ID` in `.env`
 
 ### Running the Application
 
@@ -62,12 +67,13 @@ A desktop application for visually understanding the state of open pull requests
 
 ### First-Time Setup
 1. Launch the application
-2. Set up your GitHub Personal Access Token (PAT) in the `.env` file:
+2. Set your GitHub OAuth App Client ID in the `.env` file:
    ```
-   GITHUB_TOKEN=your_personal_access_token_here
+   GITHUB_CLIENT_ID=your_github_oauth_client_id_here
    ```
 3. Enter the repository owner and repository name
-4. Start visualizing PRs
+4. Sign in with GitHub from the app
+5. Start visualizing PRs
 
 ## 💡 Use Cases
 
@@ -98,10 +104,6 @@ In the future, we plan to distribute pre-built applications through GitHub relea
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to report bugs, request features, or submit pull requests.
-
-## 📄 License
-
-Please check the license file in the repository for licensing information.
 
 ## 🔗 Documentation
 
