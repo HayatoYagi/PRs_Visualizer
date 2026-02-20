@@ -63,19 +63,6 @@ A desktop application for visually understanding the state of open pull requests
 .\gradlew.bat :composeApp:run
 ```
 
-## 💡 Use Cases
-
-### 1. Early Conflict Detection
-When multiple developers are working simultaneously, you can identify changes to the same files in advance. By communicating before merging, you can prevent conflicts proactively.
-
-### 2. AI Agent Work Monitoring
-When multiple AI agents are creating PRs in parallel, you can visually monitor each agent's work range. This helps you detect overlaps or unintended interference early.
-
-### 3. Architecture Health Check
-Files or directories with frequent conflicts might signal a need for design improvements. Through visualization, you can identify opportunities for better modularization and file organization.
-
-### 4. Review Prioritization
-By prioritizing PRs with large impact areas or significant overlaps with other PRs, you can establish a more efficient code review process.
 
 ## 🔧 Tech Stack
 
