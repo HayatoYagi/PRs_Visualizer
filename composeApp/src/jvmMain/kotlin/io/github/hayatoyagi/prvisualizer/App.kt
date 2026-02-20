@@ -254,6 +254,7 @@ fun App() {
                     selectedPath = vm.state.navigationState.selectedPath,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
+                    isLoading = githubSession.isConnecting,
                 )
 
                 TreemapPane(
@@ -272,6 +273,7 @@ fun App() {
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
+                    isLoading = githubSession.isConnecting,
                 )
 
                 PrListPane(
@@ -292,6 +294,7 @@ fun App() {
                     },
                     onOpenPr = { openUrl(it) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
+                    isLoading = githubSession.isConnecting,
                 )
             }
         }
