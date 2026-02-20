@@ -175,7 +175,6 @@ fun computeConflictedDirectoryPaths(fileOverlayByPath: Map<String, FileOverlay>)
     val conflictedDirectories = mutableSetOf<String>()
     fileOverlayByPath.forEach { (filePath, overlay) ->
         if (overlay.prs.size <= 1) return@forEach
-        conflictedDirectories += ""
         val segments = filePath.split('/')
         var current = ""
         for (i in 0 until segments.lastIndex) {

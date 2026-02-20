@@ -18,25 +18,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+
+enum class ExplorerBadgeSize(val badgeDp: Dp, val fontSp: TextUnit, val conflictFontSp: TextUnit) {
+    Legend(14.dp, 9.sp, 10.sp),
+    Row(16.dp, 11.sp, 11.sp),
+}
 
 @Composable
 fun ExplorerStatusBadge(
     kind: ExplorerStatusKind,
     withLabel: Boolean,
-    badgeSize: Dp,
-    symbolFontSize: TextUnit,
+    size: ExplorerBadgeSize,
     modifier: Modifier = Modifier,
 ) {
+    val fontSize = if (kind.isConflict) size.conflictFontSp else size.fontSp
     val textStyle = TextStyle(
-        fontSize = symbolFontSize,
+        fontSize = fontSize,
         fontWeight = if (kind.isConflict) FontWeight.ExtraBold else FontWeight.Bold,
-        lineHeight = symbolFontSize,
+        lineHeight = fontSize,
     )
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(badgeSize)
+                .size(size.badgeDp)
                 .background(
                     color = kind.color.copy(alpha = if (kind.isConflict) 0.28f else 0.22f),
                     shape = if (kind.isConflict) RectangleShape else MaterialTheme.shapes.extraSmall,

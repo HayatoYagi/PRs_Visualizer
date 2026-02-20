@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.treemap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -31,9 +32,10 @@ fun TreemapCanvas(
     pan: Offset,
     modifier: Modifier = Modifier,
 ) {
+    val conflictedDirectoryPaths = remember(fileOverlayByPath) {
+        computeConflictedDirectoryPaths(fileOverlayByPath)
+    }
     Canvas(modifier = modifier.fillMaxSize()) {
-        val conflictedDirectoryPaths = computeConflictedDirectoryPaths(fileOverlayByPath)
-
         visibleDirectories.forEach { node ->
             val widthPx = node.rect.width * zoom
             val heightPx = node.rect.height * zoom

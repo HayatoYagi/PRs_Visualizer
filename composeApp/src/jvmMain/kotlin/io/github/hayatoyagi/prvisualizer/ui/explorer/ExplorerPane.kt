@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.hayatoyagi.prvisualizer.ChangeType
+import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
 import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
@@ -63,10 +63,10 @@ fun ExplorerPane(
         ) {
             Text("Explorer", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Conflict, withLabel = true, badgeSize = 14.dp, symbolFontSize = 10.sp)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Addition, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Modification, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, badgeSize = 14.dp, symbolFontSize = 9.sp)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Conflict, withLabel = true, size = ExplorerBadgeSize.Legend)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Addition, withLabel = true, size = ExplorerBadgeSize.Legend)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Modification, withLabel = true, size = ExplorerBadgeSize.Legend)
+                ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, size = ExplorerBadgeSize.Legend)
             }
         }
         Text(
@@ -127,7 +127,7 @@ fun ExplorerPane(
                             .width(24.dp),
                     ) {
                         statusKind?.let {
-                            ExplorerStatusBadge(kind = it, withLabel = false, badgeSize = 16.dp, symbolFontSize = 11.sp)
+                            ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
                         }
                     }
                 }
