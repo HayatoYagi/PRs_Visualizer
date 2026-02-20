@@ -145,8 +145,8 @@ fun App() {
         computeDirectoryOverlayByPath(visiblePrs, allDirectories)
     }
 
-    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
-        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
+    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath, vm.state.navigationState.explorerState.expandedPaths) {
+        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath, vm.state.navigationState.explorerState.expandedPaths)
     }
 
     MaterialTheme {
@@ -252,8 +252,10 @@ fun App() {
                     rows = explorerRows,
                     focusPath = vm.state.navigationState.focusPath,
                     selectedPath = vm.state.navigationState.selectedPath,
+                    expandedPaths = vm.state.navigationState.explorerState.expandedPaths,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
+                    onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
                 )
 
                 TreemapPane(

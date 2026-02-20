@@ -160,6 +160,21 @@ class VisualizerViewModel(
         )
     }
 
+    fun toggleDirectoryExpanded(path: String) {
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = explorerState.expandedPaths
+        val newExpandedPaths = if (expandedPaths.contains(path)) {
+            expandedPaths - path
+        } else {
+            expandedPaths + path
+        }
+        state = state.copy(
+            navigationState = state.navigationState.copy(
+                explorerState = explorerState.copy(expandedPaths = newExpandedPaths)
+            )
+        )
+    }
+
     /**
      * Navigates back in history. Returns true if navigation occurred.
      */

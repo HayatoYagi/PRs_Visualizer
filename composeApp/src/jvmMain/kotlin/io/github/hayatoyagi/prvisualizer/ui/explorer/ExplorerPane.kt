@@ -44,8 +44,10 @@ fun ExplorerPane(
     rows: List<ExplorerRow>,
     focusPath: String,
     selectedPath: String?,
+    expandedPaths: Set<String>,
     onSelectDirectory: (String) -> Unit,
     onSelectFile: (String) -> Unit,
+    onToggleExpanded: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -110,6 +112,25 @@ fun ExplorerPane(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Spacer(modifier = Modifier.width((row.depth * 12).dp))
+                        
+                        // Add expand/collapse chevron for directories
+                        if (row.isDirectory) {
+                            val isExpanded = expandedPaths.contains(row.path)
+                            Text(
+                                text = if (isExpanded) "▼" else "▶",
+                                color = when {
+                                    isCurrentDir -> Color.White
+                                    isAncestor -> AppColors.explorerAncestorText
+                                    else -> AppColors.textSecondary
+                                },
+                                modifier = Modifier
+                                    .padding(end = 4.dp)
+                                    .clickable { onToggleExpanded(row.path) },
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.width(16.dp))
+                        }
+                        
                         Text(
                             text = if (row.isDirectory) "${row.name}/" else row.name,
                             color = when {

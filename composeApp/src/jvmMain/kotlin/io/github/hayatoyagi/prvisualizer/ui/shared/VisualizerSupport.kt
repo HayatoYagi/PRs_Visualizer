@@ -189,6 +189,7 @@ fun buildExplorerRows(
     root: FileNode.Directory,
     fileOverlayByPath: Map<String, FileOverlay>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    expandedPaths: Set<String> = setOf(""),
 ): List<ExplorerRow> {
     val rows = mutableListOf<ExplorerRow>()
     val conflictedDirectoryPaths = computeConflictedDirectoryPaths(fileOverlayByPath)
@@ -213,7 +214,7 @@ fun buildExplorerRows(
             dominantType = dominantType,
             hasConflict = hasConflict,
         )
-        if (node is FileNode.Directory) {
+        if (node is FileNode.Directory && expandedPaths.contains(node.path)) {
             node.children
                 .sortedWith(
                     compareBy<FileNode> { it !is FileNode.Directory }

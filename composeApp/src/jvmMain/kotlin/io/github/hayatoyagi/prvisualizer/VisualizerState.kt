@@ -31,12 +31,20 @@ data class FilterState(
 )
 
 /**
+ * Represents explorer expand/collapse state.
+ */
+data class ExplorerState(
+    val expandedPaths: Set<String> = setOf(""), // Root is expanded by default
+)
+
+/**
  * Represents navigation state within the file tree.
  */
 data class NavigationState(
     val focusPath: String = "",
     val selectedPath: String? = null,
     val viewportResetToken: Int = 0,
+    val explorerState: ExplorerState = ExplorerState(),
 ) {
     fun resetNavigation(): NavigationState {
         return copy(
