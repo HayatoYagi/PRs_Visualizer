@@ -26,25 +26,10 @@ A desktop application for visually understanding the state of open pull requests
 
 ## ✨ Key Features
 
-### 📊 Treemap Visualization
-- **Files and directories represented by area**: Rectangles sized proportionally to file size (lines of code)
-- **Hierarchical display**: Directory structure shown through nesting
-- **Zoom functionality**: Use mouse wheel to zoom in/out and explore deeper hierarchies
-
-### 🎨 Change Visualization
-- **Color-coded by change type**:
-  - 🟢 Green: Additions
-  - 🟡 Yellow: Modifications
-  - 🔴 Red: Deletions
-- **Unique border colors per PR**: Each PR or author gets a distinct color
-- **Change density representation**: Color intensity varies based on the proportion of changed lines
-- **Conflict warnings**: Highlights when multiple PRs modify the same file
-
-### 📋 PR List Sidebar
-- Display all open PRs in a list
-- Toggle to show/hide draft PRs
-- Individual show/hide toggle for each PR
-- Click PR items to open the GitHub PR page in your browser
+- Treemap visualization of file/directory changes across open PRs
+- Color-coded by change type (addition, modification, deletion)
+- Conflict warnings when multiple PRs touch the same file
+- Sidebar to toggle PR visibility individually or filter out drafts
 
 ## 🚀 Getting Started
 
