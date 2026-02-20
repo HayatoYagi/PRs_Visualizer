@@ -41,6 +41,24 @@ class VisualizerViewModel(
         )
     }
 
+    fun openFileDetailsDialog(filePath: String) {
+        state = state.copy(
+            dialogState = state.dialogState.copy(
+                isFileDetailsDialogOpen = true,
+                fileDetailsPath = filePath,
+            )
+        )
+    }
+
+    fun closeFileDetailsDialog() {
+        state = state.copy(
+            dialogState = state.dialogState.copy(
+                isFileDetailsDialogOpen = false,
+                fileDetailsPath = null,
+            )
+        )
+    }
+
     fun updateRepoPickerQuery(q: String) {
         state = state.copy(
             dialogState = state.dialogState.copy(repoPickerQuery = q)

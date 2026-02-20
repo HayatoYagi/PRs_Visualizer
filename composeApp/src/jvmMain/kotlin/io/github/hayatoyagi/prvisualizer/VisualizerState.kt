@@ -18,6 +18,8 @@ data class RepoState(
 data class DialogState(
     val isRepoDialogOpen: Boolean = false,
     val repoPickerQuery: String = "",
+    val isFileDetailsDialogOpen: Boolean = false,
+    val fileDetailsPath: String? = null,
 )
 
 /**
@@ -75,7 +77,7 @@ data class VisualizerState(
     fun resetForNewRepo(owner: String, repo: String): VisualizerState {
         return copy(
             repoState = RepoState(owner, repo),
-            dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
+            dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = "", isFileDetailsDialogOpen = false, fileDetailsPath = null),
             filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
             navigationState = NavigationState(),
             colorState = ColorState(),

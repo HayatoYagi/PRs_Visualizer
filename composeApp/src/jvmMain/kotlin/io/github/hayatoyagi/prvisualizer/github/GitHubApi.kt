@@ -1,5 +1,6 @@
 package io.github.hayatoyagi.prvisualizer.github
 
+import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
@@ -23,6 +24,7 @@ data class GitHubSnapshot(
     val rootNode: FileNode.Directory,
     val pullRequests: List<PullRequest>,
     val viewerLogin: String?,
+    val defaultBranch: String,
 )
 
 class GitHubApi(
@@ -53,7 +55,7 @@ class GitHubApi(
             .toSet()
 
         val rootNode = buildTree(fileSeeds, activePaths)
-        GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
+        GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin, defaultBranch = defaultBranch)
     }
 
     private fun fetchViewerLogin(): String? {
@@ -116,6 +118,34 @@ class GitHubApi(
             page += 1
         }
         return files
+    }
+
+    suspend fun fetchFileCommits(owner: String, repo: String, path: String, limit: Int = 10): List<FileCommit> = withContext(Dispatchers.IO) {
+        require(owner.isNotBlank()) { "owner is required" }
+        require(repo.isNotBlank()) { "repo is required" }
+        require(path.isNotBlank()) { "path is required" }
+        require(token.isNotBlank()) { "token is required" }
+
+        val response = requestArray(
+            "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
+        )
+
+        val commits = mutableListOf<FileCommit>()
+        repeat(response.length()) { idx ->
+            val commitObj = response.getJSONObject(idx)
+            val commit = commitObj.optJSONObject("commit")
+            val author = commit?.optJSONObject("author")
+            val committer = commit?.optJSONObject("committer")
+            
+            commits += FileCommit(
+                sha = commitObj.optString("sha", "").take(7),
+                message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
+                author = author?.optString("name", "") ?: committer?.optString("name", "") ?: "Unknown",
+                date = author?.optString("date", "") ?: committer?.optString("date", "") ?: "",
+                url = commitObj.optString("html_url", ""),
+            )
+        }
+        return@withContext commits
     }
 
     private fun fetchRepositoryFiles(owner: String, repo: String, branch: String): List<FileSeed> {

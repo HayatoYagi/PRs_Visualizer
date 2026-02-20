@@ -24,8 +24,10 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.session.rememberGitHubSessionState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
+import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.buildExplorerRows
@@ -35,6 +37,7 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.shared.filterRepoOptions
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
+import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
@@ -247,6 +250,30 @@ fun App() {
                 )
             }
 
+            if (vm.state.dialogState.isFileDetailsDialogOpen && vm.state.dialogState.fileDetailsPath != null) {
+                val filePath = vm.state.dialogState.fileDetailsPath!!
+                val fileName = filePath.substringAfterLast('/')
+                val fileNode = remember(root, filePath) {
+                    findFileNode(root, filePath)
+                }
+                val fileOverlay = fileOverlayByPath[filePath]
+                
+                if (fileNode != null && githubSession.oauthToken.isNotBlank()) {
+                    val githubApi = remember(githubSession.oauthToken) { GitHubApi(githubSession.oauthToken) }
+                    FileDetailsDialog(
+                        filePath = filePath,
+                        fileName = fileName,
+                        totalLines = fileNode.totalLines,
+                        fileOverlay = fileOverlay,
+                        repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
+                        defaultBranch = githubSession.githubSnapshot?.defaultBranch ?: "main",
+                        prColorMap = vm.state.colorState.prColorMap,
+                        githubApi = githubApi,
+                        onDismiss = { vm.closeFileDetailsDialog() },
+                    )
+                }
+            }
+
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
                     rows = explorerRows,
@@ -271,6 +298,7 @@ fun App() {
                     onFocusPathChange = { vm.changeFocusPath(it) },
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
+                    onFileDoubleClick = { vm.openFileDetailsDialog(it) },
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
                 )
 

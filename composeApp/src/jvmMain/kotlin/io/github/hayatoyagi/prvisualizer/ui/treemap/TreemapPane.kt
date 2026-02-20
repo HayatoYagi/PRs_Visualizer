@@ -40,7 +40,6 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.nodeKey
-import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
@@ -58,6 +57,7 @@ fun TreemapPane(
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
     onRelatedPrsDetected: (Set<String>) -> Unit,
+    onFileDoubleClick: (String) -> Unit,
     repoFullName: String,
     modifier: Modifier = Modifier,
 ) {
@@ -188,7 +188,7 @@ fun TreemapPane(
                         if (node.isDirectory) {
                             onFocusPathChange(node.path)
                         } else {
-                            openUrl("https://github.com/${repoFullName}/blob/main/${node.path}")
+                            onFileDoubleClick(node.path)
                         }
                     }
                     lastClickKey = key
