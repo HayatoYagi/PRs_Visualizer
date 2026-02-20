@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -108,11 +107,9 @@ fun ExplorerPane(
                                     isSelectedFile -> AppColors.explorerSelectionFile
                                     else -> Color.Transparent
                                 },
-                            )
-                            .clickable {
+                            ).clickable {
                                 if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
-                            }
-                            .padding(vertical = 4.dp, horizontal = 6.dp),
+                            }.padding(vertical = 4.dp, horizontal = 6.dp),
                     ) {
                         val statusKind = row.statusKindOrNull()
 

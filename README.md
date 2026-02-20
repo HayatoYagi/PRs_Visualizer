@@ -53,6 +53,22 @@ A desktop application for visually understanding the state of open pull requests
 
 Built with Kotlin and [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) (Compose for Desktop).
 
+## 🛠️ Development
+
+### Code Style
+
+This project uses [ktlint](https://github.com/pinterest/ktlint) for Kotlin code formatting and style checking.
+
+To check code style:
+```bash
+./gradlew ktlintCheck
+```
+
+To automatically format code:
+```bash
+./gradlew ktlintFormat
+```
+
 ## 📦 Future Distribution
 
 In the future, we plan to distribute pre-built applications through GitHub release tags, making it easy to use without building locally.

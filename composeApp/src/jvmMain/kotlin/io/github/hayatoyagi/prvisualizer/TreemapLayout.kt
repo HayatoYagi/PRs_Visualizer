@@ -2,7 +2,10 @@ package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.geometry.Rect
 
-fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
+fun computeTreemap(
+    root: FileNode.Directory,
+    bounds: Rect,
+): List<TreemapNode> {
     val nodes = mutableListOf<TreemapNode>()
 
     // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
@@ -17,7 +20,12 @@ fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
         is FileNode.Directory -> node.children.any { hasActivePr(it) }
     }
 
-    fun layout(node: FileNode, rect: Rect, depth: Int, horizontal: Boolean) {
+    fun layout(
+        node: FileNode,
+        rect: Rect,
+        depth: Int,
+        horizontal: Boolean,
+    ) {
         if (rect.width <= 0f || rect.height <= 0f) return
 
         nodes += TreemapNode(
