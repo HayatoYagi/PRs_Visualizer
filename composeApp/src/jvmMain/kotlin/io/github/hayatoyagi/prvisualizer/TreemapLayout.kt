@@ -2,25 +2,32 @@ package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.geometry.Rect
 
-fun computeTreemap(
-    root: FileNode.Directory,
-    bounds: Rect,
-): List<TreemapNode> {
+fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
+    val engine = TreemapLayoutEngine()
+    return engine.compute(root, bounds)
+}
+
+private class TreemapLayoutEngine {
     val nodes = mutableListOf<TreemapNode>()
 
     // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    fun totalLines(node: FileNode): Int = when (node) {
+    private fun totalLines(node: FileNode): Int = when (node) {
         is FileNode.File -> node.totalLines
         is FileNode.Directory -> node.children.sumOf { totalLines(it) }
     }
 
     // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    fun hasActivePr(node: FileNode): Boolean = when (node) {
+    private fun hasActivePr(node: FileNode): Boolean = when (node) {
         is FileNode.File -> node.hasActivePr
         is FileNode.Directory -> node.children.any { hasActivePr(it) }
     }
 
-    fun layout(node: FileNode, rect: Rect, depth: Int) {
+    fun compute(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
+        layout(root, bounds, depth = 0)
+        return nodes
+    }
+
+    private fun layout(node: FileNode, rect: Rect, depth: Int) {
         if (rect.width <= 0f || rect.height <= 0f) return
 
         nodes += TreemapNode(
@@ -40,7 +47,7 @@ fun computeTreemap(
     }
 
     // Squarified treemap algorithm to minimize aspect ratios
-    fun squarify(children: List<FileNode>, bounds: Rect, depth: Int) {
+    private fun squarify(children: List<FileNode>, bounds: Rect, depth: Int) {
         if (children.isEmpty() || bounds.width <= 0f || bounds.height <= 0f) return
 
         val sortedChildren = children.sortedByDescending { it.weight }
@@ -49,7 +56,7 @@ fun computeTreemap(
         squarifyRecursive(sortedChildren, mutableListOf(), bounds, totalWeight, depth)
     }
 
-    fun squarifyRecursive(
+    private fun squarifyRecursive(
         remaining: List<FileNode>,
         current: MutableList<FileNode>,
         bounds: Rect,
@@ -79,7 +86,7 @@ fun computeTreemap(
     }
 
     // Check if adding a new item to the current row improves the worst aspect ratio
-    fun improvesRatio(
+    private fun improvesRatio(
         current: List<FileNode>,
         newCurrent: List<FileNode>,
         bounds: Rect,
@@ -91,7 +98,7 @@ fun computeTreemap(
     }
 
     // Calculate the worst (highest) aspect ratio in a row
-    fun worstAspectRatio(row: List<FileNode>, bounds: Rect, totalWeight: Double): Double {
+    private fun worstAspectRatio(row: List<FileNode>, bounds: Rect, totalWeight: Double): Double {
         if (row.isEmpty()) return Double.MAX_VALUE
 
         val rowWeight = row.sumOf { it.weight }
@@ -99,7 +106,7 @@ fun computeTreemap(
 
         // Determine if we're laying out horizontally or vertically
         val isHorizontal = bounds.width >= bounds.height
-        
+
         // For horizontal layout: row takes full height, partial width
         // For vertical layout: row takes full width, partial height
         val rowShortSide = if (isHorizontal) {
@@ -122,7 +129,7 @@ fun computeTreemap(
     }
 
     // Layout a row of items and return the remaining bounds
-    fun layoutRow(row: List<FileNode>, bounds: Rect, totalWeight: Double, depth: Int): Rect {
+    private fun layoutRow(row: List<FileNode>, bounds: Rect, totalWeight: Double, depth: Int): Rect {
         if (row.isEmpty()) return bounds
 
         val rowWeight = row.sumOf { it.weight }
@@ -164,7 +171,4 @@ fun computeTreemap(
 
         return remainingBounds
     }
-
-    layout(root, bounds, depth = 0)
-    return nodes
 }
