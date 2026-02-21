@@ -15,11 +15,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 
-private data class FileSeed(
-    val path: String,
-    val estimatedLines: Int,
-)
-
 data class GitHubSnapshot(
     val rootNode: FileNode.Directory,
     val pullRequests: List<PullRequest>,
@@ -30,72 +25,6 @@ class GitHubApi(
     private val token: String,
 ) {
     private val client = HttpClient.newHttpClient()
-
-    companion object {
-        private val BINARY_EXTENSIONS = setOf(
-            // Images
-            "png",
-            "jpg",
-            "jpeg",
-            "gif",
-            "bmp",
-            "ico",
-            "webp",
-            "tiff",
-            "tif",
-            "avif",
-            // Archives
-            "zip",
-            "tar",
-            "gz",
-            "bz2",
-            "7z",
-            "rar",
-            "xz",
-            // Executables and libraries
-            "exe",
-            "dll",
-            "so",
-            "dylib",
-            "bin",
-            "app",
-            // Documents and fonts
-            "pdf",
-            "doc",
-            "docx",
-            "xls",
-            "xlsx",
-            "ppt",
-            "pptx",
-            "ttf",
-            "otf",
-            "woff",
-            "woff2",
-            // Media
-            "mp3",
-            "mp4",
-            "avi",
-            "mov",
-            "wav",
-            "flac",
-            "ogg",
-            "webm",
-            // Disk images
-            "dmg",
-            "iso",
-            // Databases
-            "db",
-            "sqlite",
-            // Other binary formats
-            "class",
-            "jar",
-            "war",
-            "pyc",
-            "o",
-            "a",
-            "lib",
-        )
-    }
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { "token is required" }
@@ -216,13 +145,6 @@ class GitHubApi(
         return files
     }
 
-    private fun isBinaryFile(path: String): Boolean {
-        val lastDotIndex = path.lastIndexOf('.')
-        if (lastDotIndex == -1) return false
-        val extension = path.substring(lastDotIndex + 1).lowercase()
-        return extension.isNotEmpty() && extension in BINARY_EXTENSIONS
-    }
-
     // GitHub can return added empty files as status=added with +0/-0.
     internal fun normalizedAdditionsForStatus(
         status: String,
@@ -296,68 +218,6 @@ class GitHubApi(
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
         return response.body()
-    }
-
-    private fun buildTree(
-        allFiles: List<FileSeed>,
-        activePaths: Set<String>,
-    ): FileNode.Directory {
-        data class MutableDir(
-            val path: String,
-            val name: String,
-            val children: MutableList<Any> = mutableListOf(),
-        )
-
-        val root = MutableDir(path = "", name = "repo")
-        val dirsByPath = mutableMapOf("" to root)
-
-        fun ensureDir(path: String): MutableDir =
-            dirsByPath.getOrPut(path) {
-                val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
-                val dirName = path.substringAfterLast('/')
-                val parent = ensureDir(parentPath)
-                val newDir = MutableDir(path = path, name = dirName)
-                parent.children += newDir
-                newDir
-            }
-
-        allFiles.forEach { file ->
-            val parentPath = file.path.substringBeforeLast('/', missingDelimiterValue = "")
-            val dir = ensureDir(parentPath)
-            dir.children += file
-        }
-
-        fun freeze(dir: MutableDir): FileNode.Directory {
-            val frozenChildren = dir.children.map { child ->
-                when (child) {
-                    is MutableDir -> freeze(child)
-                    is FileSeed -> {
-                        val extension = child.path.substringAfterLast('.', missingDelimiterValue = "")
-                        FileNode.File(
-                            path = child.path,
-                            name = child.path.substringAfterLast('/'),
-                            extension = extension,
-                            totalLines = child.estimatedLines,
-                            hasActivePr = activePaths.contains(child.path),
-                            weight = maxOf(
-                                child.estimatedLines.toDouble(),
-                                if (activePaths.contains(child.path)) 8.0 else 1.0,
-                            ),
-                        )
-                    }
-                    else -> error("Unexpected node type")
-                }
-            }
-
-            return FileNode.Directory(
-                path = dir.path,
-                name = if (dir.path.isEmpty()) "repo" else dir.name,
-                children = frozenChildren.sortedByDescending { it.weight },
-                weight = frozenChildren.sumOf { it.weight }.coerceAtLeast(1.0),
-            )
-        }
-
-        return freeze(root)
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)

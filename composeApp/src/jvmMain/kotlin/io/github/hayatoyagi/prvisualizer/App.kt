@@ -24,16 +24,20 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionState
 import io.github.hayatoyagi.prvisualizer.github.session.rememberGitHubSessionState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
+import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerRow
+import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
+import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
-import io.github.hayatoyagi.prvisualizer.ui.shared.buildExplorerRows
+import io.github.hayatoyagi.prvisualizer.ui.repo.filterRepoOptions
+import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
-import io.github.hayatoyagi.prvisualizer.ui.shared.filterPrs
-import io.github.hayatoyagi.prvisualizer.ui.shared.filterRepoOptions
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
@@ -41,6 +45,104 @@ import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 import kotlinx.coroutines.launch
+
+data class VisualizerUiState(
+    val filteredRepoOptions: List<String>,
+    val filteredPrs: List<PullRequest>,
+    val effectiveSelectedIds: Set<String>,
+    val visiblePrs: List<PullRequest>,
+    val focusRoot: FileNode.Directory,
+    val fileOverlayByPath: Map<String, FileOverlay>,
+    val directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    val explorerRows: List<ExplorerRow>,
+)
+
+@Composable
+private fun rememberVisualizerUiState(
+    vm: VisualizerViewModel,
+    session: GitHubSessionState,
+    root: FileNode.Directory,
+    allPrs: List<PullRequest>,
+    currentUser: String,
+): VisualizerUiState {
+    val filteredRepoOptions = remember(session.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
+        filterRepoOptions(session.repositoryOptions, vm.state.dialogState.repoPickerQuery)
+    }
+    val filteredPrs = remember(
+        vm.state.filterState.showDrafts,
+        vm.state.filterState.onlyMine,
+        vm.state.filterState.query,
+        allPrs,
+        currentUser,
+    ) {
+        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
+    }
+    // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
+    // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
+    val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
+        if (vm.state.filterState.selectedPrIds.isEmpty()) {
+            filteredPrs.map { it.id }.toSet()
+        } else {
+            vm.state.filterState.selectedPrIds
+        }
+    }
+    // Only reset to all when a filter change leaves the current selection with no overlap.
+    LaunchedEffect(filteredPrs) {
+        val available = filteredPrs.map { it.id }.toSet()
+        if (vm.state.filterState.selectedPrIds.isNotEmpty() &&
+            vm.state.filterState.selectedPrIds.none { available.contains(it) }
+        ) {
+            vm.selectAllPrs(available)
+        }
+    }
+    val visiblePrs = remember(filteredPrs, effectiveSelectedIds) {
+        filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
+    }
+    val focusRoot = remember(root, vm.state.navigationState.focusPath) {
+        findDirectory(root, vm.state.navigationState.focusPath) ?: root
+    }
+    val allFiles = remember(root) {
+        buildList {
+            fun collectFiles(node: FileNode) {
+                when (node) {
+                    is FileNode.File -> add(node)
+                    is FileNode.Directory -> node.children.forEach(::collectFiles)
+                }
+            }
+            collectFiles(root)
+        }
+    }
+    val allDirectories = remember(root) {
+        buildList {
+            fun collectDirectories(dir: FileNode.Directory) {
+                add(dir)
+                dir.children.forEach { child ->
+                    if (child is FileNode.Directory) collectDirectories(child)
+                }
+            }
+            collectDirectories(root)
+        }
+    }
+    val fileOverlayByPath = remember(visiblePrs, allFiles) {
+        computeFileOverlayByPath(visiblePrs, allFiles)
+    }
+    val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
+        computeDirectoryOverlayByPath(visiblePrs, allDirectories)
+    }
+    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
+        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
+    }
+    return VisualizerUiState(
+        filteredRepoOptions = filteredRepoOptions,
+        filteredPrs = filteredPrs,
+        effectiveSelectedIds = effectiveSelectedIds,
+        visiblePrs = visiblePrs,
+        focusRoot = focusRoot,
+        fileOverlayByPath = fileOverlayByPath,
+        directoryOverlayByPath = directoryOverlayByPath,
+        explorerRows = explorerRows,
+    )
+}
 
 @Composable
 @Preview
@@ -61,38 +163,8 @@ fun App() {
 
     val scope = rememberCoroutineScope()
 
-    val filteredRepoOptions = remember(githubSession.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
-        filterRepoOptions(githubSession.repositoryOptions, vm.state.dialogState.repoPickerQuery)
-    }
+    val uiState = rememberVisualizerUiState(vm, githubSession, root, allPrs, currentUser)
 
-    val filteredPrs =
-        remember(vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, allPrs, currentUser) {
-            filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
-        }
-
-    // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
-    // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
-    val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
-        if (vm.state.filterState.selectedPrIds
-                .isEmpty()
-        ) {
-            filteredPrs.map { it.id }.toSet()
-        } else {
-            vm.state.filterState.selectedPrIds
-        }
-    }
-
-    // Only reset to all when a filter change leaves the current selection with no overlap.
-    LaunchedEffect(filteredPrs) {
-        val available = filteredPrs.map { it.id }.toSet()
-        if (vm.state.filterState.selectedPrIds
-                .isNotEmpty() &&
-            vm.state.filterState.selectedPrIds
-                .none { available.contains(it) }
-        ) {
-            vm.selectAllPrs(available)
-        }
-    }
     LaunchedEffect(Unit) {
         githubSession.restoreTokenAndConnectIfNeeded(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
         if (githubSession.githubSnapshot != null) {
@@ -103,63 +175,15 @@ fun App() {
     LaunchedEffect(githubSession.oauthToken) {
         if (githubSession.oauthToken.isNotBlank()) {
             githubSession.ensureRepositoryOptions()
-            if (vm.state.repoState.repo
-                    .isBlank() &&
-                githubSession.repositoryOptions.isNotEmpty()
-            ) {
+            if (vm.state.repoState.repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
                 val default = githubSession.repositoryOptions.first()
                 vm.selectRepo(default)
             }
         }
     }
-
-    val visiblePrs = remember(filteredPrs, effectiveSelectedIds) {
-        filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
-    }
-
     // Ensure all PRs have colors assigned
     LaunchedEffect(allPrs) {
         vm.ensurePrColors(allPrs)
-    }
-
-    val focusRoot = remember(root, vm.state.navigationState.focusPath) {
-        findDirectory(root, vm.state.navigationState.focusPath) ?: root
-    }
-
-    val allFiles = remember(root) {
-        buildList {
-            fun collectFiles(node: FileNode) {
-                when (node) {
-                    is FileNode.File -> add(node)
-                    is FileNode.Directory -> node.children.forEach(::collectFiles)
-                }
-            }
-            collectFiles(root)
-        }
-    }
-
-    val allDirectories = remember(root) {
-        buildList {
-            fun collectDirectories(dir: FileNode.Directory) {
-                add(dir)
-                dir.children.forEach { child ->
-                    if (child is FileNode.Directory) collectDirectories(child)
-                }
-            }
-            collectDirectories(root)
-        }
-    }
-
-    val fileOverlayByPath = remember(visiblePrs, allFiles) {
-        computeFileOverlayByPath(visiblePrs, allFiles)
-    }
-
-    val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
-        computeDirectoryOverlayByPath(visiblePrs, allDirectories)
-    }
-
-    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
-        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
     }
 
     MaterialTheme {
@@ -169,12 +193,8 @@ fun App() {
                 .background(AppColors.backgroundMain)
                 .onPointerEvent(PointerEventType.Release) { event ->
                     when (event.button) {
-                        PointerButton.Back -> {
-                            vm.navigateBack()
-                        }
-                        PointerButton.Forward -> {
-                            vm.navigateForward()
-                        }
+                        PointerButton.Back -> vm.navigateBack()
+                        PointerButton.Forward -> vm.navigateForward()
                         else -> {}
                     }
                 }.onPreviewKeyEvent { event ->
@@ -240,7 +260,7 @@ fun App() {
                 RepoPickerDialog(
                     query = vm.state.dialogState.repoPickerQuery,
                     onQueryChange = { vm.updateRepoPickerQuery(it) },
-                    options = filteredRepoOptions,
+                    options = uiState.filteredRepoOptions,
                     isLoading = githubSession.isLoadingRepositories,
                     onReload = {
                         scope.launch { githubSession.loadRepositoryOptions() }
@@ -261,24 +281,23 @@ fun App() {
 
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
-                    rows = explorerRows,
+                    rows = uiState.explorerRows,
                     focusPath = vm.state.navigationState.focusPath,
                     selectedPath = vm.state.navigationState.selectedPath,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
                     isLoading = githubSession.isConnecting,
                 )
-
                 TreemapPane(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
                     focusPath = vm.state.navigationState.focusPath,
-                    visiblePrs = visiblePrs,
-                    focusRoot = focusRoot,
+                    visiblePrs = uiState.visiblePrs,
+                    focusRoot = uiState.focusRoot,
                     selectedPath = vm.state.navigationState.selectedPath,
-                    fileOverlayByPath = fileOverlayByPath,
-                    directoryOverlayByPath = directoryOverlayByPath,
+                    fileOverlayByPath = uiState.fileOverlayByPath,
+                    directoryOverlayByPath = uiState.directoryOverlayByPath,
                     prColorMap = vm.state.colorState.prColorMap,
                     viewportResetToken = vm.state.navigationState.viewportResetToken,
                     onFocusPathChange = { vm.changeFocusPath(it) },
@@ -287,10 +306,9 @@ fun App() {
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
                     isLoading = githubSession.isConnecting,
                 )
-
                 PrListPane(
-                    filteredPrs = filteredPrs,
-                    selectedPrIds = effectiveSelectedIds,
+                    filteredPrs = uiState.filteredPrs,
+                    selectedPrIds = uiState.effectiveSelectedIds,
                     selectedPath = vm.state.navigationState.selectedPath,
                     prColorMap = vm.state.colorState.prColorMap,
                     query = vm.state.filterState.query,
@@ -301,10 +319,8 @@ fun App() {
                     onOnlyMineChange = { vm.updateOnlyMine(it) },
                     onTogglePr = { prId, checked ->
                         // Initialize from effectiveSelectedIds on first interaction (selectedPrIds is empty = all)
-                        if (vm.state.filterState.selectedPrIds
-                                .isEmpty()
-                        ) {
-                            vm.selectAllPrs(effectiveSelectedIds)
+                        if (vm.state.filterState.selectedPrIds.isEmpty()) {
+                            vm.selectAllPrs(uiState.effectiveSelectedIds)
                         }
                         vm.togglePr(prId, checked)
                     },

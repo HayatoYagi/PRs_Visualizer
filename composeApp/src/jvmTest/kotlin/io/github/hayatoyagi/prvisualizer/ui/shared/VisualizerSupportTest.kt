@@ -4,6 +4,7 @@ import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.ui.treemap.computeConflictedDirectoryPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

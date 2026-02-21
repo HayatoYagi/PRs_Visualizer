@@ -1,6 +1,8 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.ui.treemap
 
 import androidx.compose.ui.geometry.Rect
+import io.github.hayatoyagi.prvisualizer.FileNode
+import io.github.hayatoyagi.prvisualizer.TreemapNode
 
 fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
     val engine = TreemapLayoutEngine()

@@ -1,6 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.geometry.Rect
+import io.github.hayatoyagi.prvisualizer.ui.treemap.computeTreemap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
