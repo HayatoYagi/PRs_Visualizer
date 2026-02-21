@@ -6,19 +6,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TreemapLayoutTest {
-
     @Test
     fun `computeTreemap should handle empty directory`() {
         val root = FileNode.Directory(
             path = "",
             name = "root",
             children = emptyList(),
-            weight = 0.0
+            weight = 0.0,
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // Should only have the root node
         assertEquals(1, nodes.size)
         assertEquals("", nodes[0].path)
@@ -33,18 +32,18 @@ class TreemapLayoutTest {
             extension = "txt",
             totalLines = 100,
             hasActivePr = false,
-            weight = 100.0
+            weight = 100.0,
         )
         val root = FileNode.Directory(
             path = "",
             name = "root",
             children = listOf(file),
-            weight = 100.0
+            weight = 100.0,
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // Should have root and file
         assertEquals(2, nodes.size)
         assertEquals("", nodes[0].path)
@@ -62,22 +61,22 @@ class TreemapLayoutTest {
                 extension = "txt",
                 totalLines = 100,
                 hasActivePr = false,
-                weight = 100.0
+                weight = 100.0,
             )
         }
         val root = FileNode.Directory(
             path = "",
             name = "root",
             children = files,
-            weight = 400.0
+            weight = 400.0,
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // Should have root + 4 files
         assertEquals(5, nodes.size)
-        
+
         // Calculate average aspect ratio for files (should be closer to 1.0)
         val fileNodes = nodes.filter { !it.isDirectory }
         val aspectRatios = fileNodes.map { node ->
@@ -85,7 +84,7 @@ class TreemapLayoutTest {
             val h = node.rect.height
             if (w > h) w / h else h / w
         }
-        
+
         // All aspect ratios should be reasonable (not extremely elongated)
         aspectRatios.forEach { ratio ->
             assertTrue(ratio < 4.0, "Aspect ratio $ratio is too high")
@@ -100,24 +99,24 @@ class TreemapLayoutTest {
             extension = "txt",
             totalLines = 100,
             hasActivePr = false,
-            weight = 100.0
+            weight = 100.0,
         )
         val dir1 = FileNode.Directory(
             path = "dir1",
             name = "dir1",
             children = listOf(file1),
-            weight = 100.0
+            weight = 100.0,
         )
         val root = FileNode.Directory(
             path = "",
             name = "root",
             children = listOf(dir1),
-            weight = 100.0
+            weight = 100.0,
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // Should have root + dir1 + file1
         assertEquals(3, nodes.size)
         assertEquals("", nodes[0].path)
@@ -138,15 +137,15 @@ class TreemapLayoutTest {
             path = "",
             name = "root",
             children = files,
-            weight = 100.0
+            weight = 100.0,
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // Should have root + 4 files
         assertEquals(5, nodes.size)
-        
+
         // Verify that larger files get more space
         val fileNodes = nodes.filter { !it.isDirectory }.sortedBy { it.totalLines }
         for (i in 0 until fileNodes.size - 1) {
@@ -213,19 +212,19 @@ class TreemapLayoutTest {
                 extension = "txt",
                 totalLines = i * 10,
                 hasActivePr = false,
-                weight = (i * 10).toDouble()
+                weight = (i * 10).toDouble(),
             )
         }
         val root = FileNode.Directory(
             path = "",
             name = "root",
             children = files,
-            weight = files.sumOf { it.weight }
+            weight = files.sumOf { it.weight },
         )
         val bounds = Rect(0f, 0f, 100f, 100f)
-        
+
         val nodes = computeTreemap(root, bounds)
-        
+
         // All rectangles should have positive width and height
         nodes.forEach { node ->
             assertTrue(node.rect.width >= 0f, "Width should be non-negative for ${node.path}")

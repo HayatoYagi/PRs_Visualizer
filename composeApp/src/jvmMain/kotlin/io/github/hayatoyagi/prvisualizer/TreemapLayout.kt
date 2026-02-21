@@ -86,7 +86,7 @@ private class TreemapLayoutEngine {
         current: List<FileNode>,
         newCurrent: List<FileNode>,
         bounds: Rect,
-        totalWeight: Double
+        totalWeight: Double,
     ): Boolean {
         val currentWorst = worstAspectRatio(current, bounds, totalWeight)
         val newWorst = worstAspectRatio(newCurrent, bounds, totalWeight)
@@ -113,8 +113,11 @@ private class TreemapLayoutEngine {
             val w = if (isHorizontal) stripWidth else (stripWidth * childRatio).toFloat()
             val h = if (isHorizontal) (stripHeight * childRatio).toFloat() else stripHeight
 
-            if (w <= 0f || h <= 0f) Double.MAX_VALUE
-            else maxOf(w / h, h / w).toDouble()
+            if (w <= 0f || h <= 0f) {
+                Double.MAX_VALUE
+            } else {
+                maxOf(w / h, h / w).toDouble()
+            }
         }
     }
 
