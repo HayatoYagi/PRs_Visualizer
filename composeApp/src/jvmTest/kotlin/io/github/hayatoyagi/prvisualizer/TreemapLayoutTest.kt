@@ -179,6 +179,32 @@ class TreemapLayoutTest {
     }
 
     @Test
+    fun `computeTreemap should avoid NaN rectangles for mixed positive and zero weights`() {
+        val files = listOf(
+            FileNode.File(path = "normal.txt", name = "normal.txt", extension = "txt", totalLines = 10, hasActivePr = false, weight = 10.0),
+            FileNode.File(path = "empty1.txt", name = "empty1.txt", extension = "txt", totalLines = 0, hasActivePr = false, weight = 0.0),
+            FileNode.File(path = "empty2.txt", name = "empty2.txt", extension = "txt", totalLines = 0, hasActivePr = false, weight = 0.0),
+        )
+        val root = FileNode.Directory(
+            path = "",
+            name = "root",
+            children = files,
+            weight = 10.0,
+        )
+        val bounds = Rect(0f, 0f, 100f, 100f)
+
+        val nodes = computeTreemap(root, bounds)
+
+        assertTrue(nodes.any { it.path == "normal.txt" }, "Positive-weight file should be laid out")
+        nodes.forEach { node ->
+            assertTrue(node.rect.left.isFinite(), "Left should be finite for ${node.path}")
+            assertTrue(node.rect.top.isFinite(), "Top should be finite for ${node.path}")
+            assertTrue(node.rect.right.isFinite(), "Right should be finite for ${node.path}")
+            assertTrue(node.rect.bottom.isFinite(), "Bottom should be finite for ${node.path}")
+        }
+    }
+
+    @Test
     fun `computeTreemap should not create negative-size rectangles`() {
         val files = (1..10).map { i ->
             FileNode.File(

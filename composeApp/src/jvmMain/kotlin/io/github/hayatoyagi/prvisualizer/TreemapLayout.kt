@@ -51,14 +51,17 @@ private class TreemapLayoutEngine {
         if (children.isEmpty() || bounds.width <= 0f || bounds.height <= 0f) return
 
         val sortedChildren = children.sortedByDescending { it.weight }
-        val totalWeight = sortedChildren.sumOf { it.weight }.coerceAtLeast(1.0)
+        val positiveWeightChildren = sortedChildren.filter { it.weight > 0.0 }
+        if (positiveWeightChildren.isEmpty()) return
+
+        val totalWeight = positiveWeightChildren.sumOf { it.weight }
 
         var currentRow: List<FileNode> = emptyList()
-        var remainingItems = sortedChildren
+        var remainingItems = positiveWeightChildren
         var remainingBounds = bounds
         var remainingWeight = totalWeight
 
-        while (remainingItems.isNotEmpty()) {
+        while (remainingItems.isNotEmpty() && remainingWeight > 0.0) {
             val next = remainingItems.first()
             val newRow = currentRow + next
 
@@ -73,7 +76,7 @@ private class TreemapLayoutEngine {
             }
         }
 
-        if (currentRow.isNotEmpty()) {
+        if (currentRow.isNotEmpty() && remainingWeight > 0.0) {
             layoutRow(currentRow, remainingBounds, remainingWeight, depth)
         }
     }
@@ -95,6 +98,7 @@ private class TreemapLayoutEngine {
         if (row.isEmpty()) return Double.MAX_VALUE
 
         val rowWeight = row.sumOf { it.weight }
+        if (totalWeight <= 0.0 || rowWeight <= 0.0) return Double.MAX_VALUE
         val rowRatio = rowWeight / totalWeight
 
         val isHorizontal = bounds.width >= bounds.height
@@ -119,6 +123,7 @@ private class TreemapLayoutEngine {
         if (row.isEmpty()) return bounds
 
         val rowWeight = row.sumOf { it.weight }
+        if (totalWeight <= 0.0 || rowWeight <= 0.0) return bounds
         val rowRatio = (rowWeight / totalWeight).toFloat()
 
         val isHorizontal = bounds.width >= bounds.height
