@@ -129,10 +129,10 @@ class TreemapLayoutTest {
     fun `computeTreemap should handle varying file sizes`() {
         // Create files with different weights (10, 20, 30, 40)
         val files = listOf(
-            FileNode.File("file1.txt", "file1.txt", "txt", 10, false, 10.0),
-            FileNode.File("file2.txt", "file2.txt", "txt", 20, false, 20.0),
-            FileNode.File("file3.txt", "file3.txt", "txt", 30, false, 30.0),
-            FileNode.File("file4.txt", "file4.txt", "txt", 40, false, 40.0)
+            FileNode.File(path = "file1.txt", name = "file1.txt", extension = "txt", totalLines = 10, hasActivePr = false, weight = 10.0),
+            FileNode.File(path = "file2.txt", name = "file2.txt", extension = "txt", totalLines = 20, hasActivePr = false, weight = 20.0),
+            FileNode.File(path = "file3.txt", name = "file3.txt", extension = "txt", totalLines = 30, hasActivePr = false, weight = 30.0),
+            FileNode.File(path = "file4.txt", name = "file4.txt", extension = "txt", totalLines = 40, hasActivePr = false, weight = 40.0),
         )
         val root = FileNode.Directory(
             path = "",
@@ -153,6 +153,28 @@ class TreemapLayoutTest {
             val area1 = fileNodes[i].rect.width * fileNodes[i].rect.height
             val area2 = fileNodes[i + 1].rect.width * fileNodes[i + 1].rect.height
             assertTrue(area1 < area2, "Larger files should have more area")
+        }
+    }
+
+    @Test
+    fun `computeTreemap should handle zero-weight files without crashing`() {
+        val files = listOf(
+            FileNode.File(path = "a.txt", name = "a.txt", extension = "txt", totalLines = 0, hasActivePr = false, weight = 0.0),
+            FileNode.File(path = "b.txt", name = "b.txt", extension = "txt", totalLines = 0, hasActivePr = false, weight = 0.0),
+        )
+        val root = FileNode.Directory(
+            path = "",
+            name = "root",
+            children = files,
+            weight = 0.0,
+        )
+        val bounds = Rect(0f, 0f, 100f, 100f)
+
+        val nodes = computeTreemap(root, bounds)
+
+        nodes.forEach { node ->
+            assertTrue(node.rect.width >= 0f, "Width should be non-negative for ${node.path}")
+            assertTrue(node.rect.height >= 0f, "Height should be non-negative for ${node.path}")
         }
     }
 

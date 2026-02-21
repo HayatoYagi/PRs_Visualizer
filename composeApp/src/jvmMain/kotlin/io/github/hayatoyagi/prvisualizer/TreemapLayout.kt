@@ -51,37 +51,30 @@ private class TreemapLayoutEngine {
         if (children.isEmpty() || bounds.width <= 0f || bounds.height <= 0f) return
 
         val sortedChildren = children.sortedByDescending { it.weight }
-        val totalWeight = sortedChildren.sumOf { it.weight }
+        val totalWeight = sortedChildren.sumOf { it.weight }.coerceAtLeast(1.0)
 
-        squarifyRecursive(sortedChildren, mutableListOf(), bounds, totalWeight, depth)
-    }
+        var currentRow: List<FileNode> = emptyList()
+        var remainingItems = sortedChildren
+        var remainingBounds = bounds
+        var remainingWeight = totalWeight
 
-    private fun squarifyRecursive(
-        remaining: List<FileNode>,
-        current: MutableList<FileNode>,
-        bounds: Rect,
-        totalWeight: Double,
-        depth: Int
-    ) {
-        if (remaining.isEmpty()) {
-            if (current.isNotEmpty()) {
-                layoutRow(current, bounds, totalWeight, depth)
+        while (remainingItems.isNotEmpty()) {
+            val next = remainingItems.first()
+            val newRow = currentRow + next
+
+            if (currentRow.isEmpty() || improvesRatio(currentRow, newRow, remainingBounds, remainingWeight)) {
+                currentRow = newRow
+                remainingItems = remainingItems.drop(1)
+            } else {
+                val rowWeight = currentRow.sumOf { it.weight }
+                remainingBounds = layoutRow(currentRow, remainingBounds, remainingWeight, depth)
+                remainingWeight -= rowWeight
+                currentRow = emptyList()
             }
-            return
         }
 
-        val next = remaining.first()
-        val newCurrent = current + next
-
-        if (current.isEmpty() || improvesRatio(current, newCurrent, bounds, totalWeight)) {
-            // Adding next item improves or maintains aspect ratio
-            squarifyRecursive(remaining.drop(1), newCurrent.toMutableList(), bounds, totalWeight, depth)
-        } else {
-            // Layout current row and continue with remaining items
-            val rowWeight = current.sumOf { it.weight }
-            val remainingBounds = layoutRow(current, bounds, totalWeight, depth)
-            val remainingWeight = totalWeight - rowWeight
-            squarifyRecursive(remaining, mutableListOf(), remainingBounds, remainingWeight, depth)
+        if (currentRow.isNotEmpty()) {
+            layoutRow(currentRow, remainingBounds, remainingWeight, depth)
         }
     }
 
@@ -104,24 +97,17 @@ private class TreemapLayoutEngine {
         val rowWeight = row.sumOf { it.weight }
         val rowRatio = rowWeight / totalWeight
 
-        // Determine if we're laying out horizontally or vertically
         val isHorizontal = bounds.width >= bounds.height
 
-        // For horizontal layout: row takes full height, partial width
-        // For vertical layout: row takes full width, partial height
-        val rowShortSide = if (isHorizontal) {
-            bounds.width * rowRatio.toFloat()
-        } else {
-            bounds.height * rowRatio.toFloat()
-        }
-        val rowLongSide = if (isHorizontal) bounds.height else bounds.width
+        // Strip dimensions: for a horizontal split the strip is a vertical column;
+        // for a vertical split the strip is a horizontal band.
+        val stripWidth = if (isHorizontal) bounds.width * rowRatio.toFloat() else bounds.width
+        val stripHeight = if (isHorizontal) bounds.height else bounds.height * rowRatio.toFloat()
 
         return row.maxOf { child ->
             val childRatio = child.weight / rowWeight
-            val childSize = (rowLongSide * childRatio.toFloat())
-
-            val w = if (isHorizontal) rowShortSide else childSize
-            val h = if (isHorizontal) childSize else rowShortSide
+            val w = if (isHorizontal) stripWidth else (stripWidth * childRatio).toFloat()
+            val h = if (isHorizontal) (stripHeight * childRatio).toFloat() else stripHeight
 
             if (w <= 0f || h <= 0f) Double.MAX_VALUE
             else maxOf(w / h, h / w).toDouble()
