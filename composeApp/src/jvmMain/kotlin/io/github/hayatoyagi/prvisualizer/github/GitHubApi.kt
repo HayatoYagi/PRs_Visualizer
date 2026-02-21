@@ -1,5 +1,6 @@
 package io.github.hayatoyagi.prvisualizer.github
 
+import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
@@ -121,7 +122,20 @@ class GitHubApi(
             .map { it.path }
             .toSet()
 
-        val rootNode = buildTree(fileSeeds, activePaths)
+        // Include files that are newly added in PRs (not in default branch)
+        val allPrFileChanges = pullRequests.flatMap { it.files }
+        val newlyAddedFiles = allPrFileChanges
+            .filter { it.changeType == ChangeType.Addition }
+            .filter { change -> fileSeeds.none { seed -> seed.path == change.path } }
+            .groupBy { it.path }
+            .map { (path, changes) ->
+                // Use max additions if multiple PRs add the same file
+                val maxAdditions = changes.maxOf { it.additions }
+                FileSeed(path = path, estimatedLines = maxOf(1, maxAdditions))
+            }
+
+        val allFileSeeds = fileSeeds + newlyAddedFiles
+        val rootNode = buildTree(allFileSeeds, activePaths)
         GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
     }
 
@@ -187,10 +201,13 @@ class GitHubApi(
                 val file = response.getJSONObject(idx)
                 val path = file.optString("filename")
                 if (isBinaryFile(path)) return@repeat
+                val additions = file.optInt("additions")
+                val deletions = file.optInt("deletions")
+                val status = file.optString("status")
                 files += PrFileChange(
                     path = path,
-                    additions = file.optInt("additions"),
-                    deletions = file.optInt("deletions"),
+                    additions = normalizedAdditionsForStatus(status, additions, deletions),
+                    deletions = deletions,
                 )
             }
             if (response.length() < 100) break
@@ -205,6 +222,13 @@ class GitHubApi(
         val extension = path.substring(lastDotIndex + 1).lowercase()
         return extension.isNotEmpty() && extension in BINARY_EXTENSIONS
     }
+
+    // GitHub can return added empty files as status=added with +0/-0.
+    internal fun normalizedAdditionsForStatus(
+        status: String,
+        additions: Int,
+        deletions: Int,
+    ): Int = if (status == "added" && additions == 0 && deletions == 0) 1 else additions
 
     private fun fetchRepositoryFiles(
         owner: String,

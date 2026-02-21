@@ -282,16 +282,16 @@ fun computeFileOverlayByPath(
     val fileLines = visibleFiles.associateBy({ it.path }, { it.totalLines.coerceAtLeast(1) })
     return visiblePrs
         .flatMap { pr -> pr.files.map { change -> pr to change } }
-        .filter { fileLines.containsKey(it.second.path) }
+        .filter { (_, change) -> fileLines.containsKey(change.path) }
         .groupBy({ it.second.path }, { it })
-        .mapValues { (_, items) ->
+        .mapValues { (path, items) ->
             val totalChanged = items.sumOf { it.second.changedLines }
             val dominant = items
                 .groupBy { it.second.changeType }
                 .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
                 ?.key ?: ChangeType.Modification
             val prs = items.map { it.first }.distinctBy { it.id }
-            val lines = fileLines[items.first().second.path] ?: 1
+            val lines = fileLines[path] ?: 1
             val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)
             FileOverlay(prs = prs, dominantType = dominant, density = density)
         }
