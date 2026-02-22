@@ -75,6 +75,9 @@ fun FileDetailsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
         title = { 
             Text(
                 text = fileName,
@@ -275,7 +278,7 @@ fun FileDetailsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
         },
     )
 }

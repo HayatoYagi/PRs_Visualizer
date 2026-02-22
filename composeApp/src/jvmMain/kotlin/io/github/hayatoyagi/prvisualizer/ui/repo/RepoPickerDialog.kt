@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,9 @@ fun RepoPickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Repository") },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
@@ -51,6 +55,16 @@ fun RepoPickerDialog(
                     label = { Text("Search owner/repo") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = AppColors.backgroundPaneList,
+                        unfocusedContainerColor = AppColors.backgroundPaneList,
+                        disabledContainerColor = AppColors.backgroundPaneList,
+                        focusedTextColor = AppColors.textPrimary,
+                        unfocusedTextColor = AppColors.textPrimary,
+                        focusedLabelColor = AppColors.textSecondary,
+                        unfocusedLabelColor = AppColors.textSecondary,
+                        cursorColor = AppColors.textPrimary,
+                    ),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onReload) {
@@ -83,7 +97,7 @@ fun RepoPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
         },
     )
 }
