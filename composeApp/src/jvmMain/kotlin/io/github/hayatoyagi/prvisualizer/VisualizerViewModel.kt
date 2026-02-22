@@ -5,7 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.random.Random
@@ -13,11 +15,14 @@ import kotlin.random.Random
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
+    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
+    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
 ) : ViewModel() {
     // Main state container
     var state by mutableStateOf(
         VisualizerState(
             repoState = RepoState(owner = initialOwner, repo = initialRepo),
+            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
         ),
     )
         private set
@@ -25,7 +30,30 @@ class VisualizerViewModel(
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
 
-    // Dialog intents
+    // region: セッション管理
+    private val sessionManager = GitHubSessionManager(
+        scope = viewModelScope,
+        getSessionState = { state.sessionState },
+        setSessionState = { state = state.copy(sessionState = it) },
+        getRepoState = { state.repoState },
+        onSnapshotLoaded = {
+            resetNavigation()
+            resetViewport()
+        },
+        selectRepo = ::selectRepo,
+    )
+
+    fun initializeSession() = sessionManager.initializeSession()
+
+    fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
+
+    fun refresh() = sessionManager.refresh()
+
+    fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
+
+    fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    // region: ダイアログ管理
     fun openRepoDialog() {
         state = state.copy(
             dialogState = state.dialogState.copy(
@@ -47,6 +75,7 @@ class VisualizerViewModel(
         )
     }
 
+    // region: リポジトリ選択
     fun selectRepo(fullName: String) {
         val newOwner = fullName.substringBefore('/', state.repoState.owner)
         val newRepo = fullName.substringAfter('/', fullName)
@@ -55,7 +84,7 @@ class VisualizerViewModel(
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
-    // PR filter intents
+    // region: PR フィルタ
     fun updateShowDrafts(value: Boolean) {
         state = state.copy(
             filterState = state.filterState.copy(showDrafts = value),
@@ -110,7 +139,7 @@ class VisualizerViewModel(
         }
     }
 
-    // Navigation intents
+    // region: ナビゲーション
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
         state = state.copy(
@@ -209,7 +238,7 @@ class VisualizerViewModel(
      */
     fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 
-    // PR color management intents
+    // region: 色管理
     fun ensurePrColors(prs: List<PullRequest>) {
         val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {

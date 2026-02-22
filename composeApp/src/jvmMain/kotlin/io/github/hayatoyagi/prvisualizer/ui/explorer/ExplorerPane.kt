@@ -26,7 +26,6 @@ import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
-import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
