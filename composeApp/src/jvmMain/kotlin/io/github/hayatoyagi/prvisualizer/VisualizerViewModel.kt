@@ -5,25 +5,191 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.GitHubApi
+import io.github.hayatoyagi.prvisualizer.github.GitHubApiException
+import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
+import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
+import io.github.hayatoyagi.prvisualizer.github.session.GitHubTokenStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
+    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
+    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
 ) : ViewModel() {
     // Main state container
     var state by mutableStateOf(
         VisualizerState(
             repoState = RepoState(owner = initialOwner, repo = initialRepo),
+            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
         ),
     )
         private set
 
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
+
+    // region: セッション管理
+    private val authenticator = GitHubOAuthDesktopAuthenticator()
+    private var repositoriesLoaded = false
+    private var restoreAttempted = false
+
+    fun initializeSession() {
+        viewModelScope.launch { restoreTokenAndConnectIfNeeded() }
+    }
+
+    fun loginAndConnect(clientId: String) {
+        viewModelScope.launch { loginAndConnectInternal(clientId) }
+    }
+
+    fun refresh() {
+        viewModelScope.launch { connect() }
+    }
+
+    fun ensureRepositoryOptions() {
+        viewModelScope.launch { ensureRepositoryOptionsInternal() }
+    }
+
+    fun loadRepositoryOptions() {
+        viewModelScope.launch { loadRepositoryOptionsInternal() }
+    }
+
+    private suspend fun restoreTokenAndConnectIfNeeded() {
+        if (restoreAttempted) return
+        restoreAttempted = true
+        val restoredToken = withContext(Dispatchers.IO) {
+            GitHubTokenStore.loadToken(state.sessionState.oauthToken)
+        }
+        if (restoredToken.isBlank()) return
+        updateSession { it.copy(oauthToken = restoredToken) }
+        if (state.sessionState.githubSnapshot == null) {
+            connect()
+        }
+    }
+
+    private suspend fun loginAndConnectInternal(clientId: String) {
+        updateSession {
+            it.copy(
+                isAuthorizing = true,
+                connectionError = null,
+                deviceUserCode = null,
+                deviceVerificationUrl = null,
+            )
+        }
+        runCatching {
+            authenticator.authenticate(
+                clientId = clientId.trim(),
+                onDeviceFlowStart = { prompt ->
+                    viewModelScope.launch {
+                        updateSession {
+                            it.copy(
+                                deviceUserCode = prompt.userCode,
+                                deviceVerificationUrl = prompt.verificationUriComplete ?: prompt.verificationUri,
+                            )
+                        }
+                    }
+                },
+            )
+        }.onSuccess { token ->
+            withContext(Dispatchers.IO) { GitHubTokenStore.saveToken(token) }
+            updateSession { it.copy(oauthToken = token, deviceUserCode = null, deviceVerificationUrl = null) }
+            connect()
+        }.onFailure { error ->
+            updateSession { it.copy(connectionError = AppError.OAuthFailed(error.message ?: "OAuth failed")) }
+        }
+        updateSession { it.copy(isAuthorizing = false) }
+    }
+
+    private suspend fun connect() {
+        if (state.sessionState.oauthToken.isBlank()) return
+        updateSession { it.copy(isConnecting = true, connectionError = null) }
+        runCatching {
+            GitHubApi(state.sessionState.oauthToken.trim()).fetchSnapshot(
+                owner = state.repoState.owner.trim(),
+                repo = state.repoState.repo.trim(),
+            )
+        }.onSuccess { snapshot ->
+            updateSession { session ->
+                session.copy(
+                    githubSnapshot = snapshot,
+                    currentUserOverride = snapshot.viewerLogin?.takeIf { it.isNotBlank() } ?: session.currentUserOverride,
+                )
+            }
+            resetNavigation()
+            resetViewport()
+        }.onFailure { error ->
+            if (handleAuthExpired(error)) {
+                updateSession { it.copy(isConnecting = false) }
+                return
+            }
+            updateSession {
+                it.copy(
+                    connectionError = when (error) {
+                        is java.net.ConnectException, is java.net.UnknownHostException ->
+                            AppError.Network(error.message ?: "Network error")
+                        is GitHubApiException ->
+                            AppError.ApiError(error.statusCode, error.message ?: "API error")
+                        else -> AppError.Unknown(error.message ?: "Unknown error")
+                    },
+                )
+            }
+        }
+        updateSession { it.copy(isConnecting = false) }
+    }
+
+    private suspend fun ensureRepositoryOptionsInternal() {
+        if (state.sessionState.oauthToken.isBlank()) return
+        if (state.sessionState.isLoadingRepositories) return
+        if (repositoriesLoaded && state.sessionState.repositoryOptions.isNotEmpty()) return
+        loadRepositoryOptionsInternal()
+    }
+
+    private suspend fun loadRepositoryOptionsInternal() {
+        if (state.sessionState.oauthToken.isBlank()) return
+        updateSession { it.copy(isLoadingRepositories = true) }
+        runCatching {
+            GitHubApi(state.sessionState.oauthToken.trim()).fetchAccessibleRepositoryNames()
+        }.onSuccess { repos ->
+            repositoriesLoaded = true
+            updateSession { it.copy(repositoryOptions = repos) }
+            if (state.repoState.repo.isBlank() && repos.isNotEmpty()) {
+                selectRepo(repos.first())
+            }
+        }.onFailure { error ->
+            if (handleAuthExpired(error)) return@onFailure
+            updateSession { it.copy(connectionError = AppError.Network(error.message ?: "Failed to load repositories")) }
+        }
+        updateSession { it.copy(isLoadingRepositories = false) }
+    }
+
+    private fun handleAuthExpired(error: Throwable): Boolean {
+        if (error !is GitHubAuthExpiredException) return false
+        viewModelScope.launch(Dispatchers.IO) { GitHubTokenStore.clearToken() }
+        repositoriesLoaded = false
+        updateSession {
+            it.copy(
+                oauthToken = "",
+                githubSnapshot = null,
+                repositoryOptions = emptyList(),
+                deviceUserCode = null,
+                deviceVerificationUrl = null,
+                connectionError = AppError.AuthExpired(),
+            )
+        }
+        return true
+    }
+
+    private fun updateSession(update: (SessionState) -> SessionState) {
+        state = state.copy(sessionState = update(state.sessionState))
+    }
 
     // region: ダイアログ管理
     fun openRepoDialog() {

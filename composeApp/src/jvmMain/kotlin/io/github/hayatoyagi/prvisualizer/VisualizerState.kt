@@ -1,6 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.graphics.Color
+import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
 /**
  * Represents the repository identity.
@@ -54,6 +55,25 @@ data class ColorState(
 )
 
 /**
+ * Represents GitHub session and connectivity state.
+ */
+data class SessionState(
+    val oauthToken: String = "",
+    val currentUserOverride: String = "",
+    val githubSnapshot: GitHubSnapshot? = null,
+    val connectionError: AppError? = null,
+    val isConnecting: Boolean = false,
+    val isAuthorizing: Boolean = false,
+    val deviceUserCode: String? = null,
+    val deviceVerificationUrl: String? = null,
+    val repositoryOptions: List<String> = emptyList(),
+    val isLoadingRepositories: Boolean = false,
+) {
+    val currentUser: String
+        get() = githubSnapshot?.viewerLogin ?: currentUserOverride
+}
+
+/**
  * Main state container for the VisualizerViewModel.
  * Groups all related states together for better organization and easier state management.
  */
@@ -63,10 +83,12 @@ data class VisualizerState(
     val filterState: FilterState = FilterState(),
     val navigationState: NavigationState = NavigationState(),
     val colorState: ColorState = ColorState(),
+    val sessionState: SessionState = SessionState(),
 ) {
     /**
      * Resets state when changing repositories.
      * Keeps toggle filters while clearing query, selection, colors, and navigation.
+     * Clears the snapshot and connection error so a fresh fetch is triggered.
      */
     fun resetForNewRepo(
         owner: String,
@@ -77,5 +99,6 @@ data class VisualizerState(
         filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),
+        sessionState = sessionState.copy(githubSnapshot = null, connectionError = null),
     )
 }

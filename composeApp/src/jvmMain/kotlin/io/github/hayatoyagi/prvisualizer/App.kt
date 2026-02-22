@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -24,8 +23,6 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
-import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionState
-import io.github.hayatoyagi.prvisualizer.github.session.rememberGitHubSessionState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
@@ -44,7 +41,6 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
-import kotlinx.coroutines.launch
 
 data class VisualizerUiState(
     val filteredRepoOptions: List<String>,
@@ -58,15 +54,15 @@ data class VisualizerUiState(
 )
 
 @Composable
-private fun rememberVisualizerUiState(
-    vm: VisualizerViewModel,
-    session: GitHubSessionState,
-    root: FileNode.Directory,
-    allPrs: List<PullRequest>,
-    currentUser: String,
-): VisualizerUiState {
-    val filteredRepoOptions = remember(session.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
-        filterRepoOptions(session.repositoryOptions, vm.state.dialogState.repoPickerQuery)
+private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiState {
+    val snapshot = vm.state.sessionState.githubSnapshot
+    val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
+    val root = snapshot?.rootNode ?: emptyRoot
+    val allPrs = snapshot?.pullRequests ?: emptyList()
+    val currentUser = vm.state.sessionState.currentUser
+
+    val filteredRepoOptions = remember(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
+        filterRepoOptions(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery)
     }
     val filteredPrs = remember(
         vm.state.filterState.showDrafts,
@@ -150,35 +146,16 @@ private fun rememberVisualizerUiState(
 fun App() {
     val vm = viewModel { VisualizerViewModel() }
     val oauthClientId = remember { EnvConfig.get("GITHUB_CLIENT_ID")?.trim().orEmpty() }
-    val githubSession = rememberGitHubSessionState(
-        initialToken = EnvConfig.get("GITHUB_TOKEN") ?: "",
-        // TODO: Replace with authenticated GitHub login (or user-configurable value) instead of hard-coded user.
-        initialUser = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
-    )
-    val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
+    val allPrs = vm.state.sessionState.githubSnapshot?.pullRequests ?: emptyList()
 
-    val root = githubSession.githubSnapshot?.rootNode ?: emptyRoot
-    val allPrs = githubSession.githubSnapshot?.pullRequests ?: emptyList()
-    val currentUser = githubSession.currentUser
-
-    val scope = rememberCoroutineScope()
-
-    val uiState = rememberVisualizerUiState(vm, githubSession, root, allPrs, currentUser)
+    val uiState = rememberVisualizerUiState(vm)
 
     LaunchedEffect(Unit) {
-        githubSession.restoreTokenAndConnectIfNeeded(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
-        if (githubSession.githubSnapshot != null) {
-            vm.resetNavigation()
-            vm.resetViewport()
-        }
+        vm.initializeSession()
     }
-    LaunchedEffect(githubSession.oauthToken) {
-        if (githubSession.oauthToken.isNotBlank()) {
-            githubSession.ensureRepositoryOptions()
-            if (vm.state.repoState.repo.isBlank() && githubSession.repositoryOptions.isNotEmpty()) {
-                val default = githubSession.repositoryOptions.first()
-                vm.selectRepo(default)
-            }
+    LaunchedEffect(vm.state.sessionState.oauthToken) {
+        if (vm.state.sessionState.oauthToken.isNotBlank()) {
+            vm.ensureRepositoryOptions()
         }
     }
     // Ensure all PRs have colors assigned
@@ -217,64 +194,36 @@ fun App() {
             ToolbarRow(
                 owner = vm.state.repoState.owner,
                 repo = vm.state.repoState.repo,
-                isLoggedIn = githubSession.oauthToken.isNotBlank(),
+                isLoggedIn = vm.state.sessionState.oauthToken.isNotBlank(),
                 onOpenRepoDialog = { vm.openRepoDialog() },
                 onShuffleColors = { vm.shufflePrColors(allPrs) },
             )
             AuthRow(
                 oauthClientId = oauthClientId,
-                isAuthorizing = githubSession.isAuthorizing,
-                isConnecting = githubSession.isConnecting,
-                isLoggedIn = githubSession.oauthToken.isNotBlank(),
-                currentUser = currentUser,
-                deviceUserCode = githubSession.deviceUserCode,
-                deviceVerificationUrl = githubSession.deviceVerificationUrl,
-                connectionError = githubSession.connectionError,
-                hasSnapshot = githubSession.githubSnapshot != null,
-                onLogin = {
-                    scope.launch {
-                        githubSession.loginAndConnect(
-                            clientId = oauthClientId,
-                            owner = vm.state.repoState.owner,
-                            repo = vm.state.repoState.repo,
-                        )
-                        if (githubSession.githubSnapshot != null) {
-                            vm.resetNavigation()
-                            vm.resetViewport()
-                        }
-                    }
-                },
-                onRefresh = {
-                    scope.launch {
-                        githubSession.refresh(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
-                        if (githubSession.githubSnapshot != null) {
-                            vm.resetNavigation()
-                            vm.resetViewport()
-                        }
-                    }
-                },
-                onCopyDeviceCode = { copyToClipboard(githubSession.deviceUserCode.orEmpty()) },
-                onOpenVerifyPage = { openUrl(githubSession.deviceVerificationUrl.orEmpty()) },
+                isAuthorizing = vm.state.sessionState.isAuthorizing,
+                isConnecting = vm.state.sessionState.isConnecting,
+                isLoggedIn = vm.state.sessionState.oauthToken.isNotBlank(),
+                currentUser = vm.state.sessionState.currentUser,
+                deviceUserCode = vm.state.sessionState.deviceUserCode,
+                deviceVerificationUrl = vm.state.sessionState.deviceVerificationUrl,
+                connectionError = vm.state.sessionState.connectionError,
+                hasSnapshot = vm.state.sessionState.githubSnapshot != null,
+                onLogin = { vm.loginAndConnect(oauthClientId) },
+                onRefresh = { vm.refresh() },
+                onCopyDeviceCode = { copyToClipboard(vm.state.sessionState.deviceUserCode.orEmpty()) },
+                onOpenVerifyPage = { openUrl(vm.state.sessionState.deviceVerificationUrl.orEmpty()) },
             )
             if (vm.state.dialogState.isRepoDialogOpen) {
                 RepoPickerDialog(
                     query = vm.state.dialogState.repoPickerQuery,
                     onQueryChange = { vm.updateRepoPickerQuery(it) },
                     options = uiState.filteredRepoOptions,
-                    isLoading = githubSession.isLoadingRepositories,
-                    onReload = {
-                        scope.launch { githubSession.loadRepositoryOptions() }
-                    },
+                    isLoading = vm.state.sessionState.isLoadingRepositories,
+                    onReload = { vm.loadRepositoryOptions() },
                     onDismiss = { vm.closeRepoDialog() },
                     onSelect = { fullName ->
                         vm.selectRepo(fullName)
-                        scope.launch {
-                            githubSession.refresh(owner = vm.state.repoState.owner, repo = vm.state.repoState.repo)
-                            if (githubSession.githubSnapshot != null) {
-                                vm.resetNavigation()
-                                vm.resetViewport()
-                            }
-                        }
+                        vm.refresh()
                     },
                 )
             }
@@ -286,7 +235,7 @@ fun App() {
                     selectedPath = vm.state.navigationState.selectedPath,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
-                    isLoading = githubSession.isConnecting,
+                    isLoading = vm.state.sessionState.isConnecting,
                 )
                 TreemapPane(
                     modifier = Modifier
@@ -304,7 +253,7 @@ fun App() {
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
-                    isLoading = githubSession.isConnecting,
+                    isLoading = vm.state.sessionState.isConnecting,
                 )
                 PrListPane(
                     filteredPrs = uiState.filteredPrs,
@@ -326,7 +275,7 @@ fun App() {
                     },
                     onOpenPr = { openUrl(it) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
-                    isLoading = githubSession.isConnecting,
+                    isLoading = vm.state.sessionState.isConnecting,
                 )
             }
         }
