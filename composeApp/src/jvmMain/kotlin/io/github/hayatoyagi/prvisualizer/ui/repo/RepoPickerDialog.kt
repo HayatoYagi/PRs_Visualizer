@@ -17,20 +17,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun RepoPickerDialog(
-    query: String,
-    onQueryChange: (String) -> Unit,
+    initialQuery: String,
     options: List<String>,
     isLoading: Boolean,
     onReload: () -> Unit,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
+    var query by rememberSaveable { mutableStateOf(initialQuery) }
+    val filteredOptions = remember(options, query) {
+        filterRepoOptions(options, query)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Repository") },
@@ -38,7 +47,7 @@ fun RepoPickerDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = query,
-                    onValueChange = onQueryChange,
+                    onValueChange = { query = it },
                     label = { Text("Search owner/repo") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -48,7 +57,7 @@ fun RepoPickerDialog(
                         Text(if (isLoading) "Loading..." else "Reload")
                     }
                     Text(
-                        text = "${options.size} results",
+                        text = "${filteredOptions.size} results",
                         color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 12.dp),
                     )
@@ -60,7 +69,7 @@ fun RepoPickerDialog(
                         .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    items(options) { fullName ->
+                    items(filteredOptions) { fullName ->
                         Text(
                             text = fullName,
                             color = AppColors.textRepoOption,

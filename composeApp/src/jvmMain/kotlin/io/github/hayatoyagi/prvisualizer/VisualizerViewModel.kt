@@ -56,40 +56,25 @@ class VisualizerViewModel(
     // region: ダイアログ管理
     fun openRepoDialog() {
         state = state.copy(
-            dialogState = state.dialogState.copy(
-                repoPickerQuery = "${state.repoState.owner}/${state.repoState.repo}".trim().trim('/'),
-                isRepoDialogOpen = true,
-            ),
+            dialogState = DialogState.RepoPicker,
         )
     }
 
     fun closeRepoDialog() {
         state = state.copy(
-            dialogState = state.dialogState.copy(isRepoDialogOpen = false),
+            dialogState = DialogState.None,
         )
     }
 
     fun openFileDetailsDialog(filePath: String) {
         state = state.copy(
-            dialogState = state.dialogState.copy(
-                isFileDetailsDialogOpen = true,
-                fileDetailsPath = filePath,
-            )
+            dialogState = DialogState.FileDetails(filePath = filePath),
         )
     }
 
     fun closeFileDetailsDialog() {
         state = state.copy(
-            dialogState = state.dialogState.copy(
-                isFileDetailsDialogOpen = false,
-                fileDetailsPath = null,
-            )
-        )
-    }
-
-    fun updateRepoPickerQuery(q: String) {
-        state = state.copy(
-            dialogState = state.dialogState.copy(repoPickerQuery = q),
+            dialogState = DialogState.None,
         )
     }
 

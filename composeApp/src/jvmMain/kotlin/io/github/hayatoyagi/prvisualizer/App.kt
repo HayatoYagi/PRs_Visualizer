@@ -31,7 +31,6 @@ import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
-import io.github.hayatoyagi.prvisualizer.ui.repo.filterRepoOptions
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
@@ -46,7 +45,6 @@ import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
 data class VisualizerUiState(
-    val filteredRepoOptions: List<String>,
     val filteredPrs: List<PullRequest>,
     val effectiveSelectedIds: Set<String>,
     val visiblePrs: List<PullRequest>,
@@ -64,9 +62,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     val allPrs = snapshot?.pullRequests ?: emptyList()
     val currentUser = vm.state.sessionState.currentUser
 
-    val filteredRepoOptions = remember(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
-        filterRepoOptions(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery)
-    }
     val filteredPrs = remember(
         vm.state.filterState.showDrafts,
         vm.state.filterState.onlyMine,
@@ -132,7 +127,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
         buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
     }
     return VisualizerUiState(
-        filteredRepoOptions = filteredRepoOptions,
         filteredPrs = filteredPrs,
         effectiveSelectedIds = effectiveSelectedIds,
         visiblePrs = visiblePrs,
@@ -216,23 +210,22 @@ fun App() {
                 onCopyDeviceCode = { copyToClipboard(vm.state.sessionState.deviceUserCode.orEmpty()) },
                 onOpenVerifyPage = { openUrl(vm.state.sessionState.deviceVerificationUrl.orEmpty()) },
             )
-            if (vm.state.dialogState.isRepoDialogOpen) {
-                RepoPickerDialog(
-                    query = vm.state.dialogState.repoPickerQuery,
-                    onQueryChange = { vm.updateRepoPickerQuery(it) },
-                    options = uiState.filteredRepoOptions,
-                    isLoading = vm.state.sessionState.isLoadingRepositories,
-                    onReload = { vm.loadRepositoryOptions() },
-                    onDismiss = { vm.closeRepoDialog() },
-                    onSelect = { fullName ->
-                        vm.selectRepo(fullName)
-                        vm.refresh()
-                    },
-                )
-            }
-
-            vm.state.dialogState.fileDetailsPath?.let { filePath ->
-                if (vm.state.dialogState.isFileDetailsDialogOpen) {
+            when (val dialogState = vm.state.dialogState) {
+                is DialogState.RepoPicker -> {
+                    RepoPickerDialog(
+                        initialQuery = "${vm.state.repoState.owner}/${vm.state.repoState.repo}".trim().trim('/'),
+                        options = vm.state.sessionState.repositoryOptions,
+                        isLoading = vm.state.sessionState.isLoadingRepositories,
+                        onReload = { vm.loadRepositoryOptions() },
+                        onDismiss = { vm.closeRepoDialog() },
+                        onSelect = { fullName ->
+                            vm.selectRepo(fullName)
+                            vm.refresh()
+                        },
+                    )
+                }
+                is DialogState.FileDetails -> {
+                    val filePath = dialogState.filePath
                     val fileName = filePath.substringAfterLast('/')
                     val fileNode = remember(uiState.focusRoot, filePath) {
                         findFileNode(uiState.focusRoot, filePath)
@@ -255,6 +248,7 @@ fun App() {
                         )
                     }
                 }
+                is DialogState.None -> Unit
             }
 
             Row(modifier = Modifier.fillMaxSize()) {

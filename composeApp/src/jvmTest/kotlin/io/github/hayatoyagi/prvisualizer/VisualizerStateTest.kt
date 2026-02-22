@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class VisualizerStateTest {
@@ -23,11 +24,8 @@ class VisualizerStateTest {
 
     @Test
     fun `DialogState defaults should be correct`() {
-        val dialogState = DialogState()
-        assertFalse(dialogState.isRepoDialogOpen)
-        assertEquals("", dialogState.repoPickerQuery)
-        assertFalse(dialogState.isFileDetailsDialogOpen)
-        assertNull(dialogState.fileDetailsPath)
+        val dialogState = DialogState.None
+        assertIs<DialogState.None>(dialogState)
     }
 
     @Test
@@ -86,7 +84,7 @@ class VisualizerStateTest {
         val state = VisualizerState()
         assertEquals("", state.repoState.owner)
         assertEquals("", state.repoState.repo)
-        assertFalse(state.dialogState.isRepoDialogOpen)
+        assertIs<DialogState.None>(state.dialogState)
         assertTrue(state.filterState.showDrafts)
         assertFalse(state.filterState.onlyMine)
         assertEquals("", state.navigationState.focusPath)
@@ -97,7 +95,7 @@ class VisualizerStateTest {
     fun `VisualizerState resetForNewRepo should preserve toggles and clear query selection state`() {
         val state = VisualizerState(
             repoState = RepoState(owner = "OldOwner", repo = "OldRepo"),
-            dialogState = DialogState(isRepoDialogOpen = true, repoPickerQuery = "test", isFileDetailsDialogOpen = true, fileDetailsPath = "test.kt"),
+            dialogState = DialogState.FileDetails(filePath = "test.kt"),
             filterState = FilterState(
                 showDrafts = false,
                 onlyMine = true,
@@ -121,10 +119,7 @@ class VisualizerStateTest {
         assertEquals("NewRepo", reset.repoState.repo)
 
         // Dialog should be closed and cleared
-        assertFalse(reset.dialogState.isRepoDialogOpen)
-        assertEquals("", reset.dialogState.repoPickerQuery)
-        assertFalse(reset.dialogState.isFileDetailsDialogOpen)
-        assertNull(reset.dialogState.fileDetailsPath)
+        assertIs<DialogState.None>(reset.dialogState)
 
         // Toggle filters are preserved while query and selected IDs are cleared
         assertFalse(reset.filterState.showDrafts)

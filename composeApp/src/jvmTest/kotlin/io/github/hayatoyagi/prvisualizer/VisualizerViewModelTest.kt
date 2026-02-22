@@ -4,6 +4,7 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -21,45 +22,36 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
         vm.openRepoDialog()
 
-        assertTrue(vm.state.dialogState.isRepoDialogOpen)
-        assertEquals("Owner/Repo", vm.state.dialogState.repoPickerQuery)
+        assertIs<DialogState.RepoPicker>(vm.state.dialogState)
     }
 
     @Test
     fun `closeRepoDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openRepoDialog()
-        assertTrue(vm.state.dialogState.isRepoDialogOpen)
+        assertIs<DialogState.RepoPicker>(vm.state.dialogState)
 
         vm.closeRepoDialog()
-        assertFalse(vm.state.dialogState.isRepoDialogOpen)
+        assertIs<DialogState.None>(vm.state.dialogState)
     }
 
     @Test
     fun `openFileDetailsDialog should set dialog state correctly`() {
         val vm = VisualizerViewModel()
         vm.openFileDetailsDialog("src/main/App.kt")
-        
-        assertTrue(vm.state.dialogState.isFileDetailsDialogOpen)
-        assertEquals("src/main/App.kt", vm.state.dialogState.fileDetailsPath)
+
+        val dialog = assertIs<DialogState.FileDetails>(vm.state.dialogState)
+        assertEquals("src/main/App.kt", dialog.filePath)
     }
 
     @Test
     fun `closeFileDetailsDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openFileDetailsDialog("src/main/App.kt")
-        assertTrue(vm.state.dialogState.isFileDetailsDialogOpen)
-        
-        vm.closeFileDetailsDialog()
-        assertFalse(vm.state.dialogState.isFileDetailsDialogOpen)
-        assertNull(vm.state.dialogState.fileDetailsPath)
-    }
+        assertIs<DialogState.FileDetails>(vm.state.dialogState)
 
-    @Test
-    fun `updateRepoPickerQuery should update query`() {
-        val vm = VisualizerViewModel()
-        vm.updateRepoPickerQuery("test/query")
-        assertEquals("test/query", vm.state.dialogState.repoPickerQuery)
+        vm.closeFileDetailsDialog()
+        assertIs<DialogState.None>(vm.state.dialogState)
     }
 
     @Test
@@ -78,7 +70,7 @@ class VisualizerViewModelTest {
 
         assertEquals("New", vm.state.repoState.owner)
         assertEquals("Repository", vm.state.repoState.repo)
-        assertFalse(vm.state.dialogState.isRepoDialogOpen)
+        assertIs<DialogState.None>(vm.state.dialogState)
         assertFalse(vm.state.filterState.showDrafts)
         assertTrue(vm.state.filterState.onlyMine)
         assertEquals("", vm.state.filterState.query)
