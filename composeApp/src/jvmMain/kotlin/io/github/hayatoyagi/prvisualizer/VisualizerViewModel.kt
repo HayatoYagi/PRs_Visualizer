@@ -36,14 +36,21 @@ class VisualizerViewModel(
         getSessionState = { state.sessionState },
         setSessionState = { state = state.copy(sessionState = it) },
         getRepoState = { state.repoState },
-        onSnapshotLoaded = { resetNavigation(); resetViewport() },
+        onSnapshotLoaded = {
+            resetNavigation()
+            resetViewport()
+        },
         selectRepo = ::selectRepo,
     )
 
     fun initializeSession() = sessionManager.initializeSession()
+
     fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
+
     fun refresh() = sessionManager.refresh()
+
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
+
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
 
     // region: ダイアログ管理
