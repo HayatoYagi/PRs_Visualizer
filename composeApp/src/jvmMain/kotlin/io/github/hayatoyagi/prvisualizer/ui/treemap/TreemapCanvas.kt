@@ -17,6 +17,7 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable

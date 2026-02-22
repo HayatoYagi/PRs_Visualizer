@@ -3,7 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.explorer
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.treemap.computeConflictedDirectoryPaths
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 
 fun buildExplorerRows(
     root: FileNode.Directory,
