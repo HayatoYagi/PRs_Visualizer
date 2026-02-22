@@ -38,8 +38,8 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
-import io.github.hayatoyagi.prvisualizer.ui.shared.prColor
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 import kotlinx.coroutines.launch
 
 @Composable
@@ -222,6 +222,7 @@ fun FileDetailsDialog(
                             )
                         }
                     } else {
+                        val commitItems = commits.orEmpty()
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -230,7 +231,7 @@ fun FileDetailsDialog(
                                 .padding(8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            items(commits) { commit ->
+                            items(commitItems) { commit ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()

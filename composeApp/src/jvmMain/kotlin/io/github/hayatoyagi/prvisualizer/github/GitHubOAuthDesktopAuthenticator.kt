@@ -71,13 +71,17 @@ class GitHubOAuthDesktopAuthenticator {
         error("Timed out waiting for GitHub authorization.")
     }
 
-    private fun requestDeviceCode(clientId: String, scope: String): DeviceFlowStart {
+    private fun requestDeviceCode(
+        clientId: String,
+        scope: String,
+    ): DeviceFlowStart {
         val body = listOf(
             "client_id" to clientId,
             "scope" to scope,
         ).joinToString("&") { (k, v) -> "${enc(k)}=${enc(v)}" }
 
-        val request = HttpRequest.newBuilder(URI("https://github.com/login/device/code"))
+        val request = HttpRequest
+            .newBuilder(URI("https://github.com/login/device/code"))
             .header("Accept", "application/json")
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -114,7 +118,8 @@ class GitHubOAuthDesktopAuthenticator {
             "grant_type" to "urn:ietf:params:oauth:grant-type:device_code",
         ).joinToString("&") { (k, v) -> "${enc(k)}=${enc(v)}" }
 
-        val request = HttpRequest.newBuilder(URI("https://github.com/login/oauth/access_token"))
+        val request = HttpRequest
+            .newBuilder(URI("https://github.com/login/oauth/access_token"))
             .header("Accept", "application/json")
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(body))

@@ -14,12 +14,3 @@ data class DirectoryOverlay(
     val dominantType: ChangeType?,
     val density: Float,
 )
-
-data class ExplorerRow(
-    val path: String,
-    val name: String,
-    val depth: Int,
-    val isDirectory: Boolean,
-    val dominantType: ChangeType?,
-    val hasConflict: Boolean,
-)

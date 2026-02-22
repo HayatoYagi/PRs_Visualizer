@@ -7,7 +7,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class VisualizerStateTest {
-
     @Test
     fun `RepoState should have correct fullName`() {
         val repoState = RepoState(owner = "TestOwner", repo = "TestRepo")
@@ -53,10 +52,10 @@ class VisualizerStateTest {
         val navState = NavigationState(
             focusPath = "some/path",
             selectedPath = "some/file.kt",
-            viewportResetToken = 5
+            viewportResetToken = 5,
         )
         val reset = navState.resetNavigation()
-        
+
         assertEquals("", reset.focusPath)
         assertEquals(null, reset.selectedPath)
         assertEquals(5, reset.viewportResetToken)
@@ -67,10 +66,10 @@ class VisualizerStateTest {
         val navState = NavigationState(
             focusPath = "some/path",
             selectedPath = "some/file.kt",
-            viewportResetToken = 3
+            viewportResetToken = 3,
         )
         val reset = navState.resetViewport()
-        
+
         assertEquals("some/path", reset.focusPath)
         assertEquals("some/file.kt", reset.selectedPath)
         assertEquals(4, reset.viewportResetToken)
@@ -103,16 +102,16 @@ class VisualizerStateTest {
                 showDrafts = false,
                 onlyMine = true,
                 query = "search",
-                selectedPrIds = setOf("pr1", "pr2")
+                selectedPrIds = setOf("pr1", "pr2"),
             ),
             navigationState = NavigationState(
                 focusPath = "old/path",
                 selectedPath = "old/file.kt",
-                viewportResetToken = 10
+                viewportResetToken = 10,
             ),
             colorState = ColorState(
-                prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue)
-            )
+                prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue),
+            ),
         )
 
         val reset = state.resetForNewRepo(owner = "NewOwner", repo = "NewRepo")
@@ -145,11 +144,11 @@ class VisualizerStateTest {
     @Test
     fun `VisualizerState should support immutable updates`() {
         val state = VisualizerState(
-            repoState = RepoState(owner = "Owner", repo = "Repo")
+            repoState = RepoState(owner = "Owner", repo = "Repo"),
         )
 
         val updated = state.copy(
-            filterState = state.filterState.copy(query = "test")
+            filterState = state.filterState.copy(query = "test"),
         )
 
         // Original should be unchanged
@@ -176,7 +175,7 @@ class VisualizerStateTest {
         val state = ColorState()
 
         val updated = state.copy(
-            prColorMap = state.prColorMap + ("pr1" to Color.Red)
+            prColorMap = state.prColorMap + ("pr1" to Color.Red),
         )
 
         assertTrue(state.prColorMap.isEmpty())

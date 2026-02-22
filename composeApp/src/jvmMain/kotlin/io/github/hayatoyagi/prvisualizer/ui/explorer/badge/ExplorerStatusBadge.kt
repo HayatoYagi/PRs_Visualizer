@@ -21,7 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-enum class ExplorerBadgeSize(val badgeDp: Dp, val fontSp: TextUnit, val conflictFontSp: TextUnit) {
+enum class ExplorerBadgeSize(
+    val badgeDp: Dp,
+    val fontSp: TextUnit,
+    val conflictFontSp: TextUnit,
+) {
     Legend(14.dp, 9.sp, 10.sp),
     Row(16.dp, 11.sp, 11.sp),
 }
@@ -46,8 +50,7 @@ fun ExplorerStatusBadge(
                 .background(
                     color = kind.color.copy(alpha = if (kind.isConflict) 0.28f else 0.22f),
                     shape = if (kind.isConflict) RectangleShape else MaterialTheme.shapes.extraSmall,
-                )
-                .then(
+                ).then(
                     if (kind.isConflict) Modifier.border(1.dp, kind.color, RectangleShape) else Modifier,
                 ),
             contentAlignment = Alignment.Center,

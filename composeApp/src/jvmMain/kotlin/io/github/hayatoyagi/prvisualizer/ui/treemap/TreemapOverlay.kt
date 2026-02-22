@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -85,8 +84,7 @@ fun TreemapOverlay(
                         x = (pointerPos.x + 12f).toInt(),
                         y = (pointerPos.y + 12f).toInt(),
                     )
-                }
-                .border(1.dp, AppColors.tooltipBorder),
+                }.border(1.dp, AppColors.tooltipBorder),
             color = AppColors.tooltipBackground,
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -98,8 +96,21 @@ fun TreemapOverlay(
                 Text("Path: ${hoveredNode.path}", color = AppColors.textTooltip)
                 Text("LOC: ${hoveredNode.totalLines}", color = AppColors.textTooltip)
                 val prs = if (hoveredNode.isDirectory) hoveredDirOverlay?.prs.orEmpty() else hoveredOverlay?.prs.orEmpty()
+                val prText = if (prs.isEmpty()) {
+                    "PR: none"
+                } else {
+                    val prDetails = prs.joinToString { pr ->
+                        val fileChange = pr.files.find { it.path == hoveredNode.path }
+                        if (fileChange != null && !hoveredNode.isDirectory) {
+                            "#${pr.number} ${pr.author} (+${fileChange.additions}/-${fileChange.deletions})"
+                        } else {
+                            "#${pr.number} ${pr.author}"
+                        }
+                    }
+                    "PR: $prDetails"
+                }
                 Text(
-                    text = if (prs.isEmpty()) "PR: none" else "PR: ${prs.joinToString { "#${it.number} ${it.author}" }}",
+                    text = prText,
                     color = if (prs.size > 1) AppColors.textTooltipMultiPr else AppColors.textTooltip,
                 )
             }
