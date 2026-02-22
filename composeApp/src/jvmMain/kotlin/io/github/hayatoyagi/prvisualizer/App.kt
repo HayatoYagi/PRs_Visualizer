@@ -25,9 +25,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
-import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
+import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog

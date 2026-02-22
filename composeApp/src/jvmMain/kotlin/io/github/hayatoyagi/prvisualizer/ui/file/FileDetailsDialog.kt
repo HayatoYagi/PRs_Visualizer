@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.FileCommit
-import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
@@ -78,7 +77,7 @@ fun FileDetailsDialog(
         containerColor = AppColors.backgroundPane,
         titleContentColor = AppColors.textPaneTitle,
         textContentColor = AppColors.textBody,
-        title = { 
+        title = {
             Text(
                 text = fileName,
                 maxLines = 1,
@@ -283,19 +282,17 @@ fun FileDetailsDialog(
     )
 }
 
-private fun formatDate(isoDate: String): String {
-    return try {
-        // ISO 8601 format: 2026-02-20T13:58:03Z
-        // Returns MM/DD format without year for brevity in UI
-        // Full date is visible on hover and in GitHub when clicking commit
-        val date = isoDate.substringBefore('T')
-        val parts = date.split('-')
-        if (parts.size == 3) {
-            "${parts[1]}/${parts[2]}"
-        } else {
-            isoDate.take(10)
-        }
-    } catch (e: Exception) {
+private fun formatDate(isoDate: String): String = try {
+    // ISO 8601 format: 2026-02-20T13:58:03Z
+    // Returns MM/DD format without year for brevity in UI
+    // Full date is visible on hover and in GitHub when clicking commit
+    val date = isoDate.substringBefore('T')
+    val parts = date.split('-')
+    if (parts.size == 3) {
+        "${parts[1]}/${parts[2]}"
+    } else {
         isoDate.take(10)
     }
+} catch (e: Exception) {
+    isoDate.take(10)
 }
