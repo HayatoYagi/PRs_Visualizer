@@ -141,7 +141,7 @@ object GitHubTokenStore {
         extraEnv: Map<String, String> = emptyMap(),
     ): CommandResult? {
         return runCatching {
-            val builder = ProcessBuilder(*command)
+            val builder = ProcessBuilder(command.toList())
             if (extraEnv.isNotEmpty()) {
                 builder.environment().putAll(extraEnv)
             }
