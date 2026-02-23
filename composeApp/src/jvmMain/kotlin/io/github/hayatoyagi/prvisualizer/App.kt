@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
@@ -54,7 +56,7 @@ data class VisualizerUiState(
 
 @Composable
 private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiState {
-    val snapshot = vm.state.sessionState.githubSnapshot
+    val snapshot = vm.state.sessionState.snapshotFetchState.snapshot
     val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
     val root = snapshot?.rootNode ?: emptyRoot
     val allPrs = snapshot?.pullRequests ?: emptyList()
@@ -137,15 +139,18 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
 fun App() {
     val vm = viewModel { VisualizerViewModel() }
     val oauthClientId = remember { EnvConfig.get("GITHUB_CLIENT_ID")?.trim().orEmpty() }
-    val allPrs = vm.state.sessionState.githubSnapshot?.pullRequests ?: emptyList()
+    val authState = vm.state.sessionState.authState
+    val snapshotFetchState = vm.state.sessionState.snapshotFetchState
+    val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
+    val allPrs = snapshotFetchState.snapshot?.pullRequests ?: emptyList()
 
     val uiState = rememberVisualizerUiState(vm)
 
     LaunchedEffect(Unit) {
         vm.initializeSession()
     }
-    LaunchedEffect(vm.state.sessionState.oauthToken) {
-        if (vm.state.sessionState.oauthToken.isNotBlank()) {
+    LaunchedEffect(authState.oauthToken) {
+        if (authState.isLoggedIn) {
             vm.ensureRepositoryOptions()
         }
     }
@@ -183,33 +188,33 @@ fun App() {
                 },
         ) {
             ToolbarRow(
-                owner = vm.state.repoState.owner,
-                repo = vm.state.repoState.repo,
-                isLoggedIn = vm.state.sessionState.oauthToken.isNotBlank(),
+                owner = selectedRepo?.owner.orEmpty(),
+                repo = selectedRepo?.repo.orEmpty(),
+                isLoggedIn = authState.isLoggedIn,
                 onOpenRepoDialog = { vm.openRepoDialog() },
                 onShuffleColors = { vm.shufflePrColors(allPrs) },
             )
             AuthRow(
                 oauthClientId = oauthClientId,
-                isAuthorizing = vm.state.sessionState.isAuthorizing,
-                isConnecting = vm.state.sessionState.isConnecting,
-                isLoggedIn = vm.state.sessionState.oauthToken.isNotBlank(),
+                isAuthorizing = authState.isAuthorizing,
+                isConnecting = snapshotFetchState.isFetching,
+                isLoggedIn = authState.isLoggedIn,
                 currentUser = vm.state.sessionState.currentUser,
-                deviceUserCode = vm.state.sessionState.deviceUserCode,
-                deviceVerificationUrl = vm.state.sessionState.deviceVerificationUrl,
-                connectionError = vm.state.sessionState.connectionError,
-                hasSnapshot = vm.state.sessionState.githubSnapshot != null,
+                deviceUserCode = authState.deviceUserCode,
+                deviceVerificationUrl = authState.deviceVerificationUrl,
+                connectionError = authState.error ?: snapshotFetchState.error,
+                hasSnapshot = snapshotFetchState.snapshot != null,
                 onLogin = { vm.loginAndConnect(oauthClientId) },
                 onRefresh = { vm.refresh() },
-                onCopyDeviceCode = { copyToClipboard(vm.state.sessionState.deviceUserCode.orEmpty()) },
-                onOpenVerifyPage = { openUrl(vm.state.sessionState.deviceVerificationUrl.orEmpty()) },
+                onCopyDeviceCode = { copyToClipboard(authState.deviceUserCode.orEmpty()) },
+                onOpenVerifyPage = { openUrl(authState.deviceVerificationUrl.orEmpty()) },
             )
             when (val dialogState = vm.state.dialogState) {
                 is DialogState.RepoPicker -> {
                     RepoPickerDialog(
-                        initialQuery = "${vm.state.repoState.owner}/${vm.state.repoState.repo}".trim().trim('/'),
-                        options = vm.state.sessionState.repositoryOptions,
-                        isLoading = vm.state.sessionState.isLoadingRepositories,
+                        initialQuery = "${selectedRepo?.owner.orEmpty()}/${selectedRepo?.repo.orEmpty()}".trim().trim('/'),
+                        options = vm.state.repoSelectionState.options,
+                        isLoading = vm.state.repoSelectionState.isLoading,
                         onReload = { vm.loadRepositoryOptions() },
                         onDismiss = { vm.closeRepoDialog() },
                         onSelect = { fullName ->
@@ -225,7 +230,7 @@ fun App() {
                         findFileNode(uiState.focusRoot, filePath)
                     }
                     val fileOverlay = uiState.fileOverlayByPath[filePath]
-                    val oauthToken = vm.state.sessionState.oauthToken
+                    val oauthToken = authState.oauthToken
 
                     if (fileNode != null && oauthToken.isNotBlank()) {
                         val githubApi = remember(oauthToken) { GitHubApi(oauthToken) }
@@ -234,8 +239,8 @@ fun App() {
                             fileName = fileName,
                             totalLines = fileNode.totalLines,
                             fileOverlay = fileOverlay,
-                            repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
-                            defaultBranch = vm.state.sessionState.githubSnapshot?.defaultBranch ?: "main",
+                            repoFullName = "${selectedRepo?.owner.orEmpty().trim()}/${selectedRepo?.repo.orEmpty().trim()}",
+                            defaultBranch = snapshotFetchState.snapshot?.defaultBranch ?: "main",
                             prColorMap = vm.state.colorState.prColorMap,
                             githubApi = githubApi,
                             onDismiss = { vm.closeFileDetailsDialog() },
@@ -261,7 +266,7 @@ fun App() {
 
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
-                    root = vm.state.sessionState.githubSnapshot?.rootNode,
+                    root = snapshotFetchState.snapshot?.rootNode,
                     fileOverlayByPath = uiState.fileOverlayByPath,
                     directoryOverlayByPath = uiState.directoryOverlayByPath,
                     focusPath = vm.state.navigationState.focusPath,
@@ -270,7 +275,7 @@ fun App() {
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
                     onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
-                    isLoading = vm.state.sessionState.isConnecting,
+                    isLoading = snapshotFetchState.isFetching,
                 )
                 TreemapPane(
                     modifier = Modifier
@@ -288,7 +293,7 @@ fun App() {
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
                     onFileDoubleClick = { vm.openFileDetailsDialog(it) },
-                    isLoading = vm.state.sessionState.isConnecting,
+                    isLoading = snapshotFetchState.isFetching,
                 )
                 PrListPane(
                     filteredPrs = uiState.filteredPrs,
@@ -310,7 +315,7 @@ fun App() {
                     },
                     onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
-                    isLoading = vm.state.sessionState.isConnecting,
+                    isLoading = snapshotFetchState.isFetching,
                 )
             }
         }

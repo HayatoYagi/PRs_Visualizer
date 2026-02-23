@@ -8,8 +8,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
+import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class VisualizerViewModel(
@@ -17,12 +23,24 @@ class VisualizerViewModel(
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
     initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
     initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
+    private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(
+        initial = RepoState.from(owner = initialOwner, repo = initialRepo),
+    ),
 ) : ViewModel() {
+    val repoState: StateFlow<RepoState>
+        get() = selectedRepositoryStore.repoState
+
+    private var lastAppliedRepoState: RepoState = selectedRepositoryStore.repoState.value
+
     // Main state container
     var state by mutableStateOf(
         VisualizerState(
-            repoState = RepoState(owner = initialOwner, repo = initialRepo),
-            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
+            sessionState = SessionState(
+                authState = AuthState(
+                    oauthToken = initialToken,
+                    currentUserOverride = initialUser,
+                ),
+            ),
         ),
     )
         private set
@@ -35,13 +53,45 @@ class VisualizerViewModel(
         scope = viewModelScope,
         getSessionState = { state.sessionState },
         setSessionState = { state = state.copy(sessionState = it) },
-        getRepoState = { state.repoState },
+        getRepoState = { selectedRepositoryStore.repoState.value },
+        getRepoSelectionState = { state.repoSelectionState },
+        setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
         onSnapshotLoaded = {
             resetNavigation()
             resetViewport()
         },
         selectRepo = ::selectRepo,
     )
+
+    init {
+        viewModelScope.launch {
+            selectedRepositoryStore.repoState
+                .drop(1)
+                .collect { repoState ->
+                    applyRepositoryState(repoState)
+                }
+        }
+    }
+
+    private fun applyRepositoryState(repoState: RepoState) {
+        if (repoState == lastAppliedRepoState) return
+        lastAppliedRepoState = repoState
+
+        when (repoState) {
+            is RepoState.Selected -> {
+                state = state.resetForRepositoryChange()
+            }
+            RepoState.Unselected -> {
+                state = state.copy(
+                    sessionState = state.sessionState.copy(
+                        snapshotFetchState = state.sessionState.snapshotFetchState.copy(snapshot = null, error = null),
+                    ),
+                )
+            }
+        }
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
+    }
 
     fun initializeSession() = sessionManager.initializeSession()
 
@@ -92,11 +142,11 @@ class VisualizerViewModel(
 
     // region: リポジトリ選択
     fun selectRepo(fullName: String) {
-        val newOwner = fullName.substringBefore('/', state.repoState.owner)
+        val currentOwner = (selectedRepositoryStore.repoState.value as? RepoState.Selected)?.owner.orEmpty()
+        val newOwner = fullName.substringBefore('/', currentOwner)
         val newRepo = fullName.substringAfter('/', fullName)
-        state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
-        navigationHistory.clear()
-        navigationHistory.recordFocusPath(state.navigationState.focusPath)
+        selectedRepositoryStore.select(owner = newOwner, repo = newRepo)
+        applyRepositoryState(selectedRepositoryStore.repoState.value)
     }
 
     // region: PR フィルタ

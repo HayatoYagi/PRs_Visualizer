@@ -2,15 +2,41 @@ package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
+
+data class RepoSelectionState(
+    val options: List<String> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: AppError? = null,
+)
+
+data class AuthState(
+    val oauthToken: String = "",
+    val currentUserOverride: String = "",
+    val isAuthorizing: Boolean = false,
+    val deviceUserCode: String? = null,
+    val deviceVerificationUrl: String? = null,
+    val error: AppError? = null,
+) {
+    val isLoggedIn: Boolean
+        get() = oauthToken.isNotBlank()
+}
+
+data class SnapshotFetchState(
+    val snapshot: GitHubSnapshot? = null,
+    val isFetching: Boolean = false,
+    val error: AppError? = null,
+)
 
 /**
- * Represents the repository identity.
+ * Represents GitHub authentication and snapshot-fetch session.
  */
-data class RepoState(
-    val owner: String = "",
-    val repo: String = "",
+data class SessionState(
+    val authState: AuthState = AuthState(),
+    val snapshotFetchState: SnapshotFetchState = SnapshotFetchState(),
 ) {
-    val fullName: String get() = "$owner/$repo"
+    val currentUser: String
+        get() = snapshotFetchState.snapshot?.viewerLogin ?: authState.currentUserOverride
 }
 
 /**
@@ -72,30 +98,10 @@ data class ColorState(
 )
 
 /**
- * Represents GitHub session and connectivity state.
- */
-data class SessionState(
-    val oauthToken: String = "",
-    val currentUserOverride: String = "",
-    val githubSnapshot: GitHubSnapshot? = null,
-    val connectionError: AppError? = null,
-    val isConnecting: Boolean = false,
-    val isAuthorizing: Boolean = false,
-    val deviceUserCode: String? = null,
-    val deviceVerificationUrl: String? = null,
-    val repositoryOptions: List<String> = emptyList(),
-    val isLoadingRepositories: Boolean = false,
-) {
-    val currentUser: String
-        get() = githubSnapshot?.viewerLogin ?: currentUserOverride
-}
-
-/**
  * Main state container for the VisualizerViewModel.
- * Groups all related states together for better organization and easier state management.
  */
 data class VisualizerState(
-    val repoState: RepoState = RepoState(),
+    val repoSelectionState: RepoSelectionState = RepoSelectionState(),
     val dialogState: DialogState = DialogState.None,
     val filterState: FilterState = FilterState(),
     val navigationState: NavigationState = NavigationState(),
@@ -105,17 +111,16 @@ data class VisualizerState(
     /**
      * Resets state when changing repositories.
      * Keeps toggle filters while clearing query, selection, colors, and navigation.
-     * Clears the snapshot and connection error so a fresh fetch is triggered.
+     * Clears fetched snapshot and related errors so a fresh fetch is triggered.
      */
-    fun resetForNewRepo(
-        owner: String,
-        repo: String,
-    ): VisualizerState = copy(
-        repoState = RepoState(owner, repo),
+    fun resetForRepositoryChange(): VisualizerState = copy(
         dialogState = DialogState.None,
         filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),
-        sessionState = sessionState.copy(githubSnapshot = null, connectionError = null),
+        sessionState = sessionState.copy(
+            snapshotFetchState = sessionState.snapshotFetchState.copy(snapshot = null, error = null),
+            authState = sessionState.authState.copy(error = null),
+        ),
     )
 }

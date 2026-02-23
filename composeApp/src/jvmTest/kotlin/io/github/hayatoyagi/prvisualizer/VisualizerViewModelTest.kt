@@ -1,5 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
+import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,10 +13,23 @@ import kotlin.test.assertTrue
 
 class VisualizerViewModelTest {
     @Test
+    fun `ViewModel should initialize repository from injected store`() {
+        val store = InMemorySelectedRepositoryStore(
+            initial = RepoState.Selected(owner = "InjectedOwner", repo = "InjectedRepo"),
+        )
+
+        val vm = VisualizerViewModel(selectedRepositoryStore = store)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("InjectedOwner", selected.owner)
+        assertEquals("InjectedRepo", selected.repo)
+    }
+
+    @Test
     fun `ViewModel should initialize with provided owner and repo`() {
         val vm = VisualizerViewModel(initialOwner = "TestOwner", initialRepo = "TestRepo")
-        assertEquals("TestOwner", vm.state.repoState.owner)
-        assertEquals("TestRepo", vm.state.repoState.repo)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("TestOwner", selected.owner)
+        assertEquals("TestRepo", selected.repo)
     }
 
     @Test
@@ -68,8 +83,9 @@ class VisualizerViewModelTest {
         // Select new repo
         vm.selectRepo("New/Repository")
 
-        assertEquals("New", vm.state.repoState.owner)
-        assertEquals("Repository", vm.state.repoState.repo)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("New", selected.owner)
+        assertEquals("Repository", selected.repo)
         assertIs<DialogState.None>(vm.state.dialogState)
         assertFalse(vm.state.filterState.showDrafts)
         assertTrue(vm.state.filterState.onlyMine)
