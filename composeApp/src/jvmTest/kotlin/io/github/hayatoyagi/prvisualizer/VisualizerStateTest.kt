@@ -5,27 +5,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class VisualizerStateTest {
     @Test
-    fun `RepoState should have correct fullName`() {
-        val repoState = RepoState(owner = "TestOwner", repo = "TestRepo")
-        assertEquals("TestOwner/TestRepo", repoState.fullName)
-    }
-
-    @Test
-    fun `RepoState defaults should be empty strings`() {
-        val repoState = RepoState()
-        assertEquals("", repoState.owner)
-        assertEquals("", repoState.repo)
-        assertEquals("/", repoState.fullName)
-    }
-
-    @Test
     fun `DialogState defaults should be correct`() {
-        val dialogState = DialogState.None
-        assertIs<DialogState.None>(dialogState)
+        assertIs<DialogState.None>(DialogState.None)
     }
 
     @Test
@@ -38,52 +24,37 @@ class VisualizerStateTest {
     }
 
     @Test
-    fun `NavigationState defaults should be correct`() {
-        val navState = NavigationState()
-        assertEquals("", navState.focusPath)
-        assertEquals(null, navState.selectedPath)
-        assertEquals(0, navState.viewportResetToken)
-    }
-
-    @Test
-    fun `NavigationState resetNavigation should clear paths but not token`() {
-        val navState = NavigationState(
-            focusPath = "some/path",
-            selectedPath = "some/file.kt",
-            viewportResetToken = 5,
-        )
-        val reset = navState.resetNavigation()
-
-        assertEquals("", reset.focusPath)
-        assertEquals(null, reset.selectedPath)
-        assertEquals(5, reset.viewportResetToken)
-    }
-
-    @Test
-    fun `NavigationState resetViewport should increment token`() {
+    fun `NavigationState reset helpers should keep expected values`() {
         val navState = NavigationState(
             focusPath = "some/path",
             selectedPath = "some/file.kt",
             viewportResetToken = 3,
         )
-        val reset = navState.resetViewport()
 
-        assertEquals("some/path", reset.focusPath)
-        assertEquals("some/file.kt", reset.selectedPath)
-        assertEquals(4, reset.viewportResetToken)
+        val resetNavigation = navState.resetNavigation()
+        assertEquals("", resetNavigation.focusPath)
+        assertNull(resetNavigation.selectedPath)
+        assertEquals(3, resetNavigation.viewportResetToken)
+
+        val resetViewport = navState.resetViewport()
+        assertEquals("some/path", resetViewport.focusPath)
+        assertEquals("some/file.kt", resetViewport.selectedPath)
+        assertEquals(4, resetViewport.viewportResetToken)
     }
 
     @Test
-    fun `ColorState defaults should have empty map`() {
-        val colorState = ColorState()
-        assertTrue(colorState.prColorMap.isEmpty())
+    fun `SessionState defaults should separate auth and snapshot state`() {
+        val session = SessionState()
+        assertFalse(session.authState.isLoggedIn)
+        assertNull(session.snapshotFetchState.snapshot)
+        assertFalse(session.snapshotFetchState.isFetching)
+        assertNull(session.authState.error)
+        assertNull(session.snapshotFetchState.error)
     }
 
     @Test
     fun `VisualizerState defaults should be correct`() {
         val state = VisualizerState()
-        assertEquals("", state.repoState.owner)
-        assertEquals("", state.repoState.repo)
         assertIs<DialogState.None>(state.dialogState)
         assertTrue(state.filterState.showDrafts)
         assertFalse(state.filterState.onlyMine)
@@ -92,9 +63,8 @@ class VisualizerStateTest {
     }
 
     @Test
-    fun `VisualizerState resetForNewRepo should preserve toggles and clear query selection state`() {
+    fun `VisualizerState resetForRepositoryChange should preserve toggles and clear query selection state`() {
         val state = VisualizerState(
-            repoState = RepoState(owner = "OldOwner", repo = "OldRepo"),
             dialogState = DialogState.FileDetails(filePath = "test.kt"),
             filterState = FilterState(
                 showDrafts = false,
@@ -110,71 +80,30 @@ class VisualizerStateTest {
             colorState = ColorState(
                 prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue),
             ),
+            sessionState = SessionState(
+                authState = AuthState(
+                    oauthToken = "token",
+                    error = AppError.Network("error"),
+                ),
+                snapshotFetchState = SnapshotFetchState(
+                    snapshot = null,
+                    error = AppError.Unknown("snapshot error"),
+                ),
+            ),
         )
 
-        val reset = state.resetForNewRepo(owner = "NewOwner", repo = "NewRepo")
-
-        // Repo should be updated
-        assertEquals("NewOwner", reset.repoState.owner)
-        assertEquals("NewRepo", reset.repoState.repo)
-
-        // Dialog should be closed and cleared
+        val reset = state.resetForRepositoryChange()
         assertIs<DialogState.None>(reset.dialogState)
-
-        // Toggle filters are preserved while query and selected IDs are cleared
         assertFalse(reset.filterState.showDrafts)
         assertTrue(reset.filterState.onlyMine)
         assertEquals("", reset.filterState.query)
         assertTrue(reset.filterState.selectedPrIds.isEmpty())
-
-        // Navigation should be cleared
         assertEquals("", reset.navigationState.focusPath)
-        assertEquals(null, reset.navigationState.selectedPath)
+        assertNull(reset.navigationState.selectedPath)
         assertEquals(0, reset.navigationState.viewportResetToken)
-
-        // Colors should be cleared
         assertTrue(reset.colorState.prColorMap.isEmpty())
-    }
-
-    @Test
-    fun `VisualizerState should support immutable updates`() {
-        val state = VisualizerState(
-            repoState = RepoState(owner = "Owner", repo = "Repo"),
-        )
-
-        val updated = state.copy(
-            filterState = state.filterState.copy(query = "test"),
-        )
-
-        // Original should be unchanged
-        assertEquals("", state.filterState.query)
-        // Updated should have new value
-        assertEquals("test", updated.filterState.query)
-        // Other fields should remain the same
-        assertEquals("Owner", updated.repoState.owner)
-    }
-
-    @Test
-    fun `FilterState should support adding and removing PR IDs`() {
-        val state = FilterState(selectedPrIds = setOf("pr1", "pr2"))
-
-        val added = state.copy(selectedPrIds = state.selectedPrIds + "pr3")
-        assertEquals(setOf("pr1", "pr2", "pr3"), added.selectedPrIds)
-
-        val removed = state.copy(selectedPrIds = state.selectedPrIds - "pr1")
-        assertEquals(setOf("pr2"), removed.selectedPrIds)
-    }
-
-    @Test
-    fun `ColorState should support adding colors`() {
-        val state = ColorState()
-
-        val updated = state.copy(
-            prColorMap = state.prColorMap + ("pr1" to Color.Red),
-        )
-
-        assertTrue(state.prColorMap.isEmpty())
-        assertEquals(1, updated.prColorMap.size)
-        assertEquals(Color.Red, updated.prColorMap["pr1"])
+        assertNull(reset.sessionState.authState.error)
+        assertNull(reset.sessionState.snapshotFetchState.error)
+        assertNull(reset.sessionState.snapshotFetchState.snapshot)
     }
 }

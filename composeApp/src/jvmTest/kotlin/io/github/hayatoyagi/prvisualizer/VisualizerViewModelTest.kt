@@ -1,5 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
+import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,15 +13,26 @@ import kotlin.test.assertTrue
 
 class VisualizerViewModelTest {
     @Test
-    fun `ViewModel should initialize with provided owner and repo`() {
-        val vm = VisualizerViewModel(initialOwner = "TestOwner", initialRepo = "TestRepo")
-        assertEquals("TestOwner", vm.state.repoState.owner)
-        assertEquals("TestRepo", vm.state.repoState.repo)
+    fun `ViewModel should initialize repository from injected store`() {
+        val store = InMemorySelectedRepositoryStore(
+            initial = RepoState.Selected(owner = "InjectedOwner", repo = "InjectedRepo"),
+        )
+
+        val vm = VisualizerViewModel(selectedRepositoryStore = store)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("InjectedOwner", selected.owner)
+        assertEquals("InjectedRepo", selected.repo)
+    }
+
+    @Test
+    fun `ViewModel should default to Unselected repository state`() {
+        val vm = VisualizerViewModel()
+        assertIs<RepoState.Unselected>(vm.repoState.value)
     }
 
     @Test
     fun `openRepoDialog should set dialog state correctly`() {
-        val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
+        val vm = VisualizerViewModel()
         vm.openRepoDialog()
 
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
@@ -45,18 +58,39 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `closeFileDetailsDialog should close the dialog`() {
+    fun `closeDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openFileDetailsDialog("src/main/App.kt")
         assertIs<DialogState.FileDetails>(vm.state.dialogState)
 
-        vm.closeFileDetailsDialog()
+        vm.closeDialog()
         assertIs<DialogState.None>(vm.state.dialogState)
     }
 
     @Test
+    fun `selectRepo same repo twice should apply reset only once`() {
+        val vm = VisualizerViewModel()
+
+        // Switch to a repo — triggers reset
+        vm.updateQuery("search")
+        vm.selectRepo("Other/Repo")
+        assertEquals("", vm.state.filterState.query)
+
+        // Restore query, then select the identical repo again
+        vm.updateQuery("should stay")
+        vm.selectRepo("Other/Repo")
+
+        // Second selectRepo with the same identity must not reset state again
+        assertEquals("should stay", vm.state.filterState.query)
+    }
+
+    @Test
     fun `selectRepo should preserve toggles and clear query selection state`() {
-        val vm = VisualizerViewModel(initialOwner = "Old", initialRepo = "Repo")
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(
+                initial = RepoState.Selected(owner = "Old", repo = "Repo"),
+            ),
+        )
 
         // Set some state
         vm.openRepoDialog()
@@ -68,8 +102,9 @@ class VisualizerViewModelTest {
         // Select new repo
         vm.selectRepo("New/Repository")
 
-        assertEquals("New", vm.state.repoState.owner)
-        assertEquals("Repository", vm.state.repoState.repo)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("New", selected.owner)
+        assertEquals("Repository", selected.repo)
         assertIs<DialogState.None>(vm.state.dialogState)
         assertFalse(vm.state.filterState.showDrafts)
         assertTrue(vm.state.filterState.onlyMine)

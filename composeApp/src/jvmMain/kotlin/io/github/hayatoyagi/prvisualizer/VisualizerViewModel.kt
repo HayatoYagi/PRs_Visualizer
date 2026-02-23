@@ -6,25 +6,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
+import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
 
 class VisualizerViewModel(
-    initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
-    initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
-    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
-    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
+    private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
 ) : ViewModel() {
+    val repoState: StateFlow<RepoState>
+        get() = selectedRepositoryStore.repoState
+
+    private var lastAppliedRepoState: RepoState = selectedRepositoryStore.repoState.value
+
     // Main state container
-    var state by mutableStateOf(
-        VisualizerState(
-            repoState = RepoState(owner = initialOwner, repo = initialRepo),
-            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
-        ),
-    )
+    var state by mutableStateOf(VisualizerState())
         private set
 
     // Navigation history for back/forward buttons
@@ -35,13 +35,39 @@ class VisualizerViewModel(
         scope = viewModelScope,
         getSessionState = { state.sessionState },
         setSessionState = { state = state.copy(sessionState = it) },
-        getRepoState = { state.repoState },
+        getRepoState = { selectedRepositoryStore.repoState.value },
+        getRepoSelectionState = { state.repoSelectionState },
+        setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
         onSnapshotLoaded = {
             resetNavigation()
             resetViewport()
         },
         selectRepo = ::selectRepo,
     )
+
+    /**
+     * Applies UI state changes for a repository transition.
+     * [lastAppliedRepoState] prevents re-applying state when the same repo is selected again.
+     */
+    private fun applyRepositoryState(repoState: RepoState) {
+        if (repoState == lastAppliedRepoState) return
+        lastAppliedRepoState = repoState
+
+        when (repoState) {
+            is RepoState.Selected -> {
+                state = state.resetForRepositoryChange()
+            }
+            RepoState.Unselected -> {
+                state = state.copy(
+                    sessionState = state.sessionState.copy(
+                        snapshotFetchState = state.sessionState.snapshotFetchState.copy(snapshot = null, error = null),
+                    ),
+                )
+            }
+        }
+        navigationHistory.clear()
+        navigationHistory.recordFocusPath(state.navigationState.focusPath)
+    }
 
     fun initializeSession() = sessionManager.initializeSession()
 
@@ -78,13 +104,7 @@ class VisualizerViewModel(
         )
     }
 
-    fun closePrDetailsDialog() {
-        state = state.copy(
-            dialogState = DialogState.None,
-        )
-    }
-
-    fun closeFileDetailsDialog() {
+    fun closeDialog() {
         state = state.copy(
             dialogState = DialogState.None,
         )
@@ -92,11 +112,11 @@ class VisualizerViewModel(
 
     // region: リポジトリ選択
     fun selectRepo(fullName: String) {
-        val newOwner = fullName.substringBefore('/', state.repoState.owner)
+        val currentOwner = (selectedRepositoryStore.repoState.value as? RepoState.Selected)?.owner.orEmpty()
+        val newOwner = fullName.substringBefore('/', currentOwner)
         val newRepo = fullName.substringAfter('/', fullName)
-        state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
-        navigationHistory.clear()
-        navigationHistory.recordFocusPath(state.navigationState.focusPath)
+        selectedRepositoryStore.select(owner = newOwner, repo = newRepo)
+        applyRepositoryState(selectedRepositoryStore.repoState.value)
     }
 
     // region: PR フィルタ
@@ -293,16 +313,6 @@ class VisualizerViewModel(
             false
         }
     }
-
-    /**
-     * Returns true if back navigation is possible.
-     */
-    fun canNavigateBack(): Boolean = navigationHistory.canNavigateBack()
-
-    /**
-     * Returns true if forward navigation is possible.
-     */
-    fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 
     // region: 色管理
     fun ensurePrColors(prs: List<PullRequest>) {

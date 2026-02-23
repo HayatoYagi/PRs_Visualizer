@@ -1,12 +1,15 @@
 package io.github.hayatoyagi.prvisualizer.github.session
 
 import io.github.hayatoyagi.prvisualizer.AppError
-import io.github.hayatoyagi.prvisualizer.RepoState
+import io.github.hayatoyagi.prvisualizer.AuthState
+import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.SessionState
+import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.GitHubApiException
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
 import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,6 +25,8 @@ class GitHubSessionManager(
     private val getSessionState: () -> SessionState,
     private val setSessionState: (SessionState) -> Unit,
     private val getRepoState: () -> RepoState,
+    private val getRepoSelectionState: () -> RepoSelectionState,
+    private val setRepoSelectionState: (RepoSelectionState) -> Unit,
     private val onSnapshotLoaded: () -> Unit,
     private val selectRepo: (String) -> Unit,
     private val authenticator: GitHubOAuthDesktopAuthenticator = GitHubOAuthDesktopAuthenticator(),
@@ -39,7 +44,7 @@ class GitHubSessionManager(
     }
 
     fun refresh() {
-        scope.launch { connect() }
+        scope.launch { connectWithResolvedRepository() }
     }
 
     fun ensureRepositoryOptions() {
@@ -54,20 +59,20 @@ class GitHubSessionManager(
         if (restoreAttempted) return
         restoreAttempted = true
         val restoredToken = withContext(Dispatchers.IO) {
-            GitHubTokenStore.loadToken(getSessionState().oauthToken)
+            GitHubTokenStore.loadToken(getSessionState().authState.oauthToken)
         }
         if (restoredToken.isBlank()) return
-        updateSession { it.copy(oauthToken = restoredToken) }
-        if (getSessionState().githubSnapshot == null) {
-            connect()
+        updateAuthState { it.copy(oauthToken = restoredToken, error = null) }
+        if (getSessionState().snapshotFetchState.snapshot == null) {
+            connectWithResolvedRepository()
         }
     }
 
     private suspend fun loginAndConnectInternal(clientId: String) {
-        updateSession {
+        updateAuthState {
             it.copy(
                 isAuthorizing = true,
-                connectionError = null,
+                error = null,
                 deviceUserCode = null,
                 deviceVerificationUrl = null,
             )
@@ -77,7 +82,7 @@ class GitHubSessionManager(
                 clientId = clientId.trim(),
                 onDeviceFlowStart = { prompt ->
                     scope.launch {
-                        updateSession {
+                        updateAuthState {
                             it.copy(
                                 deviceUserCode = prompt.userCode,
                                 deviceVerificationUrl = prompt.verificationUriComplete ?: prompt.verificationUri,
@@ -88,96 +93,128 @@ class GitHubSessionManager(
             )
         }.onSuccess { token ->
             withContext(Dispatchers.IO) { GitHubTokenStore.saveToken(token) }
-            updateSession { it.copy(oauthToken = token, deviceUserCode = null, deviceVerificationUrl = null) }
-            connect()
+            updateAuthState {
+                it.copy(
+                    oauthToken = token,
+                    error = null,
+                    deviceUserCode = null,
+                    deviceVerificationUrl = null,
+                )
+            }
+            connectWithResolvedRepository()
         }.onFailure { error ->
-            updateSession { it.copy(connectionError = AppError.OAuthFailed(error.message ?: "OAuth failed")) }
+            updateAuthState { it.copy(error = AppError.OAuthFailed(error.message ?: "OAuth failed")) }
         }
-        updateSession { it.copy(isAuthorizing = false) }
+        updateAuthState { it.copy(isAuthorizing = false) }
+    }
+
+    private suspend fun connectWithResolvedRepository() {
+        if (!resolveRepositoryIfNeeded()) return
+        connect()
+    }
+
+    private suspend fun resolveRepositoryIfNeeded(): Boolean {
+        if (getRepoState() is RepoState.Selected) return true
+        // No repository is selected yet. Load the list and auto-select the first entry.
+        // loadRepositoryOptionsInternal() calls selectRepo(repos.first()) internally,
+        // which transitions getRepoState() from Unselected to Selected on success.
+        loadRepositoryOptionsInternal()
+        return getRepoState() is RepoState.Selected
     }
 
     private suspend fun connect() {
-        val token = getSessionState().oauthToken
+        val token = getSessionState().authState.oauthToken
+        val selectedRepo = getRepoState() as? RepoState.Selected ?: return
         if (token.isBlank()) return
-        updateSession { it.copy(isConnecting = true, connectionError = null) }
+
+        updateSnapshotFetchState { it.copy(isFetching = true, error = null) }
         runCatching {
             apiFactory(token.trim()).fetchSnapshot(
-                owner = getRepoState().owner.trim(),
-                repo = getRepoState().repo.trim(),
+                owner = selectedRepo.owner.trim(),
+                repo = selectedRepo.repo.trim(),
             )
         }.onSuccess { snapshot ->
-            updateSession { session ->
-                session.copy(
-                    githubSnapshot = snapshot,
-                    currentUserOverride = snapshot.viewerLogin?.takeIf { it.isNotBlank() } ?: session.currentUserOverride,
-                )
-            }
+            updateSnapshotFetchState { it.copy(snapshot = snapshot, error = null) }
             onSnapshotLoaded()
         }.onFailure { error ->
-            if (handleAuthExpired(error)) {
-                updateSession { it.copy(isConnecting = false) }
-                return
-            }
-            updateSession {
-                it.copy(
-                    connectionError = when (error) {
-                        is java.net.ConnectException, is java.net.UnknownHostException ->
-                            AppError.Network(error.message ?: "Network error")
-                        is GitHubApiException ->
-                            AppError.ApiError(error.statusCode, error.message ?: "API error")
-                        else -> AppError.Unknown(error.message ?: "Unknown error")
-                    },
-                )
-            }
+            if (handleAuthExpired(error)) return
+            updateSnapshotFetchState { it.copy(error = toConnectionError(error)) }
         }
-        updateSession { it.copy(isConnecting = false) }
+        updateSnapshotFetchState { it.copy(isFetching = false) }
     }
 
     private suspend fun ensureRepositoryOptionsInternal() {
         val session = getSessionState()
-        if (session.oauthToken.isBlank()) return
-        if (session.isLoadingRepositories) return
-        if (repositoriesLoaded && session.repositoryOptions.isNotEmpty()) return
+        val selection = getRepoSelectionState()
+        if (session.authState.oauthToken.isBlank()) return
+        if (selection.isLoading) return
+        if (repositoriesLoaded && selection.options.isNotEmpty()) return
         loadRepositoryOptionsInternal()
     }
 
     private suspend fun loadRepositoryOptionsInternal() {
-        val token = getSessionState().oauthToken
+        val token = getSessionState().authState.oauthToken
         if (token.isBlank()) return
-        updateSession { it.copy(isLoadingRepositories = true) }
+        setRepoSelectionState(getRepoSelectionState().copy(isLoading = true, error = null))
         runCatching {
             apiFactory(token.trim()).fetchAccessibleRepositoryNames()
         }.onSuccess { repos ->
             repositoriesLoaded = true
-            updateSession { it.copy(repositoryOptions = repos) }
-            if (getRepoState().repo.isBlank() && repos.isNotEmpty()) {
+            setRepoSelectionState(
+                getRepoSelectionState().copy(
+                    options = repos,
+                    isLoading = false,
+                    error = null,
+                ),
+            )
+            if (getRepoState() is RepoState.Unselected && repos.isNotEmpty()) {
                 selectRepo(repos.first())
             }
         }.onFailure { error ->
             if (handleAuthExpired(error)) return@onFailure
-            updateSession { it.copy(connectionError = AppError.Network(error.message ?: "Failed to load repositories")) }
+            setRepoSelectionState(
+                getRepoSelectionState().copy(
+                    isLoading = false,
+                    error = AppError.Network(error.message ?: "Failed to load repositories"),
+                ),
+            )
         }
-        updateSession { it.copy(isLoadingRepositories = false) }
     }
 
     private fun handleAuthExpired(error: Throwable): Boolean {
         if (error !is GitHubAuthExpiredException) return false
         scope.launch(Dispatchers.IO) { GitHubTokenStore.clearToken() }
         repositoriesLoaded = false
-        updateSession {
+        updateSessionState {
             it.copy(
-                oauthToken = "",
-                githubSnapshot = null,
-                repositoryOptions = emptyList(),
-                deviceUserCode = null,
-                deviceVerificationUrl = null,
-                connectionError = AppError.AuthExpired(),
+                authState = AuthState(
+                    oauthToken = "",
+                    error = AppError.AuthExpired(),
+                ),
+                snapshotFetchState = SnapshotFetchState(),
             )
         }
+        setRepoSelectionState(RepoSelectionState())
         return true
     }
 
-    private fun updateSession(update: (SessionState) -> SessionState) {
+    private fun toConnectionError(error: Throwable): AppError = when (error) {
+        is java.net.ConnectException, is java.net.UnknownHostException ->
+            AppError.Network(error.message ?: "Network error")
+        is GitHubApiException ->
+            AppError.ApiError(error.statusCode, error.message ?: "API error")
+        else -> AppError.Unknown(error.message ?: "Unknown error")
+    }
+
+    private fun updateAuthState(update: (AuthState) -> AuthState) {
+        updateSessionState { it.copy(authState = update(it.authState)) }
+    }
+
+    private fun updateSnapshotFetchState(update: (SnapshotFetchState) -> SnapshotFetchState) {
+        updateSessionState { it.copy(snapshotFetchState = update(it.snapshotFetchState)) }
+    }
+
+    private fun updateSessionState(update: (SessionState) -> SessionState) {
         setSessionState(update(getSessionState()))
     }
 }
