@@ -1,7 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
-import io.github.hayatoyagi.prvisualizer.repository.store.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.repository.store.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
