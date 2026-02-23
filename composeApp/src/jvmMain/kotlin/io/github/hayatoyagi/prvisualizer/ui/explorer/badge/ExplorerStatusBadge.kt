@@ -30,6 +30,10 @@ enum class ExplorerBadgeSize(
     Row(16.dp, 11.sp, 11.sp),
 }
 
+private const val CONFLICT_BADGE_ALPHA = 0.28f
+private const val NORMAL_BADGE_ALPHA = 0.22f
+private val CONFLICT_BORDER_WIDTH = 1.dp
+
 @Composable
 fun ExplorerStatusBadge(
     kind: ExplorerStatusKind,
@@ -37,22 +41,10 @@ fun ExplorerStatusBadge(
     size: ExplorerBadgeSize,
     modifier: Modifier = Modifier,
 ) {
-    val fontSize = if (kind.isConflict) size.conflictFontSp else size.fontSp
-    val textStyle = TextStyle(
-        fontSize = fontSize,
-        fontWeight = if (kind.isConflict) FontWeight.ExtraBold else FontWeight.Bold,
-        lineHeight = fontSize,
-    )
+    val textStyle = badgeTextStyle(kind = kind, size = size)
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(size.badgeDp)
-                .background(
-                    color = kind.color.copy(alpha = if (kind.isConflict) 0.28f else 0.22f),
-                    shape = if (kind.isConflict) RectangleShape else MaterialTheme.shapes.extraSmall,
-                ).then(
-                    if (kind.isConflict) Modifier.border(1.dp, kind.color, RectangleShape) else Modifier,
-                ),
+            modifier = badgeModifier(kind = kind, size = size),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -72,4 +64,29 @@ fun ExplorerStatusBadge(
             )
         }
     }
+}
+
+private fun badgeTextStyle(
+    kind: ExplorerStatusKind,
+    size: ExplorerBadgeSize,
+): TextStyle {
+    val fontSize = if (kind.isConflict) size.conflictFontSp else size.fontSp
+    return TextStyle(
+        fontSize = fontSize,
+        fontWeight = if (kind.isConflict) FontWeight.ExtraBold else FontWeight.Bold,
+        lineHeight = fontSize,
+    )
+}
+
+@Composable
+private fun badgeModifier(
+    kind: ExplorerStatusKind,
+    size: ExplorerBadgeSize,
+): Modifier {
+    val shape = if (kind.isConflict) RectangleShape else MaterialTheme.shapes.extraSmall
+    val alpha = if (kind.isConflict) CONFLICT_BADGE_ALPHA else NORMAL_BADGE_ALPHA
+    val base = Modifier
+        .size(size.badgeDp)
+        .background(color = kind.color.copy(alpha = alpha), shape = shape)
+    return if (kind.isConflict) base.border(CONFLICT_BORDER_WIDTH, kind.color, RectangleShape) else base
 }

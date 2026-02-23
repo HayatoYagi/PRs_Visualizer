@@ -1,14 +1,5 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <ManuallySuppressedIssues/>
-  <CurrentIssues>
-    <ID>CognitiveComplexMethod:App.kt$@Composable @Preview @OptIn(ExperimentalComposeUiApi::class) fun App()</ID>
-    <ID>CognitiveComplexMethod:App.kt$@Composable private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiState</ID>
-    <ID>CognitiveComplexMethod:AuthRow.kt$@Composable fun AuthRow( oauthClientId: String, authState: AuthState, snapshotFetchState: SnapshotFetchState, currentUser: String, onLogin: () -&gt; Unit, onRefresh: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
-    <ID>CognitiveComplexMethod:ExplorerStatusBadge.kt$@Composable fun ExplorerStatusBadge( kind: ExplorerStatusKind, withLabel: Boolean, size: ExplorerBadgeSize, modifier: Modifier = Modifier, )</ID>
-    <ID>CognitiveComplexMethod:GitHubSessionManager.kt$GitHubSessionManager$fun ensureRepositoryOptions()</ID>
-    <ID>CognitiveComplexMethod:PrListPane.kt$@Composable fun PrListPane( filteredPrs: List&lt;PullRequest&gt;, selectedPrIds: Set&lt;String&gt;, selectedPath: String?, prColorMap: Map&lt;String, Color&gt;, showDrafts: Boolean, onlyMine: Boolean, onShowDraftsChange: (Boolean) -&gt; Unit, onOnlyMineChange: (Boolean) -&gt; Unit, onTogglePr: (prId: String, checked: Boolean) -&gt; Unit, onOpenPr: (PullRequest) -&gt; Unit, onCyclePrColor: (String) -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, )</ID>
-    <ID>CognitiveComplexMethod:TreemapLayout.kt$TreemapLayoutEngine$private fun layoutRow(row: List&lt;FileNode&gt;, bounds: Rect, totalWeight: Double, depth: Int): Rect</ID>
-    <ID>CognitiveComplexMethod:TreemapLayout.kt$TreemapLayoutEngine$private fun worstAspectRatio(row: List&lt;FileNode&gt;, bounds: Rect, totalWeight: Double): Double</ID>
-  </CurrentIssues>
+  <CurrentIssues/>
 </SmellBaseline>

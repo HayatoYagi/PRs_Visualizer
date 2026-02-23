@@ -56,80 +56,24 @@ fun PrListPane(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Switch(checked = showDrafts, onCheckedChange = onShowDraftsChange)
-            Text("Show draft", color = AppColors.textBodyMuted)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Switch(checked = onlyMine, onCheckedChange = onOnlyMineChange)
-            Text("Only my PRs", color = AppColors.textBodyMuted)
-        }
+        PrListHeader(
+            showDrafts = showDrafts,
+            onlyMine = onlyMine,
+            onShowDraftsChange = onShowDraftsChange,
+            onOnlyMineChange = onOnlyMineChange,
+        )
         HorizontalDivider(color = AppColors.prListDivider)
-        if (isLoading) {
-            Box(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = AppColors.textPrimary)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                items(filteredPrs, key = { it.id }) { pr ->
-                    val checked = selectedPrIds.contains(pr.id)
-                    val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
-                    val listBorderColor = if (checked) prColor(pr, prColorMap) else prColor(pr, prColorMap).copy(alpha = 0.45f)
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = if (relatedToSelection) 3.dp else 2.dp,
-                                color = listBorderColor,
-                                shape = MaterialTheme.shapes.medium,
-                            ).padding(8.dp),
-                        color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
-                        onClick = { onOpenPr(pr) },
-                    ) {
-                        Row(verticalAlignment = Alignment.Top) {
-                            Checkbox(
-                                checked = checked,
-                                onCheckedChange = { onTogglePr(pr.id, it) },
-                            )
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .padding(top = 4.dp, end = 4.dp)
-                                    .size(24.dp)
-                                    .clickable { onCyclePrColor(pr.id) },
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .background(prColor(pr, prColorMap)),
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "#${pr.number} ${pr.title}",
-                                    color = AppColors.textPrItem,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    fontWeight = if (relatedToSelection) FontWeight.Bold else FontWeight.Normal,
-                                )
-                                Text(
-                                    text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
-                                    color = AppColors.textMeta,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        PrListBody(
+            filteredPrs = filteredPrs,
+            selectedPrIds = selectedPrIds,
+            selectedPath = selectedPath,
+            prColorMap = prColorMap,
+            onTogglePr = onTogglePr,
+            onOpenPr = onOpenPr,
+            onCyclePrColor = onCyclePrColor,
+            isLoading = isLoading,
+            contentModifier = Modifier.weight(1f),
+        )
         Text(
             text = "Cmd+R: reset view",
             color = AppColors.textHint,
@@ -137,3 +81,150 @@ fun PrListPane(
         )
     }
 }
+
+@Composable
+private fun PrListHeader(
+    showDrafts: Boolean,
+    onlyMine: Boolean,
+    onShowDraftsChange: (Boolean) -> Unit,
+    onOnlyMineChange: (Boolean) -> Unit,
+) {
+    Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+    PrFilterSwitch(checked = showDrafts, label = "Show draft", onCheckedChange = onShowDraftsChange)
+    PrFilterSwitch(checked = onlyMine, label = "Only my PRs", onCheckedChange = onOnlyMineChange)
+}
+
+@Composable
+private fun PrFilterSwitch(
+    checked: Boolean,
+    label: String,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Text(label, color = AppColors.textBodyMuted)
+    }
+}
+
+@Composable
+private fun PrListBody(
+    filteredPrs: List<PullRequest>,
+    selectedPrIds: Set<String>,
+    selectedPath: String?,
+    prColorMap: Map<String, Color>,
+    onTogglePr: (prId: String, checked: Boolean) -> Unit,
+    onOpenPr: (PullRequest) -> Unit,
+    onCyclePrColor: (String) -> Unit,
+    isLoading: Boolean,
+    contentModifier: Modifier,
+) {
+    if (isLoading) {
+        Box(
+            modifier = contentModifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = AppColors.textPrimary)
+        }
+        return
+    }
+    LazyColumn(
+        modifier = contentModifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(filteredPrs, key = { it.id }) { pr ->
+            PrListItem(
+                pr = pr,
+                selectedPrIds = selectedPrIds,
+                selectedPath = selectedPath,
+                prColorMap = prColorMap,
+                onTogglePr = onTogglePr,
+                onOpenPr = onOpenPr,
+                onCyclePrColor = onCyclePrColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrListItem(
+    pr: PullRequest,
+    selectedPrIds: Set<String>,
+    selectedPath: String?,
+    prColorMap: Map<String, Color>,
+    onTogglePr: (prId: String, checked: Boolean) -> Unit,
+    onOpenPr: (PullRequest) -> Unit,
+    onCyclePrColor: (String) -> Unit,
+) {
+    val checked = selectedPrIds.contains(pr.id)
+    val relatedToSelection = selectedPath != null && pr.files.any { it.path == selectedPath }
+    val chipColor = prColor(pr, prColorMap)
+    val listBorderColor = if (checked) chipColor else chipColor.copy(alpha = 0.45f)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(width = prItemBorderWidth(relatedToSelection), color = listBorderColor, shape = MaterialTheme.shapes.medium)
+            .padding(8.dp),
+        color = if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
+        onClick = { onOpenPr(pr) },
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Checkbox(
+                checked = checked,
+                onCheckedChange = { onTogglePr(pr.id, it) },
+            )
+            ColorCycleChip(
+                color = chipColor,
+                onClick = { onCyclePrColor(pr.id) },
+            )
+            PrItemText(
+                pr = pr,
+                relatedToSelection = relatedToSelection,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrItemText(
+    pr: PullRequest,
+    relatedToSelection: Boolean,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "#${pr.number} ${pr.title}",
+            color = AppColors.textPrItem,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = if (relatedToSelection) FontWeight.Bold else FontWeight.Normal,
+        )
+        Text(
+            text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
+            color = AppColors.textMeta,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun ColorCycleChip(
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .padding(top = 4.dp, end = 4.dp)
+            .size(24.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(color),
+        )
+    }
+}
+
+private fun prItemBorderWidth(relatedToSelection: Boolean) = if (relatedToSelection) 3.dp else 2.dp
