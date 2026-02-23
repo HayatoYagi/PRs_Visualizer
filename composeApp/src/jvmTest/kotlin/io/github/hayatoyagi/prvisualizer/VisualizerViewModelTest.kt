@@ -25,16 +25,14 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `ViewModel should initialize with provided owner and repo`() {
-        val vm = VisualizerViewModel(initialOwner = "TestOwner", initialRepo = "TestRepo")
-        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
-        assertEquals("TestOwner", selected.owner)
-        assertEquals("TestRepo", selected.repo)
+    fun `ViewModel should default to Unselected repository state`() {
+        val vm = VisualizerViewModel()
+        assertIs<RepoState.Unselected>(vm.repoState.value)
     }
 
     @Test
     fun `openRepoDialog should set dialog state correctly`() {
-        val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
+        val vm = VisualizerViewModel()
         vm.openRepoDialog()
 
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
@@ -71,9 +69,9 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectRepo same repo twice should apply reset only once`() {
-        val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
+        val vm = VisualizerViewModel()
 
-        // Switch to a different repo — triggers reset
+        // Switch to a repo — triggers reset
         vm.updateQuery("search")
         vm.selectRepo("Other/Repo")
         assertEquals("", vm.state.filterState.query)
@@ -88,7 +86,11 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectRepo should preserve toggles and clear query selection state`() {
-        val vm = VisualizerViewModel(initialOwner = "Old", initialRepo = "Repo")
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(
+                initial = RepoState.Selected(owner = "Old", repo = "Repo"),
+            ),
+        )
 
         // Set some state
         vm.openRepoDialog()

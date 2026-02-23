@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
@@ -17,12 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
 
 class VisualizerViewModel(
-    initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
-    initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
-    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
-    private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(
-        initial = RepoState.from(owner = initialOwner, repo = initialRepo),
-    ),
+    private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>
         get() = selectedRepositoryStore.repoState
@@ -30,13 +24,7 @@ class VisualizerViewModel(
     private var lastAppliedRepoState: RepoState = selectedRepositoryStore.repoState.value
 
     // Main state container
-    var state by mutableStateOf(
-        VisualizerState(
-            sessionState = SessionState(
-                authState = AuthState(oauthToken = initialToken),
-            ),
-        ),
-    )
+    var state by mutableStateOf(VisualizerState())
         private set
 
     // Navigation history for back/forward buttons

@@ -12,6 +12,10 @@ sealed interface RepoState {
     ) : RepoState
 
     companion object {
+        /**
+         * Returns [Selected] for non-blank owner and repo, [Unselected] otherwise.
+         * Centralizes the domain invariant that a selected repo must have both parts.
+         */
         fun from(owner: String, repo: String): RepoState {
             val normalizedOwner = owner.trim()
             val normalizedRepo = repo.trim()

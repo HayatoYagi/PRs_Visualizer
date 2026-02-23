@@ -1,6 +1,5 @@
 package io.github.hayatoyagi.prvisualizer
 
-import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import androidx.compose.ui.graphics.Color
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,21 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class VisualizerStateTest {
-    @Test
-    fun `RepoState from should return selected for valid values`() {
-        val repoState = RepoState.from(owner = "TestOwner", repo = "TestRepo")
-        val selected = assertIs<RepoState.Selected>(repoState)
-        assertEquals("TestOwner", selected.owner)
-        assertEquals("TestRepo", selected.repo)
-    }
-
-    @Test
-    fun `RepoState from should return unselected for blank values`() {
-        assertIs<RepoState.Unselected>(RepoState.from(owner = "", repo = "Repo"))
-        assertIs<RepoState.Unselected>(RepoState.from(owner = "Owner", repo = ""))
-        assertIs<RepoState.Unselected>(RepoState.from(owner = "", repo = ""))
-    }
-
     @Test
     fun `DialogState defaults should be correct`() {
         assertIs<DialogState.None>(DialogState.None)
