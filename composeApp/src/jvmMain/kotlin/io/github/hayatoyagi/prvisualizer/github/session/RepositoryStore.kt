@@ -39,7 +39,9 @@ object RepositoryStore {
      * @param repo Repository name
      */
     fun saveRepository(owner: String, repo: String) {
-        if (owner.isBlank() || repo.isBlank()) return
+        val trimmedOwner = owner.trim()
+        val trimmedRepo = repo.trim()
+        if (trimmedOwner.isBlank() || trimmedRepo.isBlank()) return
 
         runCatching {
             val path = getStoragePath()
@@ -47,7 +49,7 @@ object RepositoryStore {
             if (!Files.exists(dir)) {
                 Files.createDirectories(dir)
             }
-            val content = "$owner/$repo"
+            val content = "$trimmedOwner/$trimmedRepo"
             Files.writeString(path, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
         }
     }

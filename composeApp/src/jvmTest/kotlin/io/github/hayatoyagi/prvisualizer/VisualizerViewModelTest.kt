@@ -425,4 +425,46 @@ class VisualizerViewModelTest {
         assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
         assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/main"))
     }
+
+    @Test
+    fun `selectRepo should persist repository to storage`() {
+        // Import the RepositoryStore for cleanup
+        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+
+        val vm = VisualizerViewModel(initialOwner = "Initial", initialRepo = "Repo")
+        vm.selectRepo("NewOwner/NewRepo")
+
+        // Verify that the repository was persisted
+        val loaded = io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.loadRepository()
+        assertEquals(Pair("NewOwner", "NewRepo"), loaded)
+
+        // Clean up
+        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+    }
+
+    @Test
+    fun `ViewModel should initialize with persisted repository when available`() {
+        // Save a repository
+        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.saveRepository("PersistedOwner", "PersistedRepo")
+
+        // Create a new ViewModel - it should load the persisted repository
+        val vm = VisualizerViewModel(initialOwner = "DefaultOwner", initialRepo = "DefaultRepo")
+
+        assertEquals("PersistedOwner", vm.state.repoState.owner)
+        assertEquals("PersistedRepo", vm.state.repoState.repo)
+
+        // Clean up
+        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+    }
+
+    @Test
+    fun `ViewModel should use defaults when no persisted repository exists`() {
+        // Clear any persisted repository
+        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+
+        val vm = VisualizerViewModel(initialOwner = "DefaultOwner", initialRepo = "DefaultRepo")
+
+        assertEquals("DefaultOwner", vm.state.repoState.owner)
+        assertEquals("DefaultRepo", vm.state.repoState.repo)
+    }
 }
