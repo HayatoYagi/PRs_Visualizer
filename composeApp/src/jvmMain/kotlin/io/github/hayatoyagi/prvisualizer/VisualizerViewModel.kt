@@ -189,18 +189,6 @@ class VisualizerViewModel(
         )
     }
 
-    fun updateQuery(value: String) {
-        state = state.copy(
-            filterState = state.filterState.copy(query = value),
-        )
-    }
-
-    fun clearQuery() {
-        state = state.copy(
-            filterState = state.filterState.copy(query = ""),
-        )
-    }
-
     fun togglePr(
         prId: String,
         checked: Boolean,
