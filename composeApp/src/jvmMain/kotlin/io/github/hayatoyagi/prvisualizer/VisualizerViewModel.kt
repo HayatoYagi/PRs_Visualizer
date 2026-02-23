@@ -117,6 +117,7 @@ class VisualizerViewModel(
     }
 
     fun closeDialog() {
+        fileDetailsJob?.cancel()
         state = state.copy(
             dialogState = DialogState.None,
         )
@@ -149,11 +150,7 @@ class VisualizerViewModel(
             )
             val commitsState = commitsResult.fold(
                 onSuccess = { commits -> DialogState.FileDetails.CommitsState.Ready(commits) },
-                onFailure = { error ->
-                    DialogState.FileDetails.CommitsState.Failed(
-                        AppError.Unknown(error.message ?: "Failed to load commits"),
-                    )
-                },
+                onFailure = { error -> DialogState.FileDetails.CommitsState.Failed(AppError.from(error)) },
             )
             updateFileDetailsCommitsState(filePath = filePath, commitsState = commitsState)
         }
@@ -378,7 +375,7 @@ class VisualizerViewModel(
     fun ensurePrColors(prs: List<PullRequest>) {
         val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {
-            val newMap = state.colorState.prColorMap.toMutableMap()
+            val newMap = LinkedHashMap(state.colorState.prColorMap)
             prsNeedingColors.forEach { pr ->
                 newMap[pr.id] = PrColorAssigner.nextColor(newMap)
             }
@@ -389,7 +386,7 @@ class VisualizerViewModel(
     }
 
     fun shufflePrColors(prs: List<PullRequest>) {
-        val newMap = mutableMapOf<String, Color>()
+        val newMap = LinkedHashMap<String, Color>()
         prs.forEach { pr ->
             newMap[pr.id] = PrColorAssigner.nextColor(newMap)
         }

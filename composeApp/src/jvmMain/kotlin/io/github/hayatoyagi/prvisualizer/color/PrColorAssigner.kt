@@ -5,8 +5,8 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.random.Random
 
 object PrColorAssigner {
-    fun nextColor(assignedMap: Map<String, Color>): Color {
-        // Avoid the 5 most recently assigned colors (map preserves insertion order)
+    fun nextColor(assignedMap: LinkedHashMap<String, Color>): Color {
+        // Avoid the 5 most recently assigned colors (insertion order guaranteed by LinkedHashMap)
         val recentColors = assignedMap.values
             .toList()
             .takeLast(5)

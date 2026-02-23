@@ -18,15 +18,10 @@ class SnapshotFetchServiceImpl(
         token: String,
         owner: String,
         repo: String,
-    ): Result<GitHubSnapshot> {
-        if (token.isBlank() || owner.isBlank() || repo.isBlank()) {
-            return Result.failure(IllegalArgumentException("token/owner/repo must be non-blank"))
-        }
-        return runCatching {
-            apiFactory(token.trim()).fetchSnapshot(
-                owner = owner.trim(),
-                repo = repo.trim(),
-            )
-        }
+    ): Result<GitHubSnapshot> = runCatching {
+        apiFactory(token).fetchSnapshot(
+            owner = owner,
+            repo = repo,
+        )
     }
 }
