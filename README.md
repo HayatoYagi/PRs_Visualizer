@@ -57,7 +57,7 @@ Built with Kotlin and [Compose Multiplatform](https://www.jetbrains.com/compose-
 
 ### Code Style
 
-This project uses [ktlint](https://github.com/pinterest/ktlint) for Kotlin code formatting and style checking.
+This project uses [ktlint](https://github.com/pinterest/ktlint) for Kotlin code formatting and style checking, and [detekt](https://detekt.dev/) for static code analysis.
 
 To check code style:
 ```bash
@@ -67,6 +67,11 @@ To check code style:
 To automatically format code:
 ```bash
 ./gradlew ktlintFormat
+```
+
+To run static code analysis:
+```bash
+./gradlew detekt
 ```
 
 ## 📦 Future Distribution

@@ -30,6 +30,9 @@ jobs:
         
     - name: Run ktlint check
       run: ./gradlew ktlintCheck --stacktrace
+    
+    - name: Run detekt
+      run: ./gradlew detekt --stacktrace
         
     - name: Build with Gradle
       run: ./gradlew :composeApp:build --stacktrace
