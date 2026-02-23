@@ -58,5 +58,8 @@ detekt {
     buildUponDefaultConfig = true
     allRules = false
     config.setFrom("$projectDir/detekt.yml")
-    source.setFrom("src/jvmMain/kotlin")
+    source.setFrom(
+        files("src/jvmMain/kotlin"),
+        files("src/commonMain/kotlin")
+    )
 }
