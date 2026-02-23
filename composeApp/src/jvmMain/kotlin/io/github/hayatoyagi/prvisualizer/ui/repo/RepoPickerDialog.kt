@@ -25,17 +25,27 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun RepoPickerDialog(
     initialQuery: String,
-    options: List<String>,
-    isLoading: Boolean,
+    repoSelectionState: RepoSelectionState,
     onReload: () -> Unit,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
+    val options = when (repoSelectionState) {
+        RepoSelectionState.Idle,
+        RepoSelectionState.Loading,
+        -> emptyList()
+        is RepoSelectionState.Ready -> repoSelectionState.options
+        is RepoSelectionState.Error -> repoSelectionState.options
+    }
+    val isLoading = repoSelectionState is RepoSelectionState.Loading
+    val loadingError = (repoSelectionState as? RepoSelectionState.Error)?.error
+
     var query by rememberSaveable { mutableStateOf(initialQuery) }
     val filteredOptions = remember(options, query) {
         filterRepoOptions(options, query)
@@ -74,6 +84,12 @@ fun RepoPickerDialog(
                         text = "${filteredOptions.size} results",
                         color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+                if (loadingError != null) {
+                    Text(
+                        text = loadingError.message,
+                        color = AppColors.textWarning,
                     )
                 }
                 LazyColumn(

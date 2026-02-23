@@ -12,25 +12,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.AppError
+import io.github.hayatoyagi.prvisualizer.AuthState
+import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
+import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun AuthRow(
     oauthClientId: String,
-    isAuthorizing: Boolean,
-    isConnecting: Boolean,
-    isLoggedIn: Boolean,
+    authState: AuthState,
+    snapshotFetchState: SnapshotFetchState,
     currentUser: String,
-    deviceUserCode: String?,
-    deviceVerificationUrl: String?,
-    connectionError: AppError?,
-    hasSnapshot: Boolean,
     onLogin: () -> Unit,
     onRefresh: () -> Unit,
-    onCopyDeviceCode: () -> Unit,
-    onOpenVerifyPage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isAuthorizing = authState is AuthState.Authorizing
+    val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
+    val isLoggedIn = authState is AuthState.Authenticated
+    val authError = (authState as? AuthState.Failed)?.error
+    val fetchError = (snapshotFetchState as? SnapshotFetchState.Failed)?.error
+    val connectionError: AppError? = authError ?: fetchError
+    val hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready
+    val devicePrompt = (authState as? AuthState.Authorizing)
+        ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -59,16 +66,16 @@ fun AuthRow(
                 modifier = Modifier.padding(top = 14.dp),
             )
         }
-        if (deviceUserCode != null && deviceVerificationUrl != null) {
+        if (devicePrompt != null) {
             SelectionContainer {
                 Text(
-                    text = "GitHub code: $deviceUserCode @ $deviceVerificationUrl",
+                    text = "GitHub code: ${devicePrompt.deviceUserCode} @ ${devicePrompt.deviceVerificationUrl}",
                     color = AppColors.textDeviceCode,
                     modifier = Modifier.padding(top = 14.dp),
                 )
             }
-            Button(onClick = onCopyDeviceCode) { Text("Copy Code") }
-            Button(onClick = onOpenVerifyPage) { Text("Open Verify Page") }
+            Button(onClick = { copyToClipboard(devicePrompt.deviceUserCode.orEmpty()) }) { Text("Copy Code") }
+            Button(onClick = { openUrl(devicePrompt.deviceVerificationUrl.orEmpty()) }) { Text("Open Verify Page") }
         }
         Text(
             text = if (!hasSnapshot) {

@@ -3,14 +3,50 @@ package io.github.hayatoyagi.prvisualizer
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
-/**
- * Represents the repository identity.
- */
-data class RepoState(
-    val owner: String = "",
-    val repo: String = "",
-) {
-    val fullName: String get() = "$owner/$repo"
+sealed interface RepoSelectionState {
+    data object Idle : RepoSelectionState
+
+    data object Loading : RepoSelectionState
+
+    data class Ready(
+        val options: List<String>,
+    ) : RepoSelectionState
+
+    data class Error(
+        val options: List<String>,
+        val error: AppError,
+    ) : RepoSelectionState
+}
+
+sealed interface AuthState {
+    data object Unauthenticated : AuthState
+
+    data class Authorizing(
+        val deviceUserCode: String? = null,
+        val deviceVerificationUrl: String? = null,
+    ) : AuthState
+
+    data class Authenticated(
+        val oauthToken: String,
+    ) : AuthState
+
+    data class Failed(
+        val error: AppError,
+    ) : AuthState
+}
+
+sealed interface SnapshotFetchState {
+    data object Idle : SnapshotFetchState
+
+    data object Fetching : SnapshotFetchState
+
+    data class Ready(
+        val snapshot: GitHubSnapshot,
+    ) : SnapshotFetchState
+
+    data class Failed(
+        val error: AppError,
+    ) : SnapshotFetchState
 }
 
 /**
@@ -23,7 +59,20 @@ sealed interface DialogState {
 
     data class FileDetails(
         val filePath: String,
-    ) : DialogState
+        val commitsState: CommitsState = CommitsState.Loading,
+    ) : DialogState {
+        sealed interface CommitsState {
+            data object Loading : CommitsState
+
+            data class Ready(
+                val commits: List<FileCommit>,
+            ) : CommitsState
+
+            data class Failed(
+                val error: AppError,
+            ) : CommitsState
+        }
+    }
 
     data class PrDetails(
         val pr: PullRequest,
@@ -72,50 +121,34 @@ data class ColorState(
 )
 
 /**
- * Represents GitHub session and connectivity state.
- */
-data class SessionState(
-    val oauthToken: String = "",
-    val currentUserOverride: String = "",
-    val githubSnapshot: GitHubSnapshot? = null,
-    val connectionError: AppError? = null,
-    val isConnecting: Boolean = false,
-    val isAuthorizing: Boolean = false,
-    val deviceUserCode: String? = null,
-    val deviceVerificationUrl: String? = null,
-    val repositoryOptions: List<String> = emptyList(),
-    val isLoadingRepositories: Boolean = false,
-) {
-    val currentUser: String
-        get() = githubSnapshot?.viewerLogin ?: currentUserOverride
-}
-
-/**
  * Main state container for the VisualizerViewModel.
- * Groups all related states together for better organization and easier state management.
  */
 data class VisualizerState(
-    val repoState: RepoState = RepoState(),
+    val repoSelectionState: RepoSelectionState = RepoSelectionState.Idle,
     val dialogState: DialogState = DialogState.None,
     val filterState: FilterState = FilterState(),
     val navigationState: NavigationState = NavigationState(),
     val colorState: ColorState = ColorState(),
-    val sessionState: SessionState = SessionState(),
+    val authState: AuthState = AuthState.Unauthenticated,
+    val snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle,
 ) {
+    val currentUser: String
+        get() = when (val fetchState = snapshotFetchState) {
+            is SnapshotFetchState.Ready -> fetchState.snapshot.viewerLogin.orEmpty()
+            SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> ""
+        }
+
     /**
      * Resets state when changing repositories.
      * Keeps toggle filters while clearing query, selection, colors, and navigation.
-     * Clears the snapshot and connection error so a fresh fetch is triggered.
+     * Clears fetched snapshot/error; auth errors are cleared back to unauthenticated.
      */
-    fun resetForNewRepo(
-        owner: String,
-        repo: String,
-    ): VisualizerState = copy(
-        repoState = RepoState(owner, repo),
+    fun resetForRepositoryChange(): VisualizerState = copy(
         dialogState = DialogState.None,
         filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),
-        sessionState = sessionState.copy(githubSnapshot = null, connectionError = null),
+        snapshotFetchState = SnapshotFetchState.Idle,
+        authState = if (authState is AuthState.Failed) AuthState.Unauthenticated else authState,
     )
 }

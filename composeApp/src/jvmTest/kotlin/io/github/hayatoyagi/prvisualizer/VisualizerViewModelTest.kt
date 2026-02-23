@@ -1,6 +1,7 @@
 package io.github.hayatoyagi.prvisualizer
 
-import io.github.hayatoyagi.prvisualizer.github.session.RepositorySelectionStoreImpl
+import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,10 +13,21 @@ import kotlin.test.assertTrue
 
 class VisualizerViewModelTest {
     @Test
-    fun `ViewModel should initialize with empty owner and repo by default`() {
+    fun `ViewModel should initialize repository from injected store`() {
+        val store = InMemorySelectedRepositoryStore(
+            initial = RepoState.Selected(owner = "InjectedOwner", repo = "InjectedRepo"),
+        )
+
+        val vm = VisualizerViewModel(selectedRepositoryStore = store)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("InjectedOwner", selected.owner)
+        assertEquals("InjectedRepo", selected.repo)
+    }
+
+    @Test
+    fun `ViewModel should default to Unselected repository state`() {
         val vm = VisualizerViewModel()
-        assertEquals("", vm.state.repoState.owner)
-        assertEquals("", vm.state.repoState.repo)
+        assertIs<RepoState.Unselected>(vm.repoState.value)
     }
 
     @Test
@@ -46,18 +58,39 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `closeFileDetailsDialog should close the dialog`() {
+    fun `closeDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openFileDetailsDialog("src/main/App.kt")
         assertIs<DialogState.FileDetails>(vm.state.dialogState)
 
-        vm.closeFileDetailsDialog()
+        vm.closeDialog()
         assertIs<DialogState.None>(vm.state.dialogState)
     }
 
     @Test
-    fun `selectRepo should preserve toggles and clear query selection state`() {
+    fun `selectRepo same repo twice should apply reset only once`() {
         val vm = VisualizerViewModel()
+
+        // Switch to a repo — triggers reset
+        vm.updateQuery("search")
+        vm.selectRepo("Other/Repo")
+        assertEquals("", vm.state.filterState.query)
+
+        // Restore query, then select the identical repo again
+        vm.updateQuery("should stay")
+        vm.selectRepo("Other/Repo")
+
+        // Second selectRepo with the same identity must not reset state again
+        assertEquals("should stay", vm.state.filterState.query)
+    }
+
+    @Test
+    fun `selectRepo should preserve toggles and clear query selection state`() {
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(
+                initial = RepoState.Selected(owner = "Old", repo = "Repo"),
+            ),
+        )
 
         // Set some state
         vm.openRepoDialog()
@@ -69,8 +102,9 @@ class VisualizerViewModelTest {
         // Select new repo
         vm.selectRepo("New/Repository")
 
-        assertEquals("New", vm.state.repoState.owner)
-        assertEquals("Repository", vm.state.repoState.repo)
+        val selected = assertIs<RepoState.Selected>(vm.repoState.value)
+        assertEquals("New", selected.owner)
+        assertEquals("Repository", selected.repo)
         assertIs<DialogState.None>(vm.state.dialogState)
         assertFalse(vm.state.filterState.showDrafts)
         assertTrue(vm.state.filterState.onlyMine)
@@ -425,51 +459,5 @@ class VisualizerViewModelTest {
         assertEquals("src/main", vm.state.navigationState.focusPath)
         assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
         assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/main"))
-    }
-
-    @Test
-    fun `selectRepo should persist repository to storage`() {
-        // Clear any persisted repository before test
-        RepositorySelectionStoreImpl.clear()
-
-        val vm = VisualizerViewModel(
-            repositoryStore = RepositorySelectionStoreImpl,
-        )
-        vm.selectRepo("NewOwner/NewRepo")
-
-        // Verify that the repository was persisted
-        val loaded = RepositorySelectionStoreImpl.load()
-        assertEquals(Pair("NewOwner", "NewRepo"), loaded)
-
-        // Clean up
-        RepositorySelectionStoreImpl.clear()
-    }
-
-    @Test
-    fun `ViewModel should initialize with persisted repository when available`() {
-        // Save a repository
-        RepositorySelectionStoreImpl.save("PersistedOwner", "PersistedRepo")
-
-        // Create a new ViewModel - it should load the persisted repository
-        val vm = VisualizerViewModel(
-            repositoryStore = RepositorySelectionStoreImpl,
-        )
-
-        assertEquals("PersistedOwner", vm.state.repoState.owner)
-        assertEquals("PersistedRepo", vm.state.repoState.repo)
-
-        // Clean up
-        RepositorySelectionStoreImpl.clear()
-    }
-
-    @Test
-    fun `ViewModel should use defaults when no persisted repository exists`() {
-        // Clear any persisted repository
-        RepositorySelectionStoreImpl.clear()
-
-        val vm = VisualizerViewModel(repositoryStore = RepositorySelectionStoreImpl)
-
-        assertEquals("", vm.state.repoState.owner)
-        assertEquals("", vm.state.repoState.repo)
     }
 }

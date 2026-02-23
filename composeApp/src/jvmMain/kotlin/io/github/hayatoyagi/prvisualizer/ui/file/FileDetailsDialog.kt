@@ -21,25 +21,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.hayatoyagi.prvisualizer.FileCommit
-import io.github.hayatoyagi.prvisualizer.github.GitHubApi
+import io.github.hayatoyagi.prvisualizer.AppError
+import io.github.hayatoyagi.prvisualizer.DialogState
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
-import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -52,28 +45,10 @@ fun FileDetailsDialog(
     repoFullName: String,
     defaultBranch: String,
     prColorMap: Map<String, Color>,
-    githubApi: GitHubApi,
+    commitsState: DialogState.FileDetails.CommitsState,
+    onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var commits by remember { mutableStateOf<List<FileCommit>?>(null) }
-    var isLoadingCommits by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(filePath) {
-        isLoadingCommits = true
-        scope.launch {
-            try {
-                val owner = repoFullName.substringBefore('/')
-                val repo = repoFullName.substringAfter('/')
-                commits = githubApi.fetchFileCommits(owner, repo, filePath, limit = 10)
-            } catch (e: Exception) {
-                commits = emptyList()
-            } finally {
-                isLoadingCommits = false
-            }
-        }
-    }
-
     val encodedBranch = encodeGitHubPathPart(defaultBranch)
     val encodedFilePath = filePath
         .split('/')
@@ -207,75 +182,104 @@ fun FileDetailsDialog(
                         fontWeight = FontWeight.Bold,
                         color = AppColors.textPaneTitle,
                     )
-                    if (isLoadingCommits) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 100.dp)
-                                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    when (commitsState) {
+                        DialogState.FileDetails.CommitsState.Loading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 100.dp)
+                                    .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                            }
                         }
-                    } else if (commits.isNullOrEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                .padding(16.dp),
-                        ) {
-                            Text(
-                                text = "No commits found",
-                                color = AppColors.textBodyMuted,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                        is DialogState.FileDetails.CommitsState.Failed -> {
+                            val message = when (val error = commitsState.error) {
+                                is AppError.Network -> "Network error: ${error.message}"
+                                is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+                                is AppError.AuthExpired -> error.message
+                                is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+                                is AppError.Unknown -> "Error: ${error.message}"
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = message,
+                                    color = AppColors.textError,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                TextButton(onClick = onRetryLoadCommits) {
+                                    Text("Retry")
+                                }
+                            }
                         }
-                    } else {
-                        val commitItems = commits.orEmpty()
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            items(commitItems) { commit ->
-                                Row(
+                        is DialogState.FileDetails.CommitsState.Ready -> {
+                            if (commitsState.commits.isEmpty()) {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(AppColors.prItemNormal, RoundedCornerShape(4.dp))
-                                        .clickable { openUrl(commit.url) }
-                                        .padding(8.dp),
-                                    verticalAlignment = Alignment.Top,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+                                        .padding(16.dp),
                                 ) {
                                     Text(
-                                        text = commit.sha,
-                                        color = AppColors.textMeta,
+                                        text = "No commits found",
+                                        color = AppColors.textBodyMuted,
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(top = 2.dp),
                                     )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = commit.message,
-                                            color = AppColors.textPrItem,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        Text(
-                                            text = "${commit.author} • ${formatDate(commit.date)}",
-                                            color = AppColors.textMeta,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+                                        .padding(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    items(commitsState.commits) { commit ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(AppColors.prItemNormal, RoundedCornerShape(4.dp))
+                                                .clickable { openUrl(commit.url) }
+                                                .padding(8.dp),
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Text(
+                                                text = commit.sha,
+                                                color = AppColors.textMeta,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(top = 2.dp),
+                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = commit.message,
+                                                    color = AppColors.textPrItem,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                                Text(
+                                                    text = "${commit.author} • ${formatDate(commit.date)}",
+                                                    color = AppColors.textMeta,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            Text(
+                                                text = "→",
+                                                color = AppColors.textPrItem,
+                                                modifier = Modifier.padding(top = 2.dp),
+                                            )
+                                        }
                                     }
-                                    Text(
-                                        text = "→",
-                                        color = AppColors.textPrItem,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
                                 }
                             }
                         }
