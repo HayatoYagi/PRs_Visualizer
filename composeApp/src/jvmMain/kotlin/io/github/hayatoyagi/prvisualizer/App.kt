@@ -250,6 +250,10 @@ fun App() {
                             openUrl(url)
                             vm.closePrDetailsDialog()
                         },
+                        onSelectFile = { filePath ->
+                            vm.selectFile(filePath)
+                            vm.closePrDetailsDialog()
+                        },
                     )
                 }
                 is DialogState.None -> Unit

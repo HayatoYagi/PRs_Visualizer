@@ -1,12 +1,11 @@
 package io.github.hayatoyagi.prvisualizer.ui.prlist
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +30,7 @@ fun PrDetailsDialog(
     pr: PullRequest,
     onDismiss: () -> Unit,
     onOpenInBrowser: (String) -> Unit,
+    onSelectFile: (String) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -110,14 +110,17 @@ fun PrDetailsDialog(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         items(pr.files) { file ->
-                            FileChangeItem(file)
+                            FileChangeItem(
+                                file = file,
+                                onClick = { onSelectFile(file.path) },
+                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { 
+            TextButton(onClick = onDismiss) {
                 Text("Close", color = AppColors.textPrimary)
             }
         },
@@ -125,10 +128,14 @@ fun PrDetailsDialog(
 }
 
 @Composable
-private fun FileChangeItem(file: PrFileChange) {
+private fun FileChangeItem(
+    file: PrFileChange,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -143,7 +150,7 @@ private fun FileChangeItem(file: PrFileChange) {
             ChangeType.Modification -> AppColors.treemapModification
             ChangeType.Deletion -> AppColors.treemapDeletion
         }
-        
+
         Text(
             text = changeTypeText,
             color = changeTypeColor,
