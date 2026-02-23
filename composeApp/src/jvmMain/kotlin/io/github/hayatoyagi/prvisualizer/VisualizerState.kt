@@ -149,9 +149,6 @@ data class VisualizerState(
         navigationState = NavigationState(),
         colorState = ColorState(),
         snapshotFetchState = SnapshotFetchState.Idle,
-        authState = when (authState) {
-            is AuthState.Failed -> AuthState.Unauthenticated
-            else -> authState
-        },
+        authState = if (authState is AuthState.Failed) AuthState.Unauthenticated else authState,
     )
 }

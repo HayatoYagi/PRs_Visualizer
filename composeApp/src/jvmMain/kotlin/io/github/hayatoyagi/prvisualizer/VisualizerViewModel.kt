@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
@@ -17,7 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.random.Random
 
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
@@ -383,7 +383,7 @@ class VisualizerViewModel(
         if (prsNeedingColors.isNotEmpty()) {
             val newMap = state.colorState.prColorMap.toMutableMap()
             prsNeedingColors.forEach { pr ->
-                newMap[pr.id] = randomColorAvoidingMap(newMap)
+                newMap[pr.id] = PrColorAssigner.nextColor(newMap)
             }
             state = state.copy(
                 colorState = state.colorState.copy(prColorMap = newMap),
@@ -394,7 +394,7 @@ class VisualizerViewModel(
     fun shufflePrColors(prs: List<PullRequest>) {
         val newMap = mutableMapOf<String, Color>()
         prs.forEach { pr ->
-            newMap[pr.id] = randomColorAvoidingMap(newMap)
+            newMap[pr.id] = PrColorAssigner.nextColor(newMap)
         }
         state = state.copy(
             colorState = state.colorState.copy(prColorMap = newMap),
@@ -414,19 +414,5 @@ class VisualizerViewModel(
                 prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex]),
             ),
         )
-    }
-
-    private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
-        // Avoid the 5 most recently assigned colors (map preserves insertion order)
-        val recentColors = assignedMap.values
-            .toList()
-            .takeLast(5)
-            .toSet()
-        val availableColors = AppColors.authorPalette.filter { it !in recentColors }
-        return if (availableColors.isNotEmpty()) {
-            availableColors[Random.nextInt(availableColors.size)]
-        } else {
-            AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
-        }
     }
 }
