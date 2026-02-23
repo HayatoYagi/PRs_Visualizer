@@ -177,12 +177,11 @@ fun App() {
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false
                     }
-                    when (event.key) {
-                        Key.R -> {
-                            vm.resetViewport()
-                            true
-                        }
-                        else -> false
+                    if (event.key == Key.R) {
+                        vm.resetViewport()
+                        true
+                    } else {
+                        false
                     }
                 },
         ) {
