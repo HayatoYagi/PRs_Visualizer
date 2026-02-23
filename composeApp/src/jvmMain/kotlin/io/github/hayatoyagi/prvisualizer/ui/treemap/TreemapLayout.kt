@@ -102,24 +102,18 @@ private class TreemapLayoutEngine {
         val rowWeight = row.sumOf { it.weight }
         if (totalWeight <= 0.0 || rowWeight <= 0.0) return Double.MAX_VALUE
         val rowRatio = rowWeight / totalWeight
-
         val isHorizontal = bounds.width >= bounds.height
-
-        // Strip dimensions: for a horizontal split the strip is a vertical column;
-        // for a vertical split the strip is a horizontal band.
-        val stripWidth = if (isHorizontal) bounds.width * rowRatio.toFloat() else bounds.width
-        val stripHeight = if (isHorizontal) bounds.height else bounds.height * rowRatio.toFloat()
+        val stripSize = stripSize(bounds = bounds, rowRatio = rowRatio, isHorizontal = isHorizontal)
 
         return row.maxOf { child ->
-            val childRatio = child.weight / rowWeight
-            val w = if (isHorizontal) stripWidth else (stripWidth * childRatio).toFloat()
-            val h = if (isHorizontal) (stripHeight * childRatio).toFloat() else stripHeight
-
-            if (w <= 0f || h <= 0f) {
-                Double.MAX_VALUE
-            } else {
-                maxOf(w / h, h / w).toDouble()
-            }
+            val childSize = childSizeInStrip(
+                childWeight = child.weight,
+                rowWeight = rowWeight,
+                stripWidth = stripSize.first,
+                stripHeight = stripSize.second,
+                isHorizontal = isHorizontal,
+            )
+            aspectRatioOf(childSize.first, childSize.second)
         }
     }
 
@@ -133,38 +127,82 @@ private class TreemapLayoutEngine {
 
         val isHorizontal = bounds.width >= bounds.height
 
-        val (rowBounds, remainingBounds) = if (isHorizontal) {
-            // Layout horizontally: row takes left portion of width
-            val rowWidth = bounds.width * rowRatio
-            val rowRect = Rect(bounds.left, bounds.top, bounds.left + rowWidth, bounds.bottom)
-            val remaining = Rect(bounds.left + rowWidth, bounds.top, bounds.right, bounds.bottom)
-            Pair(rowRect, remaining)
-        } else {
-            // Layout vertically: row takes top portion of height
-            val rowHeight = bounds.height * rowRatio
-            val rowRect = Rect(bounds.left, bounds.top, bounds.right, bounds.top + rowHeight)
-            val remaining = Rect(bounds.left, bounds.top + rowHeight, bounds.right, bounds.bottom)
-            Pair(rowRect, remaining)
-        }
+        val (rowBounds, remainingBounds) = splitRowBounds(bounds = bounds, rowRatio = rowRatio, isHorizontal = isHorizontal)
 
         // Subdivide the row among its items
         var cursor = if (isHorizontal) rowBounds.top else rowBounds.left
 
         row.forEachIndexed { index, child ->
             val childRatio = (child.weight / rowWeight).toFloat()
-            val childRect = if (isHorizontal) {
-                // Items arranged vertically within horizontal row
-                val bottom = if (index == row.lastIndex) rowBounds.bottom else cursor + rowBounds.height * childRatio
-                Rect(rowBounds.left, cursor, rowBounds.right, bottom)
-            } else {
-                // Items arranged horizontally within vertical row
-                val right = if (index == row.lastIndex) rowBounds.right else cursor + rowBounds.width * childRatio
-                Rect(cursor, rowBounds.top, right, rowBounds.bottom)
-            }
+            val childRect = childRectInRow(
+                rowBounds = rowBounds,
+                isHorizontal = isHorizontal,
+                cursor = cursor,
+                childRatio = childRatio,
+                isLast = index == row.lastIndex,
+            )
             cursor = if (isHorizontal) childRect.bottom else childRect.right
             layout(child, childRect, depth)
         }
 
         return remainingBounds
+    }
+
+    private fun splitRowBounds(
+        bounds: Rect,
+        rowRatio: Float,
+        isHorizontal: Boolean,
+    ): Pair<Rect, Rect> = if (isHorizontal) {
+        val rowWidth = bounds.width * rowRatio
+        val rowRect = Rect(bounds.left, bounds.top, bounds.left + rowWidth, bounds.bottom)
+        val remaining = Rect(bounds.left + rowWidth, bounds.top, bounds.right, bounds.bottom)
+        Pair(rowRect, remaining)
+    } else {
+        val rowHeight = bounds.height * rowRatio
+        val rowRect = Rect(bounds.left, bounds.top, bounds.right, bounds.top + rowHeight)
+        val remaining = Rect(bounds.left, bounds.top + rowHeight, bounds.right, bounds.bottom)
+        Pair(rowRect, remaining)
+    }
+
+    private fun childRectInRow(
+        rowBounds: Rect,
+        isHorizontal: Boolean,
+        cursor: Float,
+        childRatio: Float,
+        isLast: Boolean,
+    ): Rect = if (isHorizontal) {
+        val bottom = if (isLast) rowBounds.bottom else cursor + rowBounds.height * childRatio
+        Rect(rowBounds.left, cursor, rowBounds.right, bottom)
+    } else {
+        val right = if (isLast) rowBounds.right else cursor + rowBounds.width * childRatio
+        Rect(cursor, rowBounds.top, right, rowBounds.bottom)
+    }
+
+    private fun stripSize(
+        bounds: Rect,
+        rowRatio: Double,
+        isHorizontal: Boolean,
+    ): Pair<Float, Float> {
+        val stripWidth = if (isHorizontal) bounds.width * rowRatio.toFloat() else bounds.width
+        val stripHeight = if (isHorizontal) bounds.height else bounds.height * rowRatio.toFloat()
+        return Pair(stripWidth, stripHeight)
+    }
+
+    private fun childSizeInStrip(
+        childWeight: Double,
+        rowWeight: Double,
+        stripWidth: Float,
+        stripHeight: Float,
+        isHorizontal: Boolean,
+    ): Pair<Float, Float> {
+        val childRatio = childWeight / rowWeight
+        val width = if (isHorizontal) stripWidth else (stripWidth * childRatio).toFloat()
+        val height = if (isHorizontal) (stripHeight * childRatio).toFloat() else stripHeight
+        return Pair(width, height)
+    }
+
+    private fun aspectRatioOf(width: Float, height: Float): Double {
+        if (width <= 0f || height <= 0f) return Double.MAX_VALUE
+        return maxOf(width / height, height / width).toDouble()
     }
 }

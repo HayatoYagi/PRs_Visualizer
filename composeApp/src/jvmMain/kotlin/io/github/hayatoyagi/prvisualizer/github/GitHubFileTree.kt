@@ -7,6 +7,9 @@ internal data class FileSeed(
     val estimatedLines: Int,
 )
 
+private const val ACTIVE_PR_WEIGHT = 8.0
+private const val DEFAULT_FILE_WEIGHT = 1.0
+
 internal fun buildTree(
     allFiles: List<FileSeed>,
     activePaths: Set<String>,
@@ -50,7 +53,7 @@ internal fun buildTree(
                         hasActivePr = activePaths.contains(child.path),
                         weight = maxOf(
                             child.estimatedLines.toDouble(),
-                            if (activePaths.contains(child.path)) 8.0 else 1.0,
+                            if (activePaths.contains(child.path)) ACTIVE_PR_WEIGHT else DEFAULT_FILE_WEIGHT,
                         ),
                     )
                 }

@@ -44,19 +44,12 @@ class GitHubSessionManager(
 
     fun ensureRepositoryOptions() {
         scope.launch {
-            val token = when (val authState = getAuthState()) {
-                is AuthState.Authenticated -> authState.oauthToken
-                AuthState.Unauthenticated, is AuthState.Authorizing, is AuthState.Failed -> ""
-            }
+            val token = authenticatedTokenOrBlank()
             val selectionState = getRepoSelectionState()
             if (token.isBlank()) return@launch
             if (selectionState is RepoSelectionState.Loading) return@launch
-            val hasLoadedOnce = selectionState is RepoSelectionState.Ready || selectionState is RepoSelectionState.Error
-            val options = when (selectionState) {
-                RepoSelectionState.Idle, RepoSelectionState.Loading -> emptyList()
-                is RepoSelectionState.Ready -> selectionState.options
-                is RepoSelectionState.Error -> selectionState.options
-            }
+            val hasLoadedOnce = hasLoadedRepositoryOptions(selectionState)
+            val options = selectionOptions(selectionState)
             if (hasLoadedOnce && options.isNotEmpty()) return@launch
             loadRepositoryOptionsInternal()
         }
@@ -70,10 +63,7 @@ class GitHubSessionManager(
         if (restoreAttempted) return
         restoreAttempted = true
 
-        val fallbackToken = when (val authState = getAuthState()) {
-            is AuthState.Authenticated -> authState.oauthToken
-            AuthState.Unauthenticated, is AuthState.Authorizing, is AuthState.Failed -> ""
-        }
+        val fallbackToken = authenticatedTokenOrBlank()
         val restoredToken = authService.restoreToken(fallbackToken)
         if (restoredToken.isBlank()) return
 
@@ -116,10 +106,7 @@ class GitHubSessionManager(
     }
 
     private suspend fun connect() {
-        val token = when (val authState = getAuthState()) {
-            is AuthState.Authenticated -> authState.oauthToken
-            AuthState.Unauthenticated, is AuthState.Authorizing, is AuthState.Failed -> ""
-        }
+        val token = authenticatedTokenOrBlank()
         val selectedRepo = getRepoState() as? RepoState.Selected ?: return
         if (token.isBlank()) return
 
@@ -139,17 +126,10 @@ class GitHubSessionManager(
     }
 
     private suspend fun loadRepositoryOptionsInternal() {
-        val token = when (val authState = getAuthState()) {
-            is AuthState.Authenticated -> authState.oauthToken
-            AuthState.Unauthenticated, is AuthState.Authorizing, is AuthState.Failed -> ""
-        }
+        val token = authenticatedTokenOrBlank()
         if (token.isBlank()) return
 
-        val previousOptions = when (val selectionState = getRepoSelectionState()) {
-            RepoSelectionState.Idle, RepoSelectionState.Loading -> emptyList()
-            is RepoSelectionState.Ready -> selectionState.options
-            is RepoSelectionState.Error -> selectionState.options
-        }
+        val previousOptions = selectionOptions(getRepoSelectionState())
         setRepoSelectionState(RepoSelectionState.Loading)
 
         repoSelectionService.fetchRepositoryOptions(token)
@@ -178,5 +158,19 @@ class GitHubSessionManager(
         setSnapshotFetchState(SnapshotFetchState.Idle)
         setRepoSelectionState(RepoSelectionState.Idle)
         return true
+    }
+
+    private fun authenticatedTokenOrBlank(): String = when (val authState = getAuthState()) {
+        is AuthState.Authenticated -> authState.oauthToken
+        AuthState.Unauthenticated, is AuthState.Authorizing, is AuthState.Failed -> ""
+    }
+
+    private fun hasLoadedRepositoryOptions(selectionState: RepoSelectionState): Boolean =
+        selectionState is RepoSelectionState.Ready || selectionState is RepoSelectionState.Error
+
+    private fun selectionOptions(selectionState: RepoSelectionState): List<String> = when (selectionState) {
+        RepoSelectionState.Idle, RepoSelectionState.Loading -> emptyList()
+        is RepoSelectionState.Ready -> selectionState.options
+        is RepoSelectionState.Error -> selectionState.options
     }
 }

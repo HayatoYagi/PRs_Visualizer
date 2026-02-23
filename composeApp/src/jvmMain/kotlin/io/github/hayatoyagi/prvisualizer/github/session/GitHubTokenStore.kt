@@ -3,12 +3,14 @@ package io.github.hayatoyagi.prvisualizer.github.session
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.seconds
 
 object GitHubTokenStore {
     private const val SERVICE_NAME = "io.github.hayatoyagi.prvisualizer.github-token"
     private const val ACCOUNT_NAME = "default-user"
     private const val WINDOWS_TOKEN_ENV_PATH = "GHPV_PATH"
     private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
+    private val COMMAND_TIMEOUT = 5.seconds
 
     fun loadToken(fallback: String): String {
         val loaded = when {
@@ -144,7 +146,7 @@ object GitHubTokenStore {
                 builder.environment().putAll(extraEnv)
             }
             val process = builder.start()
-            val finished = process.waitFor(5, TimeUnit.SECONDS)
+            val finished = process.waitFor(COMMAND_TIMEOUT.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             if (!finished) {
                 process.destroyForcibly()
                 return null

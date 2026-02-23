@@ -36,6 +36,9 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+private const val ISO_DATE_PREFIX_LENGTH = 10
+private const val ISO_DATE_PARTS_COUNT = 3
+
 @Composable
 fun FileDetailsDialog(
     filePath: String,
@@ -67,225 +70,17 @@ fun FileDetailsDialog(
             )
         },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // File Information Section
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "File Information",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.textPaneTitle,
-                    )
-                    Text("Path: $filePath", color = AppColors.textTooltip, style = MaterialTheme.typography.bodySmall)
-                    Text("Lines: $totalLines", color = AppColors.textTooltip, style = MaterialTheme.typography.bodySmall)
-                    if (fileOverlay != null) {
-                        Text(
-                            text = "PRs: ${fileOverlay.prs.size}",
-                            color = if (fileOverlay.prs.size > 1) AppColors.textTooltipMultiPr else AppColors.textTooltip,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = AppColors.prListDivider)
-
-                // Open File Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    TextButton(
-                        onClick = { openUrl("https://github.com/$repoFullName/blob/$encodedBranch/$encodedFilePath") },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("🔗 Open File on GitHub")
-                    }
-                }
-
-                HorizontalDivider(color = AppColors.prListDivider)
-
-                // Pull Requests Section
-                if (fileOverlay != null && fileOverlay.prs.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Related Pull Requests",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.textPaneTitle,
-                        )
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            items(fileOverlay.prs) { pr ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .border(
-                                            width = 2.dp,
-                                            color = prColor(pr, prColorMap),
-                                            shape = RoundedCornerShape(4.dp),
-                                        )
-                                        .background(
-                                            if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
-                                            RoundedCornerShape(4.dp),
-                                        )
-                                        .clickable { openUrl(pr.url) }
-                                        .padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .background(prColor(pr, prColorMap)),
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "#${pr.number} ${pr.title}",
-                                            color = AppColors.textPrItem,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        Text(
-                                            text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
-                                            color = AppColors.textMeta,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
-                                    Text(
-                                        text = "→",
-                                        color = AppColors.textPrItem,
-                                        modifier = Modifier.padding(end = 4.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = AppColors.prListDivider)
-                }
-
-                // Commit History Section
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Recent Commits",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.textPaneTitle,
-                    )
-                    when (commitsState) {
-                        DialogState.FileDetails.CommitsState.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 100.dp)
-                                    .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                            }
-                        }
-                        is DialogState.FileDetails.CommitsState.Failed -> {
-                            val message = when (val error = commitsState.error) {
-                                is AppError.Network -> "Network error: ${error.message}"
-                                is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
-                                is AppError.AuthExpired -> error.message
-                                is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
-                                is AppError.Unknown -> "Error: ${error.message}"
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    text = message,
-                                    color = AppColors.textError,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                TextButton(onClick = onRetryLoadCommits) {
-                                    Text("Retry")
-                                }
-                            }
-                        }
-                        is DialogState.FileDetails.CommitsState.Ready -> {
-                            if (commitsState.commits.isEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                        .padding(16.dp),
-                                ) {
-                                    Text(
-                                        text = "No commits found",
-                                        color = AppColors.textBodyMuted,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 200.dp)
-                                        .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
-                                        .padding(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    items(commitsState.commits) { commit ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(AppColors.prItemNormal, RoundedCornerShape(4.dp))
-                                                .clickable { openUrl(commit.url) }
-                                                .padding(8.dp),
-                                            verticalAlignment = Alignment.Top,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        ) {
-                                            Text(
-                                                text = commit.sha,
-                                                color = AppColors.textMeta,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(top = 2.dp),
-                                            )
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = commit.message,
-                                                    color = AppColors.textPrItem,
-                                                    maxLines = 2,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                )
-                                                Text(
-                                                    text = "${commit.author} • ${formatDate(commit.date)}",
-                                                    color = AppColors.textMeta,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                )
-                                            }
-                                            Text(
-                                                text = "→",
-                                                color = AppColors.textPrItem,
-                                                modifier = Modifier.padding(top = 2.dp),
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            FileDetailsDialogContent(
+                filePath = filePath,
+                totalLines = totalLines,
+                fileOverlay = fileOverlay,
+                repoFullName = repoFullName,
+                encodedBranch = encodedBranch,
+                encodedFilePath = encodedFilePath,
+                prColorMap = prColorMap,
+                commitsState = commitsState,
+                onRetryLoadCommits = onRetryLoadCommits,
+            )
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
@@ -293,19 +88,300 @@ fun FileDetailsDialog(
     )
 }
 
+@Composable
+private fun FileDetailsDialogContent(
+    filePath: String,
+    totalLines: Int,
+    fileOverlay: FileOverlay?,
+    repoFullName: String,
+    encodedBranch: String,
+    encodedFilePath: String,
+    prColorMap: Map<String, Color>,
+    commitsState: DialogState.FileDetails.CommitsState,
+    onRetryLoadCommits: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        FileInfoSection(filePath = filePath, totalLines = totalLines, fileOverlay = fileOverlay)
+        HorizontalDivider(color = AppColors.prListDivider)
+        OpenFileSection(repoFullName = repoFullName, encodedBranch = encodedBranch, encodedFilePath = encodedFilePath)
+        HorizontalDivider(color = AppColors.prListDivider)
+        RelatedPrsSection(fileOverlay = fileOverlay, prColorMap = prColorMap)
+        CommitsSection(commitsState = commitsState, onRetryLoadCommits = onRetryLoadCommits)
+    }
+}
+
+@Composable
+private fun FileInfoSection(
+    filePath: String,
+    totalLines: Int,
+    fileOverlay: FileOverlay?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "File Information",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.textPaneTitle,
+        )
+        Text("Path: $filePath", color = AppColors.textTooltip, style = MaterialTheme.typography.bodySmall)
+        Text("Lines: $totalLines", color = AppColors.textTooltip, style = MaterialTheme.typography.bodySmall)
+        if (fileOverlay != null) {
+            Text(
+                text = "PRs: ${fileOverlay.prs.size}",
+                color = if (fileOverlay.prs.size > 1) AppColors.textTooltipMultiPr else AppColors.textTooltip,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OpenFileSection(
+    repoFullName: String,
+    encodedBranch: String,
+    encodedFilePath: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TextButton(
+            onClick = { openUrl("https://github.com/$repoFullName/blob/$encodedBranch/$encodedFilePath") },
+            modifier = Modifier.weight(1f),
+        ) {
+            Text("🔗 Open File on GitHub")
+        }
+    }
+}
+
+@Composable
+private fun RelatedPrsSection(
+    fileOverlay: FileOverlay?,
+    prColorMap: Map<String, Color>,
+) {
+    val overlay = fileOverlay?.takeIf { it.prs.isNotEmpty() } ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Related Pull Requests",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.textPaneTitle,
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 200.dp)
+                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            items(overlay.prs) { pr ->
+                RelatedPrItem(pr = pr, prColorMap = prColorMap)
+            }
+        }
+    }
+    HorizontalDivider(color = AppColors.prListDivider)
+}
+
+@Composable
+private fun RelatedPrItem(
+    pr: io.github.hayatoyagi.prvisualizer.PullRequest,
+    prColorMap: Map<String, Color>,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = prColor(pr, prColorMap),
+                shape = RoundedCornerShape(4.dp),
+            )
+            .background(
+                if (pr.isDraft) AppColors.prItemDraft else AppColors.prItemNormal,
+                RoundedCornerShape(4.dp),
+            )
+            .clickable { openUrl(pr.url) }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(prColor(pr, prColorMap)),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "#${pr.number} ${pr.title}",
+                color = AppColors.textPrItem,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                text = "${pr.author}${if (pr.isDraft) " • draft" else ""}",
+                color = AppColors.textMeta,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Text(
+            text = "→",
+            color = AppColors.textPrItem,
+            modifier = Modifier.padding(end = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun CommitsSection(
+    commitsState: DialogState.FileDetails.CommitsState,
+    onRetryLoadCommits: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Recent Commits",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.textPaneTitle,
+        )
+        when (commitsState) {
+            DialogState.FileDetails.CommitsState.Loading -> CommitsLoadingState()
+            is DialogState.FileDetails.CommitsState.Failed -> CommitsErrorState(
+                message = commitErrorMessage(commitsState.error),
+                onRetryLoadCommits = onRetryLoadCommits,
+            )
+            is DialogState.FileDetails.CommitsState.Ready -> CommitsReadyState(commitsState)
+        }
+    }
+}
+
+@Composable
+private fun CommitsLoadingState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 100.dp)
+            .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+    }
+}
+
+@Composable
+private fun CommitsErrorState(
+    message: String,
+    onRetryLoadCommits: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = message,
+            color = AppColors.textError,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        TextButton(onClick = onRetryLoadCommits) {
+            Text("Retry")
+        }
+    }
+}
+
+@Composable
+private fun CommitsReadyState(
+    commitsState: DialogState.FileDetails.CommitsState.Ready,
+) {
+    if (commitsState.commits.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+                .padding(16.dp),
+        ) {
+            Text(
+                text = "No commits found",
+                color = AppColors.textBodyMuted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 200.dp)
+            .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(commitsState.commits) { commit ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.prItemNormal, RoundedCornerShape(4.dp))
+                    .clickable { openUrl(commit.url) }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = commit.sha,
+                    color = AppColors.textMeta,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = commit.message,
+                        color = AppColors.textPrItem,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "${commit.author} • ${formatDate(commit.date)}",
+                        color = AppColors.textMeta,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    text = "→",
+                    color = AppColors.textPrItem,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun commitErrorMessage(error: AppError): String = when (error) {
+    is AppError.Network -> "Network error: ${error.message}"
+    is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.AuthExpired -> error.message
+    is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+    is AppError.Unknown -> "Error: ${error.message}"
+}
+
 private fun encodeGitHubPathPart(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 
-private fun formatDate(isoDate: String): String = try {
+private fun formatDate(isoDate: String): String {
     // ISO 8601 format: 2026-02-20T13:58:03Z
     // Returns MM/DD format without year for brevity in UI
     // Full date is visible on hover and in GitHub when clicking commit
     val date = isoDate.substringBefore('T')
     val parts = date.split('-')
-    if (parts.size == 3) {
+    return if (parts.size == ISO_DATE_PARTS_COUNT) {
         "${parts[1]}/${parts[2]}"
     } else {
-        isoDate.take(10)
+        isoDate.take(ISO_DATE_PREFIX_LENGTH)
     }
-} catch (e: Exception) {
-    isoDate.take(10)
 }

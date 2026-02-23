@@ -32,9 +32,10 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-private const val CHEVRON_ICON_WIDTH_DP = 12
-private const val CHEVRON_ICON_PADDING_DP = 4
-private const val CHEVRON_TOTAL_WIDTH_DP = CHEVRON_ICON_WIDTH_DP + CHEVRON_ICON_PADDING_DP
+private val CHEVRON_ICON_WIDTH = 12.dp
+private val CHEVRON_ICON_PADDING = 4.dp
+private val CHEVRON_TOTAL_WIDTH = CHEVRON_ICON_WIDTH + CHEVRON_ICON_PADDING
+private val INDENT_PER_LEVEL = 12.dp
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     if (hasConflict) return ExplorerStatusKind.Conflict
@@ -79,108 +80,197 @@ fun ExplorerPane(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        ExplorerHeader(focusPath = focusPath)
+        ExplorerBody(
+            rows = rows,
+            focusPath = focusPath,
+            selectedPath = selectedPath,
+            expandedPaths = expandedPaths,
+            onSelectDirectory = onSelectDirectory,
+            onSelectFile = onSelectFile,
+            onToggleExpanded = onToggleExpanded,
+            isLoading = isLoading,
+            contentModifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ExplorerHeader(focusPath: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Explorer", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            ExplorerStatusBadge(kind = ExplorerStatusKind.Conflict, withLabel = true, size = ExplorerBadgeSize.Legend)
+            ExplorerStatusBadge(kind = ExplorerStatusKind.Addition, withLabel = true, size = ExplorerBadgeSize.Legend)
+            ExplorerStatusBadge(kind = ExplorerStatusKind.Modification, withLabel = true, size = ExplorerBadgeSize.Legend)
+            ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, size = ExplorerBadgeSize.Legend)
+        }
+    }
+    Text(
+        text = "Current: /${focusPath.ifBlank { "" }}",
+        color = AppColors.textSecondary,
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun ExplorerBody(
+    rows: List<ExplorerRow>,
+    focusPath: String,
+    selectedPath: String?,
+    expandedPaths: Set<String>,
+    onSelectDirectory: (String) -> Unit,
+    onSelectFile: (String) -> Unit,
+    onToggleExpanded: (String) -> Unit,
+    isLoading: Boolean,
+    contentModifier: Modifier,
+) {
+    if (isLoading) {
+        Box(
+            modifier = contentModifier,
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = AppColors.textPrimary)
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = contentModifier.background(AppColors.backgroundPaneList),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
+            ExplorerRowItem(
+                row = row,
+                focusPath = focusPath,
+                selectedPath = selectedPath,
+                expandedPaths = expandedPaths,
+                onSelectDirectory = onSelectDirectory,
+                onSelectFile = onSelectFile,
+                onToggleExpanded = onToggleExpanded,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExplorerRowItem(
+    row: ExplorerRow,
+    focusPath: String,
+    selectedPath: String?,
+    expandedPaths: Set<String>,
+    onSelectDirectory: (String) -> Unit,
+    onSelectFile: (String) -> Unit,
+    onToggleExpanded: (String) -> Unit,
+) {
+    val isCurrentDir = row.isDirectory && row.path == focusPath
+    val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
+    val isSelectedFile = !row.isDirectory && row.path == selectedPath
+    val statusKind = row.statusKindOrNull()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(explorerRowBackgroundColor(isCurrentDir = isCurrentDir, isSelectedFile = isSelectedFile))
+            .clickable { onExplorerRowClick(row = row, onSelectDirectory = onSelectDirectory, onSelectFile = onSelectFile) }
+            .padding(vertical = 4.dp, horizontal = 6.dp),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 30.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Explorer", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Conflict, withLabel = true, size = ExplorerBadgeSize.Legend)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Addition, withLabel = true, size = ExplorerBadgeSize.Legend)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Modification, withLabel = true, size = ExplorerBadgeSize.Legend)
-                ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, size = ExplorerBadgeSize.Legend)
-            }
+            Spacer(modifier = Modifier.width(INDENT_PER_LEVEL * row.depth))
+            ExplorerChevron(
+                row = row,
+                isCurrentDir = isCurrentDir,
+                isAncestor = isAncestor,
+                expandedPaths = expandedPaths,
+                onToggleExpanded = onToggleExpanded,
+            )
+            Text(
+                text = explorerLabel(row),
+                color = explorerLabelColor(isCurrentDir = isCurrentDir, isAncestor = isAncestor),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        Text(
-            text = "Current: /${focusPath.ifBlank { "" }}",
-            color = AppColors.textSecondary,
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = AppColors.textPrimary)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(AppColors.backgroundPaneList),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
-                    val isCurrentDir = row.isDirectory && row.path == focusPath
-                    val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
-                    val isSelectedFile = !row.isDirectory && row.path == selectedPath
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                when {
-                                    isCurrentDir -> AppColors.explorerSelectionFocused
-                                    isSelectedFile -> AppColors.explorerSelectionFile
-                                    else -> Color.Transparent
-                                },
-                            ).clickable {
-                                if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
-                            }.padding(vertical = 4.dp, horizontal = 6.dp),
-                    ) {
-                        val statusKind = row.statusKindOrNull()
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 30.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(modifier = Modifier.width((row.depth * 12).dp))
-                            if (row.isDirectory) {
-                                val isExpanded = expandedPaths.contains(row.path)
-                                Text(
-                                    text = if (isExpanded) "▼" else "▶",
-                                    color = when {
-                                        isCurrentDir -> Color.White
-                                        isAncestor -> AppColors.explorerAncestorText
-                                        else -> AppColors.textSecondary
-                                    },
-                                    modifier = Modifier
-                                        .padding(end = CHEVRON_ICON_PADDING_DP.dp)
-                                        .clickable { onToggleExpanded(row.path) },
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
-                            }
-                            Text(
-                                text = if (row.isDirectory) "${row.name}/" else row.name,
-                                color = when {
-                                    isCurrentDir -> Color.White
-                                    isAncestor -> AppColors.explorerAncestorText
-                                    else -> AppColors.textBody
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(24.dp),
-                        ) {
-                            statusKind?.let {
-                                ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
-                            }
-                        }
-                    }
-                }
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(24.dp),
+        ) {
+            statusKind?.let {
+                ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
             }
         }
     }
+}
+
+@Composable
+private fun ExplorerChevron(
+    row: ExplorerRow,
+    isCurrentDir: Boolean,
+    isAncestor: Boolean,
+    expandedPaths: Set<String>,
+    onToggleExpanded: (String) -> Unit,
+) {
+    if (!row.isDirectory) {
+        Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH))
+        return
+    }
+    val isExpanded = expandedPaths.contains(row.path)
+    Text(
+        text = if (isExpanded) "▼" else "▶",
+        color = explorerChevronColor(isCurrentDir = isCurrentDir, isAncestor = isAncestor),
+        modifier = Modifier
+            .padding(end = CHEVRON_ICON_PADDING)
+            .clickable { onToggleExpanded(row.path) },
+    )
+}
+
+private fun explorerLabel(row: ExplorerRow): String = if (row.isDirectory) "${row.name}/" else row.name
+
+private fun explorerLabelColor(
+    isCurrentDir: Boolean,
+    isAncestor: Boolean,
+): Color = when {
+    isCurrentDir -> Color.White
+    isAncestor -> AppColors.explorerAncestorText
+    else -> AppColors.textBody
+}
+
+private fun explorerChevronColor(
+    isCurrentDir: Boolean,
+    isAncestor: Boolean,
+): Color = when {
+    isCurrentDir -> Color.White
+    isAncestor -> AppColors.explorerAncestorText
+    else -> AppColors.textSecondary
+}
+
+private fun explorerRowBackgroundColor(
+    isCurrentDir: Boolean,
+    isSelectedFile: Boolean,
+): Color = when {
+    isCurrentDir -> AppColors.explorerSelectionFocused
+    isSelectedFile -> AppColors.explorerSelectionFile
+    else -> Color.Transparent
+}
+
+private fun onExplorerRowClick(
+    row: ExplorerRow,
+    onSelectDirectory: (String) -> Unit,
+    onSelectFile: (String) -> Unit,
+) {
+    if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
 }

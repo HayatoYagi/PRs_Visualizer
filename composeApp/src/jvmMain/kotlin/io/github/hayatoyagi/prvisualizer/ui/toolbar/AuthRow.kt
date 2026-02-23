@@ -18,6 +18,15 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+private data class AuthRowModel(
+    val isAuthorizing: Boolean,
+    val isConnecting: Boolean,
+    val isLoggedIn: Boolean,
+    val hasSnapshot: Boolean,
+    val connectionError: AppError?,
+    val devicePrompt: AuthState.Authorizing?,
+)
+
 @Composable
 fun AuthRow(
     oauthClientId: String,
@@ -28,15 +37,7 @@ fun AuthRow(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isAuthorizing = authState is AuthState.Authorizing
-    val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
-    val isLoggedIn = authState is AuthState.Authenticated
-    val authError = (authState as? AuthState.Failed)?.error
-    val fetchError = (snapshotFetchState as? SnapshotFetchState.Failed)?.error
-    val connectionError: AppError? = authError ?: fetchError
-    val hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready
-    val devicePrompt = (authState as? AuthState.Authorizing)
-        ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() }
+    val model = authRowModel(authState = authState, snapshotFetchState = snapshotFetchState)
 
     Row(
         modifier = modifier
@@ -45,66 +46,118 @@ fun AuthRow(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (!isLoggedIn) {
-            Button(
-                enabled = !isAuthorizing && oauthClientId.isNotBlank(),
-                onClick = onLogin,
-            ) {
-                Text(if (isAuthorizing) "Authorizing..." else "Login with GitHub")
-            }
-        }
+        AuthActionButtons(model = model, oauthClientId = oauthClientId, onLogin = onLogin, onRefresh = onRefresh)
+        MissingClientIdNotice(oauthClientId = oauthClientId)
+        DevicePromptSection(devicePrompt = model.devicePrompt)
+        ConnectionStatusText(model = model, currentUser = currentUser)
+        ConnectionErrorText(connectionError = model.connectionError)
+    }
+}
+
+@Composable
+private fun AuthActionButtons(
+    model: AuthRowModel,
+    oauthClientId: String,
+    onLogin: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    if (!model.isLoggedIn) {
         Button(
-            enabled = !isConnecting && isLoggedIn,
-            onClick = onRefresh,
+            enabled = !model.isAuthorizing && oauthClientId.isNotBlank(),
+            onClick = onLogin,
         ) {
-            Text(if (isConnecting) "Refreshing..." else "Refresh")
-        }
-        if (oauthClientId.isBlank()) {
-            Text(
-                text = "Missing GITHUB_CLIENT_ID in .env",
-                color = AppColors.textWarning,
-                modifier = Modifier.padding(top = 14.dp),
-            )
-        }
-        if (devicePrompt != null) {
-            SelectionContainer {
-                Text(
-                    text = "GitHub code: ${devicePrompt.deviceUserCode} @ ${devicePrompt.deviceVerificationUrl}",
-                    color = AppColors.textDeviceCode,
-                    modifier = Modifier.padding(top = 14.dp),
-                )
-            }
-            Button(onClick = { copyToClipboard(devicePrompt.deviceUserCode.orEmpty()) }) { Text("Copy Code") }
-            Button(onClick = { openUrl(devicePrompt.deviceVerificationUrl.orEmpty()) }) { Text("Open Verify Page") }
-        }
-        Text(
-            text = if (!hasSnapshot) {
-                if (!isLoggedIn) {
-                    "Not connected (not logged in)"
-                } else {
-                    "Logged in as: $currentUser (not connected)"
-                }
-            } else {
-                "Logged in as: $currentUser"
-            },
-            color = AppColors.textSecondary,
-            modifier = Modifier.padding(top = 14.dp),
-        )
-        if (connectionError != null) {
-            val (color, text) = when (connectionError) {
-                is AppError.AuthExpired -> AppColors.textWarning to connectionError.message
-                is AppError.Network -> AppColors.textError to "Network error: ${connectionError.message}"
-                is AppError.ApiError -> AppColors.textError to "GitHub error ${connectionError.statusCode}: ${connectionError.message}"
-                is AppError.OAuthFailed -> AppColors.textError to "OAuth failed: ${connectionError.message}"
-                is AppError.Unknown -> AppColors.textError to "Error: ${connectionError.message}"
-            }
-            SelectionContainer {
-                Text(
-                    text = text,
-                    color = color,
-                    modifier = Modifier.padding(top = 14.dp),
-                )
-            }
+            Text(if (model.isAuthorizing) "Authorizing..." else "Login with GitHub")
         }
     }
+    Button(
+        enabled = !model.isConnecting && model.isLoggedIn,
+        onClick = onRefresh,
+    ) {
+        Text(if (model.isConnecting) "Refreshing..." else "Refresh")
+    }
+}
+
+@Composable
+private fun MissingClientIdNotice(oauthClientId: String) {
+    if (oauthClientId.isNotBlank()) return
+    Text(
+        text = "Missing GITHUB_CLIENT_ID in .env",
+        color = AppColors.textWarning,
+        modifier = Modifier.padding(top = 14.dp),
+    )
+}
+
+@Composable
+private fun DevicePromptSection(devicePrompt: AuthState.Authorizing?) {
+    val prompt = devicePrompt ?: return
+    SelectionContainer {
+        Text(
+            text = "GitHub code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
+            color = AppColors.textDeviceCode,
+            modifier = Modifier.padding(top = 14.dp),
+        )
+    }
+    Button(onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) }) { Text("Copy Code") }
+    Button(onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) }) { Text("Open Verify Page") }
+}
+
+@Composable
+private fun ConnectionStatusText(
+    model: AuthRowModel,
+    currentUser: String,
+) {
+    Text(
+        text = statusText(model = model, currentUser = currentUser),
+        color = AppColors.textSecondary,
+        modifier = Modifier.padding(top = 14.dp),
+    )
+}
+
+@Composable
+private fun ConnectionErrorText(connectionError: AppError?) {
+    val error = connectionError ?: return
+    val (color, text) = connectionErrorPresentation(error)
+    SelectionContainer {
+        Text(
+            text = text,
+            color = color,
+            modifier = Modifier.padding(top = 14.dp),
+        )
+    }
+}
+
+private fun authRowModel(
+    authState: AuthState,
+    snapshotFetchState: SnapshotFetchState,
+): AuthRowModel {
+    val authError = (authState as? AuthState.Failed)?.error
+    val fetchError = (snapshotFetchState as? SnapshotFetchState.Failed)?.error
+    return AuthRowModel(
+        isAuthorizing = authState is AuthState.Authorizing,
+        isConnecting = snapshotFetchState is SnapshotFetchState.Fetching,
+        isLoggedIn = authState is AuthState.Authenticated,
+        hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready,
+        connectionError = authError ?: fetchError,
+        devicePrompt = (authState as? AuthState.Authorizing)
+            ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() },
+    )
+}
+
+private fun statusText(
+    model: AuthRowModel,
+    currentUser: String,
+): String = if (model.hasSnapshot) {
+    "Logged in as: $currentUser"
+} else if (!model.isLoggedIn) {
+    "Not connected (not logged in)"
+} else {
+    "Logged in as: $currentUser (not connected)"
+}
+
+private fun connectionErrorPresentation(error: AppError): Pair<androidx.compose.ui.graphics.Color, String> = when (error) {
+    is AppError.AuthExpired -> AppColors.textWarning to error.message
+    is AppError.Network -> AppColors.textError to "Network error: ${error.message}"
+    is AppError.ApiError -> AppColors.textError to "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.OAuthFailed -> AppColors.textError to "OAuth failed: ${error.message}"
+    is AppError.Unknown -> AppColors.textError to "Error: ${error.message}"
 }

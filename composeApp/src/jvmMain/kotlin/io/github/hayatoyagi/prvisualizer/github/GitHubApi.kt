@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -26,6 +27,13 @@ data class GitHubSnapshot(
 class GitHubApi(
     private val token: String,
 ) {
+    private companion object {
+        const val GITHUB_PAGE_SIZE = 100
+        const val SHORT_SHA_LENGTH = 7
+        const val MIN_ESTIMATED_LINES = 1
+        const val ESTIMATED_LINES_DIVISOR = 40
+    }
+
     private val client = HttpClient.newHttpClient()
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
@@ -94,13 +102,15 @@ class GitHubApi(
     ): List<PullRequest> {
         val pulls = mutableListOf<PullRequest>()
         var page = 1
-        while (true) {
+        var hasNextPage: Boolean
+        do {
             val response = requestArray(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=100&page=$page",
+                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            if (response.length() == 0) break
+            val responseSize = response.length()
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(response.length()) { idx ->
+            repeat(responseSize) { idx ->
                 val pr = response.getJSONObject(idx)
                 val number = pr.optInt("number")
                 val files = fetchPullRequestFiles(owner, repo, number)
@@ -114,9 +124,8 @@ class GitHubApi(
                     files = files,
                 )
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return pulls
     }
 
@@ -127,13 +136,15 @@ class GitHubApi(
     ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
         var page = 1
-        while (true) {
+        var hasNextPage: Boolean
+        do {
             val response = requestArray(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=100&page=$page",
+                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            if (response.length() == 0) break
+            val responseSize = response.length()
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(response.length()) { idx ->
+            repeat(responseSize) { idx ->
                 val file = response.getJSONObject(idx)
                 val path = file.optString("filename")
                 if (isBinaryFile(path)) return@repeat
@@ -146,9 +157,8 @@ class GitHubApi(
                     deletions = deletions,
                 )
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return files
     }
 
@@ -175,7 +185,7 @@ class GitHubApi(
             val committer = commit?.optJSONObject("committer")
 
             commits += FileCommit(
-                sha = commitObj.optString("sha", "").take(7),
+                sha = commitObj.optString("sha", "").take(SHORT_SHA_LENGTH),
                 message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
                 author = author?.optString("name")?.takeIf { it.isNotBlank() }
                     ?: committer?.optString("name")?.takeIf { it.isNotBlank() }
@@ -192,7 +202,7 @@ class GitHubApi(
         status: String,
         additions: Int,
         deletions: Int,
-    ): Int = if (status == "added" && additions == 0 && deletions == 0) 1 else additions
+    ): Int = if (status == "added" && additions == 0 && deletions == 0) MIN_ESTIMATED_LINES else additions
 
     private fun fetchRepositoryFiles(
         owner: String,
@@ -211,7 +221,7 @@ class GitHubApi(
             if (path.isBlank()) return@repeat
             if (isBinaryFile(path)) return@repeat
             val size = node.optInt("size", 0)
-            val estimatedLines = maxOf(1, size / 40)
+            val estimatedLines = maxOf(MIN_ESTIMATED_LINES, size / ESTIMATED_LINES_DIVISOR)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
         }
         return files
@@ -230,17 +240,19 @@ class GitHubApi(
     private fun loadRepositoryNamesByPage(requestPage: (Int) -> JSONArray?): List<String> {
         val repos = mutableListOf<String>()
         var page = 1
-        while (true) {
-            val response = requestPage(page) ?: break
-            if (response.length() == 0) break
-            repeat(response.length()) { index ->
+        var hasNextPage: Boolean
+        do {
+            val response = requestPage(page)
+            val responseSize = response?.length() ?: 0
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
+            if (response == null) return repos
+            repeat(responseSize) { index ->
                 val repo = response.getJSONObject(index)
                 val repoName = repo.optString("full_name")
                 if (repoName.isNotBlank()) repos += repoName
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return repos
     }
 
@@ -253,10 +265,10 @@ class GitHubApi(
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() == 401) {
+        if (response.statusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
             throw GitHubAuthExpiredException("GitHub token expired or revoked. Please login again.")
         }
-        if (response.statusCode() !in 200..299) {
+        if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
         return response.body()

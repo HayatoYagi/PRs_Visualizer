@@ -4,6 +4,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object EnvConfig {
+    private const val DOTENV_PARENT_SEARCH_DEPTH = 5
+
     private val values: Map<String, String> by lazy {
         val fromFile = loadDotEnvFromCandidates()
         val fromSystem = System.getenv()
@@ -18,7 +20,7 @@ object EnvConfig {
         val candidates = sequence {
             yield(userDir.resolve(".env"))
             var current: Path? = userDir
-            repeat(5) {
+            repeat(DOTENV_PARENT_SEARCH_DEPTH) {
                 current = current?.parent
                 val path = current ?: return@repeat
                 yield(path.resolve(".env"))
