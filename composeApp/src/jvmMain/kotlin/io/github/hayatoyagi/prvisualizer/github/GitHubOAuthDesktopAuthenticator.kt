@@ -5,9 +5,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.awt.Desktop
+import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
-import java.net.HttpURLConnection
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
