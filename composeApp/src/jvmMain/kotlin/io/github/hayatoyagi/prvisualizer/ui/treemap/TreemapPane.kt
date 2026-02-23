@@ -57,7 +57,6 @@ fun TreemapPane(
     onSelectedPathChange: (String?) -> Unit,
     onRelatedPrsDetected: (Set<String>) -> Unit,
     onFileDoubleClick: (String) -> Unit,
-    repoFullName: String,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {

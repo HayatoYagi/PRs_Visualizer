@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
@@ -51,4 +52,14 @@ ktlint {
         exclude("**/generated/**")
         exclude("**/build/**")
     }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$projectDir/detekt.yml")
+    source.setFrom(
+        files("src/jvmMain/kotlin"),
+        files("src/commonMain/kotlin"),
+    )
 }

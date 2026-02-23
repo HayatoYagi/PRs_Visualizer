@@ -288,7 +288,6 @@ fun App() {
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
                     onFileDoubleClick = { vm.openFileDetailsDialog(it) },
-                    repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
                     isLoading = vm.state.sessionState.isConnecting,
                 )
                 PrListPane(
