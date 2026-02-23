@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package io.github.hayatoyagi.prvisualizer.ui.theme
 
 import androidx.compose.ui.graphics.Color

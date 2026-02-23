@@ -94,7 +94,7 @@ comments:
 complexity:
   active: true
   CognitiveComplexMethod:
-    active: false
+    active: true
     threshold: 15
   ComplexCondition:
     active: true
@@ -258,7 +258,7 @@ exceptions:
     active: true
     ignoreLabeled: false
   SwallowedException:
-    active: false
+    active: true
     ignoredExceptionTypes:
       - 'InterruptedException'
       - 'MalformedURLException'
@@ -285,7 +285,7 @@ exceptions:
   ThrowingNewInstanceOfSameException:
     active: true
   TooGenericExceptionCaught:
-    active: false
+    active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     exceptionNames:
       - 'ArrayIndexOutOfBoundsException'
@@ -617,10 +617,10 @@ style:
     ignoreActualFunction: true
     excludedFunctions: []
   LoopWithTooManyJumpStatements:
-    active: false
+    active: true
     maxJumpCount: 1
   MagicNumber:
-    active: false
+    active: true
     ignoreNamedArgument: true
     ignoreEnums: false
     ignoreRanges: false

@@ -26,6 +26,10 @@ data class GitHubSnapshot(
 class GitHubApi(
     private val token: String,
 ) {
+    private companion object {
+        const val GITHUB_PAGE_SIZE = 100
+    }
+
     private val client = HttpClient.newHttpClient()
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
@@ -94,13 +98,15 @@ class GitHubApi(
     ): List<PullRequest> {
         val pulls = mutableListOf<PullRequest>()
         var page = 1
-        while (true) {
+        var hasNextPage: Boolean
+        do {
             val response = requestArray(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=100&page=$page",
+                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            if (response.length() == 0) break
+            val responseSize = response.length()
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(response.length()) { idx ->
+            repeat(responseSize) { idx ->
                 val pr = response.getJSONObject(idx)
                 val number = pr.optInt("number")
                 val files = fetchPullRequestFiles(owner, repo, number)
@@ -114,9 +120,8 @@ class GitHubApi(
                     files = files,
                 )
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return pulls
     }
 
@@ -127,13 +132,15 @@ class GitHubApi(
     ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
         var page = 1
-        while (true) {
+        var hasNextPage: Boolean
+        do {
             val response = requestArray(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=100&page=$page",
+                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            if (response.length() == 0) break
+            val responseSize = response.length()
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(response.length()) { idx ->
+            repeat(responseSize) { idx ->
                 val file = response.getJSONObject(idx)
                 val path = file.optString("filename")
                 if (isBinaryFile(path)) return@repeat
@@ -146,9 +153,8 @@ class GitHubApi(
                     deletions = deletions,
                 )
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return files
     }
 
@@ -230,17 +236,19 @@ class GitHubApi(
     private fun loadRepositoryNamesByPage(requestPage: (Int) -> JSONArray?): List<String> {
         val repos = mutableListOf<String>()
         var page = 1
-        while (true) {
-            val response = requestPage(page) ?: break
-            if (response.length() == 0) break
-            repeat(response.length()) { index ->
+        var hasNextPage: Boolean
+        do {
+            val response = requestPage(page)
+            val responseSize = response?.length() ?: 0
+            hasNextPage = responseSize == GITHUB_PAGE_SIZE
+            if (response == null) return repos
+            repeat(responseSize) { index ->
                 val repo = response.getJSONObject(index)
                 val repoName = repo.optString("full_name")
                 if (repoName.isNotBlank()) repos += repoName
             }
-            if (response.length() < 100) break
             page += 1
-        }
+        } while (hasNextPage)
         return repos
     }
 

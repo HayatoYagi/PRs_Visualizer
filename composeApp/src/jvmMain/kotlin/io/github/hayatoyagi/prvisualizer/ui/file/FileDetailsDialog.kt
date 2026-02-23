@@ -36,6 +36,8 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+private const val ISO_DATE_PREFIX_LENGTH = 10
+
 @Composable
 fun FileDetailsDialog(
     filePath: String,
@@ -295,17 +297,15 @@ fun FileDetailsDialog(
 
 private fun encodeGitHubPathPart(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 
-private fun formatDate(isoDate: String): String = try {
+private fun formatDate(isoDate: String): String {
     // ISO 8601 format: 2026-02-20T13:58:03Z
     // Returns MM/DD format without year for brevity in UI
     // Full date is visible on hover and in GitHub when clicking commit
     val date = isoDate.substringBefore('T')
     val parts = date.split('-')
-    if (parts.size == 3) {
+    return if (parts.size == 3) {
         "${parts[1]}/${parts[2]}"
     } else {
-        isoDate.take(10)
+        isoDate.take(ISO_DATE_PREFIX_LENGTH)
     }
-} catch (e: Exception) {
-    isoDate.take(10)
 }

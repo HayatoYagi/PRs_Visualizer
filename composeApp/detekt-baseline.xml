@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CognitiveComplexMethod:App.kt$@Composable @Preview @OptIn(ExperimentalComposeUiApi::class) fun App()</ID>
+    <ID>CognitiveComplexMethod:App.kt$@Composable private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiState</ID>
+    <ID>CognitiveComplexMethod:AuthRow.kt$@Composable fun AuthRow( oauthClientId: String, authState: AuthState, snapshotFetchState: SnapshotFetchState, currentUser: String, onLogin: () -&gt; Unit, onRefresh: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>CognitiveComplexMethod:ExplorerPane.kt$@Composable fun ExplorerPane( root: FileNode.Directory?, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, directoryOverlayByPath: Map&lt;String, DirectoryOverlay&gt;, focusPath: String, selectedPath: String?, expandedPaths: Set&lt;String&gt;, onSelectDirectory: (String) -&gt; Unit, onSelectFile: (String) -&gt; Unit, onToggleExpanded: (String) -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, )</ID>
+    <ID>CognitiveComplexMethod:ExplorerStatusBadge.kt$@Composable fun ExplorerStatusBadge( kind: ExplorerStatusKind, withLabel: Boolean, size: ExplorerBadgeSize, modifier: Modifier = Modifier, )</ID>
+    <ID>CognitiveComplexMethod:FileDetailsDialog.kt$@Composable fun FileDetailsDialog( filePath: String, fileName: String, totalLines: Int, fileOverlay: FileOverlay?, repoFullName: String, defaultBranch: String, prColorMap: Map&lt;String, Color&gt;, commitsState: DialogState.FileDetails.CommitsState, onRetryLoadCommits: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>CognitiveComplexMethod:GitHubSessionManager.kt$GitHubSessionManager$fun ensureRepositoryOptions()</ID>
+    <ID>CognitiveComplexMethod:PrListPane.kt$@Composable fun PrListPane( filteredPrs: List&lt;PullRequest&gt;, selectedPrIds: Set&lt;String&gt;, selectedPath: String?, prColorMap: Map&lt;String, Color&gt;, showDrafts: Boolean, onlyMine: Boolean, onShowDraftsChange: (Boolean) -&gt; Unit, onOnlyMineChange: (Boolean) -&gt; Unit, onTogglePr: (prId: String, checked: Boolean) -&gt; Unit, onOpenPr: (PullRequest) -&gt; Unit, onCyclePrColor: (String) -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, )</ID>
+    <ID>CognitiveComplexMethod:TreemapCanvas.kt$@Composable fun TreemapCanvas( visibleDirectories: List&lt;TreemapNode&gt;, visibleFiles: List&lt;TreemapNode&gt;, directoryOverlayByPath: Map&lt;String, DirectoryOverlay&gt;, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, prColorMap: Map&lt;String, Color&gt;, hoveredNode: TreemapNode?, selectedPath: String?, zoom: Float, pan: Offset, modifier: Modifier = Modifier, )</ID>
+    <ID>CognitiveComplexMethod:TreemapLayout.kt$TreemapLayoutEngine$private fun layoutRow(row: List&lt;FileNode&gt;, bounds: Rect, totalWeight: Double, depth: Int): Rect</ID>
+    <ID>CognitiveComplexMethod:TreemapLayout.kt$TreemapLayoutEngine$private fun worstAspectRatio(row: List&lt;FileNode&gt;, bounds: Rect, totalWeight: Double): Double</ID>
+    <ID>CognitiveComplexMethod:TreemapOverlay.kt$@Composable fun TreemapOverlay( visibleNodes: List&lt;TreemapNode&gt;, visibleFiles: List&lt;TreemapNode&gt;, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, hoveredNode: TreemapNode?, hoveredOverlay: FileOverlay?, hoveredDirOverlay: DirectoryOverlay?, zoom: Float, pan: Offset, pointerPos: Offset, modifier: Modifier = Modifier, )</ID>
+    <ID>CognitiveComplexMethod:TreemapPane.kt$@Composable @OptIn(ExperimentalComposeUiApi::class) fun TreemapPane( focusPath: String, visiblePrs: List&lt;PullRequest&gt;, focusRoot: FileNode.Directory, selectedPath: String?, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, directoryOverlayByPath: Map&lt;String, DirectoryOverlay&gt;, prColorMap: Map&lt;String, Color&gt;, viewportResetToken: Int, onFocusPathChange: (String) -&gt; Unit, onSelectedPathChange: (String?) -&gt; Unit, onRelatedPrsDetected: (Set&lt;String&gt;) -&gt; Unit, onFileDoubleClick: (String) -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, )</ID>
+    <ID>MagicNumber:EnvConfig.kt$EnvConfig$5</ID>
+    <ID>MagicNumber:ExplorerPane.kt$12</ID>
+    <ID>MagicNumber:FileDetailsDialog.kt$3</ID>
+    <ID>MagicNumber:GitHubApi.kt$GitHubApi$200</ID>
+    <ID>MagicNumber:GitHubApi.kt$GitHubApi$299</ID>
+    <ID>MagicNumber:GitHubApi.kt$GitHubApi$40</ID>
+    <ID>MagicNumber:GitHubApi.kt$GitHubApi$401</ID>
+    <ID>MagicNumber:GitHubApi.kt$GitHubApi$7</ID>
+    <ID>MagicNumber:GitHubFileTree.kt$8.0</ID>
+    <ID>MagicNumber:GitHubOAuthDesktopAuthenticator.kt$GitHubOAuthDesktopAuthenticator$1_000L</ID>
+    <ID>MagicNumber:GitHubOAuthDesktopAuthenticator.kt$GitHubOAuthDesktopAuthenticator$200</ID>
+    <ID>MagicNumber:GitHubOAuthDesktopAuthenticator.kt$GitHubOAuthDesktopAuthenticator$299</ID>
+    <ID>MagicNumber:GitHubOAuthDesktopAuthenticator.kt$GitHubOAuthDesktopAuthenticator$5</ID>
+    <ID>MagicNumber:GitHubOAuthDesktopAuthenticator.kt$GitHubOAuthDesktopAuthenticator$900</ID>
+    <ID>MagicNumber:GitHubTokenStore.kt$GitHubTokenStore$5</ID>
+    <ID>MagicNumber:PrColorAssigner.kt$PrColorAssigner$5</ID>
+    <ID>MagicNumber:RepoFilter.kt$200</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$0.18f</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$0.20f</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$0.78f</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$0.96f</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$1.5f</ID>
+    <ID>MagicNumber:TreemapCanvas.kt$8f</ID>
+    <ID>MagicNumber:TreemapOverlay.kt$120f</ID>
+    <ID>MagicNumber:TreemapOverlay.kt$24f</ID>
+    <ID>MagicNumber:TreemapOverlay.kt$3</ID>
+    <ID>MagicNumber:TreemapOverlay.kt$40f</ID>
+    <ID>MagicNumber:TreemapOverlay.kt$90f</ID>
+    <ID>MagicNumber:TreemapPane.kt$0.4f</ID>
+    <ID>MagicNumber:TreemapPane.kt$0.8f</ID>
+    <ID>MagicNumber:TreemapPane.kt$0.9f</ID>
+    <ID>MagicNumber:TreemapPane.kt$1.1f</ID>
+    <ID>MagicNumber:TreemapPane.kt$350</ID>
+    <ID>MagicNumber:TreemapPane.kt$8f</ID>
+  </CurrentIssues>
+</SmellBaseline>
