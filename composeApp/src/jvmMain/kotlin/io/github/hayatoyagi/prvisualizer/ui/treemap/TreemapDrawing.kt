@@ -122,7 +122,7 @@ private fun pointOnRectPerimeter(
     val w = size.width
     val h = size.height
     val p = (2f * (w + h)).coerceAtLeast(1f)
-    val d = ((distance % p) + p) % p
+    val d = (distance % p + p) % p
 
     return when {
         d <= w -> Offset(topLeft.x + d, topLeft.y)

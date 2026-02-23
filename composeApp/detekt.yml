@@ -417,7 +417,7 @@ potential-bugs:
     forbiddenTypePatterns:
       - 'kotlin.String'
   CastNullableToNonNullableType:
-    active: false
+    active: true
   CastToNullableType:
     active: false
   Deprecation:
@@ -626,7 +626,7 @@ style:
     ignoreRanges: false
     ignoreExtensionFunctions: true
   MandatoryBracesLoops:
-    active: false
+    active: true
   MaxChainedCallsOnSameLine:
     active: false
     maxChainedCalls: 5
@@ -662,7 +662,7 @@ style:
   OptionalAbstractKeyword:
     active: true
   OptionalUnit:
-    active: false
+    active: true
   PreferToOverPairSyntax:
     active: false
   ProtectedMemberInFinalClass:
@@ -725,10 +725,10 @@ style:
   UnnecessaryLet:
     active: false
   UnnecessaryParentheses:
-    active: false
+    active: true
     allowForUnclearPrecedence: false
   UntilInsteadOfRangeTo:
-    active: false
+    active: true
   UnusedImports:
     active: true
   UnusedParameter:
@@ -756,7 +756,7 @@ style:
   UseEmptyCounterpart:
     active: false
   UseIfEmptyOrIfBlank:
-    active: false
+    active: true
   UseIfInsteadOfWhen:
     active: true
     ignoreWhenContainingVariableDeclaration: false

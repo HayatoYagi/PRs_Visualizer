@@ -25,7 +25,8 @@ fun buildExplorerRows(
             }
             is FileNode.File -> {
                 val overlay = fileOverlayByPath[node.path]
-                Pair(overlay?.dominantType, (overlay?.prs?.size ?: 0) > 1)
+                val prCount = overlay?.prs?.size ?: 0
+                Pair(overlay?.dominantType, prCount > 1)
             }
         }
 
