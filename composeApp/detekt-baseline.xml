@@ -15,22 +15,5 @@
     <ID>CognitiveComplexMethod:TreemapLayout.kt$TreemapLayoutEngine$private fun worstAspectRatio(row: List&lt;FileNode&gt;, bounds: Rect, totalWeight: Double): Double</ID>
     <ID>CognitiveComplexMethod:TreemapOverlay.kt$@Composable fun TreemapOverlay( visibleNodes: List&lt;TreemapNode&gt;, visibleFiles: List&lt;TreemapNode&gt;, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, hoveredNode: TreemapNode?, hoveredOverlay: FileOverlay?, hoveredDirOverlay: DirectoryOverlay?, zoom: Float, pan: Offset, pointerPos: Offset, modifier: Modifier = Modifier, )</ID>
     <ID>CognitiveComplexMethod:TreemapPane.kt$@Composable @OptIn(ExperimentalComposeUiApi::class) fun TreemapPane( focusPath: String, visiblePrs: List&lt;PullRequest&gt;, focusRoot: FileNode.Directory, selectedPath: String?, fileOverlayByPath: Map&lt;String, FileOverlay&gt;, directoryOverlayByPath: Map&lt;String, DirectoryOverlay&gt;, prColorMap: Map&lt;String, Color&gt;, viewportResetToken: Int, onFocusPathChange: (String) -&gt; Unit, onSelectedPathChange: (String?) -&gt; Unit, onRelatedPrsDetected: (Set&lt;String&gt;) -&gt; Unit, onFileDoubleClick: (String) -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, )</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$0.18f</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$0.20f</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$0.78f</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$0.96f</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$1.5f</ID>
-    <ID>MagicNumber:TreemapCanvas.kt$8f</ID>
-    <ID>MagicNumber:TreemapOverlay.kt$120f</ID>
-    <ID>MagicNumber:TreemapOverlay.kt$24f</ID>
-    <ID>MagicNumber:TreemapOverlay.kt$3</ID>
-    <ID>MagicNumber:TreemapOverlay.kt$40f</ID>
-    <ID>MagicNumber:TreemapOverlay.kt$90f</ID>
-    <ID>MagicNumber:TreemapPane.kt$0.4f</ID>
-    <ID>MagicNumber:TreemapPane.kt$0.8f</ID>
-    <ID>MagicNumber:TreemapPane.kt$0.9f</ID>
-    <ID>MagicNumber:TreemapPane.kt$1.1f</ID>
-    <ID>MagicNumber:TreemapPane.kt$350</ID>
-    <ID>MagicNumber:TreemapPane.kt$8f</ID>
   </CurrentIssues>
 </SmellBaseline>

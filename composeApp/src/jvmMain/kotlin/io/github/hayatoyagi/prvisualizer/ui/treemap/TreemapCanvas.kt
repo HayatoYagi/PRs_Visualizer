@@ -20,6 +20,21 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+private const val MIN_DIRECTORY_RENDER_SIZE_PX = 1f
+private const val MIN_FILE_RENDER_SIZE_PX = 2f
+private const val ACTIVE_PR_DOT_RADIUS_PX = 1.5f
+private const val BASE_ALPHA = 0.18f
+private const val DIRECTORY_NEUTRAL_ALPHA = 0.20f
+private const val ALPHA_DENSITY_MULTIPLIER = 0.78f
+private const val MIN_ALPHA = 0.18f
+private const val MAX_ALPHA = 0.96f
+private const val BORDER_WIDTH_PX = 8f
+private const val NODE_INSET_PX = 1.5f
+private const val HIGHLIGHT_STROKE_WIDTH_PX = 2.5f
+private const val CONFLICT_STRIPE_SPACING_PX = 8f
+private const val CONFLICT_STRIPE_WIDTH_PX = 1f
+private const val DOUBLE_INSET_MULTIPLIER = 2f
+
 @Composable
 fun TreemapCanvas(
     visibleDirectories: List<TreemapNode>,
@@ -40,7 +55,7 @@ fun TreemapCanvas(
         visibleDirectories.forEach { node ->
             val widthPx = node.rect.width * zoom
             val heightPx = node.rect.height * zoom
-            if (widthPx < 1f || heightPx < 1f) return@forEach
+            if (widthPx < MIN_DIRECTORY_RENDER_SIZE_PX || heightPx < MIN_DIRECTORY_RENDER_SIZE_PX) return@forEach
             val overlay = directoryOverlayByPath[node.path]
             val fill = when (overlay?.dominantType) {
                 ChangeType.Addition -> AppColors.treemapAddition
@@ -49,9 +64,9 @@ fun TreemapCanvas(
                 null -> AppColors.treemapNeutralDir
             }
             val alpha = if (overlay?.dominantType == null) {
-                0.20f
+                DIRECTORY_NEUTRAL_ALPHA
             } else {
-                (0.18f + overlay.density * 0.78f).coerceIn(0.18f, 0.96f)
+                (BASE_ALPHA + overlay.density * ALPHA_DENSITY_MULTIPLIER).coerceIn(MIN_ALPHA, MAX_ALPHA)
             }
             drawNodeCell(
                 node = node,
@@ -71,11 +86,11 @@ fun TreemapCanvas(
             val widthPx = node.rect.width * zoom
             val heightPx = node.rect.height * zoom
             val overlay = fileOverlayByPath[node.path]
-            if (widthPx < 2f || heightPx < 2f) {
+            if (widthPx < MIN_FILE_RENDER_SIZE_PX || heightPx < MIN_FILE_RENDER_SIZE_PX) {
                 if (node.hasActivePr) {
                     drawCircle(
                         color = AppColors.treemapActivePrDot,
-                        radius = 1.5f,
+                        radius = ACTIVE_PR_DOT_RADIUS_PX,
                         center = node.rect.center * zoom + pan,
                     )
                 }
@@ -88,7 +103,7 @@ fun TreemapCanvas(
                 ChangeType.Deletion -> AppColors.treemapDeletion
                 null -> AppColors.treemapNeutralFile
             }
-            val alpha = (0.18f + (overlay?.density ?: 0f) * 0.78f).coerceIn(0.18f, 0.96f)
+            val alpha = (BASE_ALPHA + (overlay?.density ?: 0f) * ALPHA_DENSITY_MULTIPLIER).coerceIn(MIN_ALPHA, MAX_ALPHA)
             drawNodeCell(
                 node = node,
                 zoom = zoom,
@@ -119,12 +134,12 @@ private fun DrawScope.drawNodeCell(
 ) {
     val rawTopLeft = node.rect.topLeft * zoom + pan
     val rawSize = node.rect.size * zoom
-    val borderWidth = 8f
-    val inset = 1.5f
+    val borderWidth = BORDER_WIDTH_PX
+    val inset = NODE_INSET_PX
     val topLeft = Offset(rawTopLeft.x + inset, rawTopLeft.y + inset)
     val size = Size(
-        width = (rawSize.width - inset * 2f).coerceAtLeast(0f),
-        height = (rawSize.height - inset * 2f).coerceAtLeast(0f),
+        width = (rawSize.width - inset * DOUBLE_INSET_MULTIPLIER).coerceAtLeast(0f),
+        height = (rawSize.height - inset * DOUBLE_INSET_MULTIPLIER).coerceAtLeast(0f),
     )
     if (size.width <= 0f || size.height <= 0f) return
 
@@ -142,7 +157,7 @@ private fun DrawScope.drawNodeCell(
             color = Color.White,
             topLeft = topLeft,
             size = size,
-            style = Stroke(width = 2.5f),
+            style = Stroke(width = HIGHLIGHT_STROKE_WIDTH_PX),
         )
     }
     if (hasConflict) {
@@ -152,14 +167,14 @@ private fun DrawScope.drawNodeCell(
             right = topLeft.x + size.width,
             bottom = topLeft.y + size.height,
         ) {
-            val spacing = 8f
+            val spacing = CONFLICT_STRIPE_SPACING_PX
             var x = topLeft.x - size.height
             while (x < topLeft.x + size.width) {
                 drawLine(
                     color = AppColors.treemapConflictStripe,
                     start = Offset(x, topLeft.y + size.height),
                     end = Offset(x + size.height, topLeft.y),
-                    strokeWidth = 1f,
+                    strokeWidth = CONFLICT_STRIPE_WIDTH_PX,
                     cap = StrokeCap.Square,
                 )
                 x += spacing

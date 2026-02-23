@@ -42,6 +42,16 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+private const val INITIAL_ZOOM = 0.8f
+private const val MIN_CANVAS_SIZE_PX = 1
+private const val ZOOM_OUT_FACTOR = 0.9f
+private const val ZOOM_IN_FACTOR = 1.1f
+private const val MIN_ZOOM = 0.4f
+private const val MAX_ZOOM = 8f
+private const val DOUBLE_CLICK_THRESHOLD_MILLIS = 350L
+private const val LOADING_OVERLAY_ALPHA = 0.8f
+private const val PAN_CENTER_DIVISOR = 2f
+
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 fun TreemapPane(
@@ -60,9 +70,9 @@ fun TreemapPane(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
-    var zoom by remember { mutableStateOf(0.8f) }
+    var zoom by remember { mutableStateOf(INITIAL_ZOOM) }
     var pan by remember { mutableStateOf(Offset.Zero) }
-    var canvasSize by remember { mutableStateOf(IntSize(1, 1)) }
+    var canvasSize by remember { mutableStateOf(IntSize(MIN_CANVAS_SIZE_PX, MIN_CANVAS_SIZE_PX)) }
     var pendingViewportCentering by remember { mutableStateOf(true) }
     var pointerPos by remember { mutableStateOf(Offset.Zero) }
     var dragPointerPos by remember { mutableStateOf<Offset?>(null) }
@@ -71,9 +81,9 @@ fun TreemapPane(
     var lastClickAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(focusPath, viewportResetToken) {
-        zoom = 0.8f
+        zoom = INITIAL_ZOOM
         pendingViewportCentering = true
-        if (canvasSize.width > 1 && canvasSize.height > 1) {
+        if (canvasSize.width > MIN_CANVAS_SIZE_PX && canvasSize.height > MIN_CANVAS_SIZE_PX) {
             pan = centeredPan(canvasSize = canvasSize, zoom = zoom)
             pendingViewportCentering = false
         } else {
@@ -134,7 +144,7 @@ fun TreemapPane(
                 .background(AppColors.backgroundCanvas)
                 .onSizeChanged {
                     canvasSize = it
-                    if (pendingViewportCentering && it.width > 1 && it.height > 1) {
+                    if (pendingViewportCentering && it.width > MIN_CANVAS_SIZE_PX && it.height > MIN_CANVAS_SIZE_PX) {
                         pan = centeredPan(canvasSize = it, zoom = zoom)
                         pendingViewportCentering = false
                     }
@@ -161,8 +171,8 @@ fun TreemapPane(
                         .firstOrNull()
                         ?.scrollDelta
                         ?.y ?: return@onPointerEvent
-                    val factor = if (scrollY > 0f) 0.9f else 1.1f
-                    val newZoom = (zoom * factor).coerceIn(0.4f, 8f)
+                    val factor = if (scrollY > 0f) ZOOM_OUT_FACTOR else ZOOM_IN_FACTOR
+                    val newZoom = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
                     val cursor = pointerPos
                     val world = (cursor - pan) / zoom
                     pan = cursor - world * newZoom
@@ -185,7 +195,7 @@ fun TreemapPane(
                     }
 
                     val key = nodeKey(node)
-                    val isDoubleClick = key == lastClickKey && (change.uptimeMillis - lastClickAt) < 350
+                    val isDoubleClick = key == lastClickKey && (change.uptimeMillis - lastClickAt) < DOUBLE_CLICK_THRESHOLD_MILLIS
                     if (isDoubleClick) {
                         if (node.isDirectory) {
                             onFocusPathChange(node.path)
@@ -223,7 +233,7 @@ fun TreemapPane(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(AppColors.backgroundCanvas.copy(alpha = 0.8f)),
+                        .background(AppColors.backgroundCanvas.copy(alpha = LOADING_OVERLAY_ALPHA)),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(color = AppColors.textPrimary)
@@ -239,7 +249,7 @@ private fun centeredPan(
 ): Offset {
     if (canvasSize.width <= 0 || canvasSize.height <= 0) return Offset.Zero
     return Offset(
-        x = canvasSize.width * (1f - zoom) / 2f,
-        y = canvasSize.height * (1f - zoom) / 2f,
+        x = canvasSize.width * (1f - zoom) / PAN_CENTER_DIVISOR,
+        y = canvasSize.height * (1f - zoom) / PAN_CENTER_DIVISOR,
     )
 }

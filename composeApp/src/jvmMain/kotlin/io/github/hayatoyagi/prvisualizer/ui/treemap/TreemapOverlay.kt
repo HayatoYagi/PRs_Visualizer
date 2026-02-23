@@ -21,6 +21,16 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+private const val MIN_NODE_LABEL_WIDTH_PX = 90f
+private const val MIN_NODE_LABEL_HEIGHT_PX = 24f
+private const val NODE_LABEL_X_OFFSET_PX = 6f
+private const val NODE_LABEL_Y_OFFSET_PX = 4f
+private const val MIN_FILE_PR_WIDTH_PX = 120f
+private const val MIN_FILE_PR_HEIGHT_PX = 40f
+private const val MAX_VISIBLE_PR_COUNT = 3
+private const val FILE_PR_Y_OFFSET_PX = 18f
+private const val TOOLTIP_POINTER_OFFSET_PX = 12f
+
 @Composable
 fun TreemapOverlay(
     visibleNodes: List<TreemapNode>,
@@ -37,7 +47,7 @@ fun TreemapOverlay(
     visibleNodes.forEach { node ->
         val widthPx = node.rect.width * zoom
         val heightPx = node.rect.height * zoom
-        if (widthPx <= 90f || heightPx <= 24f) return@forEach
+        if (widthPx <= MIN_NODE_LABEL_WIDTH_PX || heightPx <= MIN_NODE_LABEL_HEIGHT_PX) return@forEach
         val label = if (node.isDirectory) "${node.name}/" else node.name
         Text(
             text = label,
@@ -46,8 +56,8 @@ fun TreemapOverlay(
             modifier = modifier
                 .offset {
                     IntOffset(
-                        x = (node.rect.left * zoom + pan.x + 6f).toInt(),
-                        y = (node.rect.top * zoom + pan.y + 4f).toInt(),
+                        x = (node.rect.left * zoom + pan.x + NODE_LABEL_X_OFFSET_PX).toInt(),
+                        y = (node.rect.top * zoom + pan.y + NODE_LABEL_Y_OFFSET_PX).toInt(),
                     )
                 },
         )
@@ -57,9 +67,9 @@ fun TreemapOverlay(
         val overlay = fileOverlayByPath[node.path] ?: return@forEach
         val widthPx = node.rect.width * zoom
         val heightPx = node.rect.height * zoom
-        if (widthPx <= 120f || heightPx <= 40f) return@forEach
-        val prText = overlay.prs.take(3).joinToString(" ") { "#${it.number}" }
-        val suffix = if (overlay.prs.size > 3) " +" else ""
+        if (widthPx <= MIN_FILE_PR_WIDTH_PX || heightPx <= MIN_FILE_PR_HEIGHT_PX) return@forEach
+        val prText = overlay.prs.take(MAX_VISIBLE_PR_COUNT).joinToString(" ") { "#${it.number}" }
+        val suffix = if (overlay.prs.size > MAX_VISIBLE_PR_COUNT) " +" else ""
         Text(
             text = "$prText$suffix",
             color = AppColors.textPrItem,
@@ -69,8 +79,8 @@ fun TreemapOverlay(
             modifier = modifier
                 .offset {
                     IntOffset(
-                        x = (node.rect.left * zoom + pan.x + 6f).toInt(),
-                        y = (node.rect.top * zoom + pan.y + 18f).toInt(),
+                        x = (node.rect.left * zoom + pan.x + NODE_LABEL_X_OFFSET_PX).toInt(),
+                        y = (node.rect.top * zoom + pan.y + FILE_PR_Y_OFFSET_PX).toInt(),
                     )
                 },
         )
@@ -81,8 +91,8 @@ fun TreemapOverlay(
             modifier = modifier
                 .offset {
                     IntOffset(
-                        x = (pointerPos.x + 12f).toInt(),
-                        y = (pointerPos.y + 12f).toInt(),
+                        x = (pointerPos.x + TOOLTIP_POINTER_OFFSET_PX).toInt(),
+                        y = (pointerPos.y + TOOLTIP_POINTER_OFFSET_PX).toInt(),
                     )
                 }.border(1.dp, AppColors.tooltipBorder),
             color = AppColors.tooltipBackground,

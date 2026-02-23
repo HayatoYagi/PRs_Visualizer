@@ -32,10 +32,10 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-private const val CHEVRON_ICON_WIDTH_DP = 12
-private const val CHEVRON_ICON_PADDING_DP = 4
-private const val CHEVRON_TOTAL_WIDTH_DP = CHEVRON_ICON_WIDTH_DP + CHEVRON_ICON_PADDING_DP
-private const val INDENT_PER_LEVEL_DP = 12
+private val CHEVRON_ICON_WIDTH = 12.dp
+private val CHEVRON_ICON_PADDING = 4.dp
+private val CHEVRON_TOTAL_WIDTH = CHEVRON_ICON_WIDTH + CHEVRON_ICON_PADDING
+private val INDENT_PER_LEVEL = 12.dp
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     if (hasConflict) return ExplorerStatusKind.Conflict
@@ -142,7 +142,7 @@ fun ExplorerPane(
                                 .padding(end = 30.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Spacer(modifier = Modifier.width((row.depth * INDENT_PER_LEVEL_DP).dp))
+                            Spacer(modifier = Modifier.width(INDENT_PER_LEVEL * row.depth))
                             if (row.isDirectory) {
                                 val isExpanded = expandedPaths.contains(row.path)
                                 Text(
@@ -153,11 +153,11 @@ fun ExplorerPane(
                                         else -> AppColors.textSecondary
                                     },
                                     modifier = Modifier
-                                        .padding(end = CHEVRON_ICON_PADDING_DP.dp)
+                                        .padding(end = CHEVRON_ICON_PADDING)
                                         .clickable { onToggleExpanded(row.path) },
                                 )
                             } else {
-                                Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
+                                Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH))
                             }
                             Text(
                                 text = if (row.isDirectory) "${row.name}/" else row.name,
