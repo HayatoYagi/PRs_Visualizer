@@ -60,6 +60,6 @@ detekt {
     config.setFrom("$projectDir/detekt.yml")
     source.setFrom(
         files("src/jvmMain/kotlin"),
-        files("src/commonMain/kotlin")
+        files("src/commonMain/kotlin"),
     )
 }
