@@ -1,5 +1,6 @@
 package io.github.hayatoyagi.prvisualizer
 
+import io.github.hayatoyagi.prvisualizer.github.session.RepositorySelectionStoreImpl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,15 +12,15 @@ import kotlin.test.assertTrue
 
 class VisualizerViewModelTest {
     @Test
-    fun `ViewModel should initialize with provided owner and repo`() {
-        val vm = VisualizerViewModel(initialOwner = "TestOwner", initialRepo = "TestRepo")
-        assertEquals("TestOwner", vm.state.repoState.owner)
-        assertEquals("TestRepo", vm.state.repoState.repo)
+    fun `ViewModel should initialize with empty owner and repo by default`() {
+        val vm = VisualizerViewModel()
+        assertEquals("", vm.state.repoState.owner)
+        assertEquals("", vm.state.repoState.repo)
     }
 
     @Test
     fun `openRepoDialog should set dialog state correctly`() {
-        val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
+        val vm = VisualizerViewModel()
         vm.openRepoDialog()
 
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
@@ -56,7 +57,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectRepo should preserve toggles and clear query selection state`() {
-        val vm = VisualizerViewModel(initialOwner = "Old", initialRepo = "Repo")
+        val vm = VisualizerViewModel()
 
         // Set some state
         vm.openRepoDialog()
@@ -429,42 +430,46 @@ class VisualizerViewModelTest {
     @Test
     fun `selectRepo should persist repository to storage`() {
         // Clear any persisted repository before test
-        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+        RepositorySelectionStoreImpl.clear()
 
-        val vm = VisualizerViewModel(initialOwner = "Initial", initialRepo = "Repo")
+        val vm = VisualizerViewModel(
+            repositoryStore = RepositorySelectionStoreImpl,
+        )
         vm.selectRepo("NewOwner/NewRepo")
 
         // Verify that the repository was persisted
-        val loaded = io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.loadRepository()
+        val loaded = RepositorySelectionStoreImpl.load()
         assertEquals(Pair("NewOwner", "NewRepo"), loaded)
 
         // Clean up
-        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+        RepositorySelectionStoreImpl.clear()
     }
 
     @Test
     fun `ViewModel should initialize with persisted repository when available`() {
         // Save a repository
-        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.saveRepository("PersistedOwner", "PersistedRepo")
+        RepositorySelectionStoreImpl.save("PersistedOwner", "PersistedRepo")
 
         // Create a new ViewModel - it should load the persisted repository
-        val vm = VisualizerViewModel(initialOwner = "DefaultOwner", initialRepo = "DefaultRepo")
+        val vm = VisualizerViewModel(
+            repositoryStore = RepositorySelectionStoreImpl,
+        )
 
         assertEquals("PersistedOwner", vm.state.repoState.owner)
         assertEquals("PersistedRepo", vm.state.repoState.repo)
 
         // Clean up
-        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+        RepositorySelectionStoreImpl.clear()
     }
 
     @Test
     fun `ViewModel should use defaults when no persisted repository exists`() {
         // Clear any persisted repository
-        io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
+        RepositorySelectionStoreImpl.clear()
 
-        val vm = VisualizerViewModel(initialOwner = "DefaultOwner", initialRepo = "DefaultRepo")
+        val vm = VisualizerViewModel(repositoryStore = RepositorySelectionStoreImpl)
 
-        assertEquals("DefaultOwner", vm.state.repoState.owner)
-        assertEquals("DefaultRepo", vm.state.repoState.repo)
+        assertEquals("", vm.state.repoState.owner)
+        assertEquals("", vm.state.repoState.repo)
     }
 }

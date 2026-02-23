@@ -8,7 +8,7 @@ import java.nio.file.StandardOpenOption
  * Stores and retrieves the last opened repository information.
  * Persists owner and repository name to local storage so it can be restored on app restart.
  */
-object RepositoryStore {
+object RepositorySelectionStoreImpl : RepositorySelectionStore {
     private const val FILE_NAME = "last_repository.txt"
 
     /**
@@ -16,7 +16,7 @@ object RepositoryStore {
      * Returns null if no repository was previously saved.
      * @return Pair of (owner, repo) or null if not found or invalid
      */
-    fun loadRepository(): Pair<String, String>? {
+    override fun load(): Pair<String, String>? {
         val path = getStoragePath()
         if (!Files.exists(path)) return null
 
@@ -39,7 +39,7 @@ object RepositoryStore {
      * @param owner Repository owner
      * @param repo Repository name
      */
-    fun saveRepository(owner: String, repo: String) {
+    override fun save(owner: String, repo: String) {
         val trimmedOwner = owner.trim()
         val trimmedRepo = repo.trim()
         if (trimmedOwner.isBlank() || trimmedRepo.isBlank()) return
@@ -61,7 +61,7 @@ object RepositoryStore {
     /**
      * Clears the saved repository information.
      */
-    fun clearRepository() {
+    fun clear() {
         runCatching {
             Files.deleteIfExists(getStoragePath())
         }

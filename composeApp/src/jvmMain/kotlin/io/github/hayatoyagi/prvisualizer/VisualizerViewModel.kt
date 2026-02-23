@@ -6,29 +6,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
-import io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore
+import io.github.hayatoyagi.prvisualizer.github.session.RepositorySelectionStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.random.Random
 
 class VisualizerViewModel(
-    initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
-    initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
-    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
-    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
+    private val repositoryStore: RepositorySelectionStore? = null,
 ) : ViewModel() {
     // Main state container
     var state by mutableStateOf(
         run {
             // Try to restore repository from persistent storage
-            val restoredRepo = RepositoryStore.loadRepository()
-            val owner = restoredRepo?.first ?: initialOwner
-            val repo = restoredRepo?.second ?: initialRepo
+            val restoredRepo = repositoryStore?.load()
+            val owner = restoredRepo?.first ?: ""
+            val repo = restoredRepo?.second ?: ""
             VisualizerState(
                 repoState = RepoState(owner = owner, repo = repo),
-                sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
+                sessionState = SessionState(oauthToken = "", currentUserOverride = ""),
             )
         },
     )
@@ -104,8 +100,7 @@ class VisualizerViewModel(
         state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
         navigationHistory.clear()
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
-        // Persist the repository selection
-        RepositoryStore.saveRepository(newOwner, newRepo)
+        repositoryStore?.save(newOwner, newRepo)
     }
 
     // region: PR フィルタ
