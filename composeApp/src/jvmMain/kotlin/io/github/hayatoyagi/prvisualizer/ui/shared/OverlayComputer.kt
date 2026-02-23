@@ -19,6 +19,24 @@ fun findDirectory(
     return null
 }
 
+fun findFileNode(
+    root: FileNode.Directory,
+    path: String,
+): FileNode.File? {
+    root.children.forEach { child ->
+        when (child) {
+            is FileNode.File -> {
+                if (child.path == path) return child
+            }
+            is FileNode.Directory -> {
+                val found = findFileNode(child, path)
+                if (found != null) return found
+            }
+        }
+    }
+    return null
+}
+
 fun parentPathOf(path: String): String {
     if (path.isBlank()) return ""
     return path.substringBeforeLast('/', missingDelimiterValue = "")

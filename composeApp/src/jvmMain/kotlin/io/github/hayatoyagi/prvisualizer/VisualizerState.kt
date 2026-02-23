@@ -16,10 +16,15 @@ data class RepoState(
 /**
  * Represents dialog-related state.
  */
-data class DialogState(
-    val isRepoDialogOpen: Boolean = false,
-    val repoPickerQuery: String = "",
-)
+sealed interface DialogState {
+    data object None : DialogState
+
+    data object RepoPicker : DialogState
+
+    data class FileDetails(
+        val filePath: String,
+    ) : DialogState
+}
 
 /**
  * Represents PR filter state.
@@ -79,7 +84,7 @@ data class SessionState(
  */
 data class VisualizerState(
     val repoState: RepoState = RepoState(),
-    val dialogState: DialogState = DialogState(),
+    val dialogState: DialogState = DialogState.None,
     val filterState: FilterState = FilterState(),
     val navigationState: NavigationState = NavigationState(),
     val colorState: ColorState = ColorState(),
@@ -95,7 +100,7 @@ data class VisualizerState(
         repo: String,
     ): VisualizerState = copy(
         repoState = RepoState(owner, repo),
-        dialogState = DialogState(isRepoDialogOpen = false, repoPickerQuery = ""),
+        dialogState = DialogState.None,
         filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),

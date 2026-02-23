@@ -23,19 +23,21 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
+import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
-import io.github.hayatoyagi.prvisualizer.ui.repo.filterRepoOptions
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
+import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
@@ -43,7 +45,6 @@ import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
 data class VisualizerUiState(
-    val filteredRepoOptions: List<String>,
     val filteredPrs: List<PullRequest>,
     val effectiveSelectedIds: Set<String>,
     val visiblePrs: List<PullRequest>,
@@ -61,9 +62,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     val allPrs = snapshot?.pullRequests ?: emptyList()
     val currentUser = vm.state.sessionState.currentUser
 
-    val filteredRepoOptions = remember(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery) {
-        filterRepoOptions(vm.state.sessionState.repositoryOptions, vm.state.dialogState.repoPickerQuery)
-    }
     val filteredPrs = remember(
         vm.state.filterState.showDrafts,
         vm.state.filterState.onlyMine,
@@ -129,7 +127,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
         buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
     }
     return VisualizerUiState(
-        filteredRepoOptions = filteredRepoOptions,
         filteredPrs = filteredPrs,
         effectiveSelectedIds = effectiveSelectedIds,
         visiblePrs = visiblePrs,
@@ -213,19 +210,45 @@ fun App() {
                 onCopyDeviceCode = { copyToClipboard(vm.state.sessionState.deviceUserCode.orEmpty()) },
                 onOpenVerifyPage = { openUrl(vm.state.sessionState.deviceVerificationUrl.orEmpty()) },
             )
-            if (vm.state.dialogState.isRepoDialogOpen) {
-                RepoPickerDialog(
-                    query = vm.state.dialogState.repoPickerQuery,
-                    onQueryChange = { vm.updateRepoPickerQuery(it) },
-                    options = uiState.filteredRepoOptions,
-                    isLoading = vm.state.sessionState.isLoadingRepositories,
-                    onReload = { vm.loadRepositoryOptions() },
-                    onDismiss = { vm.closeRepoDialog() },
-                    onSelect = { fullName ->
-                        vm.selectRepo(fullName)
-                        vm.refresh()
-                    },
-                )
+            when (val dialogState = vm.state.dialogState) {
+                is DialogState.RepoPicker -> {
+                    RepoPickerDialog(
+                        initialQuery = "${vm.state.repoState.owner}/${vm.state.repoState.repo}".trim().trim('/'),
+                        options = vm.state.sessionState.repositoryOptions,
+                        isLoading = vm.state.sessionState.isLoadingRepositories,
+                        onReload = { vm.loadRepositoryOptions() },
+                        onDismiss = { vm.closeRepoDialog() },
+                        onSelect = { fullName ->
+                            vm.selectRepo(fullName)
+                            vm.refresh()
+                        },
+                    )
+                }
+                is DialogState.FileDetails -> {
+                    val filePath = dialogState.filePath
+                    val fileName = filePath.substringAfterLast('/')
+                    val fileNode = remember(uiState.focusRoot, filePath) {
+                        findFileNode(uiState.focusRoot, filePath)
+                    }
+                    val fileOverlay = uiState.fileOverlayByPath[filePath]
+                    val oauthToken = vm.state.sessionState.oauthToken
+
+                    if (fileNode != null && oauthToken.isNotBlank()) {
+                        val githubApi = remember(oauthToken) { GitHubApi(oauthToken) }
+                        FileDetailsDialog(
+                            filePath = filePath,
+                            fileName = fileName,
+                            totalLines = fileNode.totalLines,
+                            fileOverlay = fileOverlay,
+                            repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
+                            defaultBranch = vm.state.sessionState.githubSnapshot?.defaultBranch ?: "main",
+                            prColorMap = vm.state.colorState.prColorMap,
+                            githubApi = githubApi,
+                            onDismiss = { vm.closeFileDetailsDialog() },
+                        )
+                    }
+                }
+                is DialogState.None -> Unit
             }
 
             Row(modifier = Modifier.fillMaxSize()) {
@@ -252,6 +275,7 @@ fun App() {
                     onFocusPathChange = { vm.changeFocusPath(it) },
                     onSelectedPathChange = { vm.updateSelectedPath(it) },
                     onRelatedPrsDetected = { vm.addRelatedPrs(it) },
+                    onFileDoubleClick = { vm.openFileDetailsDialog(it) },
                     repoFullName = "${vm.state.repoState.owner.trim()}/${vm.state.repoState.repo.trim()}",
                     isLoading = vm.state.sessionState.isConnecting,
                 )
