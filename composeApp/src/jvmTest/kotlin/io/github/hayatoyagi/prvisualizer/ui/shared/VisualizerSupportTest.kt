@@ -47,7 +47,7 @@ class VisualizerSupportTest {
             visiblePrs = prs,
             visibleFiles = visibleFiles,
         )
-it        val conflictedDirectoryPaths = computeConflictedDirs(fileOverlayByPath)
+        val conflictedDirectoryPaths = computeConflictedDirs(fileOverlayByPath)
 
         assertTrue(fileOverlayByPath.isEmpty())
         assertTrue(conflictedDirectoryPaths.isEmpty())
