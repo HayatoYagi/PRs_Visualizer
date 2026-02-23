@@ -10,7 +10,6 @@ import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
-import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
@@ -20,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class VisualizerViewModel(
-    private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
+    private val selectedRepositoryStore: SelectedRepositoryStore,
     private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>

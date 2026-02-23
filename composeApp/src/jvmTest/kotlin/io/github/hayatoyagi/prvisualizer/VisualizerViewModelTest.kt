@@ -26,13 +26,13 @@ class VisualizerViewModelTest {
 
     @Test
     fun `ViewModel should default to Unselected repository state`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         assertIs<RepoState.Unselected>(vm.repoState.value)
     }
 
     @Test
     fun `openRepoDialog should set dialog state correctly`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.openRepoDialog()
 
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
@@ -40,7 +40,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `closeRepoDialog should close the dialog`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.openRepoDialog()
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
 
@@ -50,7 +50,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `openFileDetailsDialog should set dialog state correctly`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.openFileDetailsDialog("src/main/App.kt")
 
         val dialog = assertIs<DialogState.FileDetails>(vm.state.dialogState)
@@ -59,7 +59,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `closeDialog should close the dialog`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.openFileDetailsDialog("src/main/App.kt")
         assertIs<DialogState.FileDetails>(vm.state.dialogState)
 
@@ -69,7 +69,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectRepo same repo twice should apply reset only once`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         // Switch to a repo — triggers reset
         vm.updateQuery("search")
@@ -123,7 +123,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `updateShowDrafts should update filter`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         assertTrue(vm.state.filterState.showDrafts)
 
         vm.updateShowDrafts(false)
@@ -132,7 +132,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `updateOnlyMine should update filter`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         assertFalse(vm.state.filterState.onlyMine)
 
         vm.updateOnlyMine(true)
@@ -141,14 +141,14 @@ class VisualizerViewModelTest {
 
     @Test
     fun `updateQuery should update search query`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.updateQuery("test query")
         assertEquals("test query", vm.state.filterState.query)
     }
 
     @Test
     fun `clearQuery should clear search query`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.updateQuery("test")
         assertEquals("test", vm.state.filterState.query)
 
@@ -158,7 +158,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `togglePr should add and remove PR IDs`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         assertTrue(
             vm.state.filterState.selectedPrIds
                 .isEmpty(),
@@ -176,7 +176,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectAllPrs should set all PR IDs`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val prs = setOf("pr1", "pr2", "pr3")
 
         vm.selectAllPrs(prs)
@@ -185,7 +185,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `addRelatedPrs should add to existing selection`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectAllPrs(setOf("pr1", "pr2"))
 
         vm.addRelatedPrs(setOf("pr3", "pr4"))
@@ -194,7 +194,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `addRelatedPrs should not change state if empty set provided`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectAllPrs(setOf("pr1"))
 
         vm.addRelatedPrs(emptySet())
@@ -203,7 +203,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectDirectory should update focusPath and reset token`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken
 
         vm.selectDirectory("src/main")
@@ -213,7 +213,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectDirectory should expand ancestor chain`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectDirectory("src")
         vm.toggleDirectoryExpanded("src")
 
@@ -225,7 +225,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectFile should update both paths and reset token`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken
 
         vm.selectFile("src/main/App.kt")
@@ -236,7 +236,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `changeFocusPath should update focusPath and reset token`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken
 
         vm.changeFocusPath("new/path")
@@ -246,7 +246,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `changeFocusPath should expand ancestor chain`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectDirectory("src")
         vm.toggleDirectoryExpanded("src")
 
@@ -258,14 +258,14 @@ class VisualizerViewModelTest {
 
     @Test
     fun `updateSelectedPath should only update selectedPath`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.updateSelectedPath("file.kt")
         assertEquals("file.kt", vm.state.navigationState.selectedPath)
     }
 
     @Test
     fun `resetNavigation should clear paths`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectFile("src/App.kt")
 
         vm.resetNavigation()
@@ -275,7 +275,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `resetViewport should increment token`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken
 
         vm.resetViewport()
@@ -284,7 +284,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `ensurePrColors should assign colors to new PRs`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val prs = listOf(
             PullRequest("pr1", 1, "Title 1", "author1", false, "url1", emptyList()),
             PullRequest("pr2", 2, "Title 2", "author2", false, "url2", emptyList()),
@@ -299,7 +299,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `ensurePrColors should not reassign existing colors`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val pr1 = PullRequest("pr1", 1, "Title 1", "author1", false, "url1", emptyList())
 
         vm.ensurePrColors(listOf(pr1))
@@ -312,7 +312,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `shufflePrColors should reassign all colors`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val prs = listOf(
             PullRequest("pr1", 1, "Title 1", "author1", false, "url1", emptyList()),
             PullRequest("pr2", 2, "Title 2", "author2", false, "url2", emptyList()),
@@ -332,7 +332,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `cyclePrColor should cycle through palette`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val pr = PullRequest("pr1", 1, "Title", "author", false, "url", emptyList())
 
         vm.ensurePrColors(listOf(pr))
@@ -348,7 +348,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `cyclePrColor should handle PR without assigned color`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.cyclePrColor("pr1")
 
@@ -358,7 +358,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `state operations should maintain immutability`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialState = vm.state
 
         vm.updateQuery("test")
@@ -371,7 +371,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun navigateBackReturnsToRootAfterResetAndFirstNavigation() {
-        val viewModel = VisualizerViewModel()
+        val viewModel = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         viewModel.resetNavigation()
         viewModel.selectDirectory("src")
@@ -382,7 +382,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectFile should record parent path in navigation history`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.selectFile("src/main/App.kt")
@@ -394,7 +394,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `navigateBack after selectFile should restore previous focusPath`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.selectDirectory("src")
@@ -407,7 +407,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `changeFocusPath should record path in navigation history`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.changeFocusPath("src/main")
@@ -419,7 +419,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `navigateBack after changeFocusPath should restore previous focusPath`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.selectDirectory("src")
@@ -432,7 +432,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `navigateBack should expand ancestor chain of restored focusPath`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.selectDirectory("src/main")
@@ -447,7 +447,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `navigateForward should expand ancestor chain of restored focusPath`() {
-        val vm = VisualizerViewModel()
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         vm.resetNavigation()
         vm.selectDirectory("docs")

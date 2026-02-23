@@ -2,16 +2,22 @@ package io.github.hayatoyagi.prvisualizer.github.session
 
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.storage.FileLocalStorage
+import io.github.hayatoyagi.prvisualizer.storage.LocalStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PersistedSelectedRepositoryStore(
-    private val repositorySelectionStore: RepositorySelectionStore,
+    private val localStorage: LocalStorage = FileLocalStorage(appName = "GitHubPRsVisualizer"),
 ) : SelectedRepositoryStore {
+    private companion object {
+        const val LAST_REPOSITORY_KEY = "last_repository"
+    }
+
     private val mutableRepoState = MutableStateFlow(
-        repositorySelectionStore.load()
-            ?.let { RepoState.from(owner = it.first, repo = it.second) }
+        localStorage.getString(LAST_REPOSITORY_KEY)
+            ?.toRepoStateOrNull()
             ?: RepoState.Unselected,
     )
 
@@ -21,11 +27,18 @@ class PersistedSelectedRepositoryStore(
         val nextState = RepoState.from(owner = owner, repo = repo)
         mutableRepoState.value = nextState
         if (nextState is RepoState.Selected) {
-            repositorySelectionStore.save(owner = nextState.owner, repo = nextState.repo)
+            localStorage.putString(LAST_REPOSITORY_KEY, "${nextState.owner}/${nextState.repo}")
         }
     }
 
     override fun unselect() {
         mutableRepoState.value = RepoState.Unselected
+        localStorage.remove(LAST_REPOSITORY_KEY)
+    }
+
+    private fun String.toRepoStateOrNull(): RepoState? {
+        val parts = split('/')
+        if (parts.size != 2) return null
+        return RepoState.from(owner = parts[0], repo = parts[1]).takeIf { it is RepoState.Selected }
     }
 }

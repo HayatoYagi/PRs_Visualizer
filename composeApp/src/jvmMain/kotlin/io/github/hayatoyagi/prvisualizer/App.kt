@@ -25,7 +25,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.PersistedSelectedRepositoryStore
-import io.github.hayatoyagi.prvisualizer.github.session.RepositorySelectionStoreImpl
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
@@ -144,7 +143,7 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
 fun App() {
     val vm = viewModel {
         VisualizerViewModel(
-            selectedRepositoryStore = PersistedSelectedRepositoryStore(RepositorySelectionStoreImpl),
+            selectedRepositoryStore = PersistedSelectedRepositoryStore(),
         )
     }
     val oauthClientId = remember { EnvConfig.get("GITHUB_CLIENT_ID")?.trim().orEmpty() }

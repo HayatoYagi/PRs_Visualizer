@@ -1,6 +1,7 @@
 package io.github.hayatoyagi.prvisualizer.github.session
 
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.storage.LocalStorage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -8,11 +9,11 @@ import kotlin.test.assertIs
 class PersistedSelectedRepositoryStoreTest {
     @Test
     fun `store should initialize from persisted repository`() {
-        val backingStore = FakeRepositorySelectionStore(
-            loaded = Pair("persisted-owner", "persisted-repo"),
+        val localStorage = FakeLocalStorage(
+            initial = mapOf("last_repository" to "persisted-owner/persisted-repo"),
         )
 
-        val store = PersistedSelectedRepositoryStore(backingStore)
+        val store = PersistedSelectedRepositoryStore(localStorage)
 
         val selected = assertIs<RepoState.Selected>(store.repoState.value)
         assertEquals("persisted-owner", selected.owner)
@@ -21,23 +22,39 @@ class PersistedSelectedRepositoryStoreTest {
 
     @Test
     fun `store should persist selected repository`() {
-        val backingStore = FakeRepositorySelectionStore()
-        val store = PersistedSelectedRepositoryStore(backingStore)
+        val localStorage = FakeLocalStorage()
+        val store = PersistedSelectedRepositoryStore(localStorage)
 
         store.select(owner = "owner", repo = "repo")
 
-        assertEquals(Pair("owner", "repo"), backingStore.saved)
+        assertEquals("owner/repo", localStorage.values["last_repository"])
     }
 
-    private class FakeRepositorySelectionStore(
-        private val loaded: Pair<String, String>? = null,
-    ) : RepositorySelectionStore {
-        var saved: Pair<String, String>? = null
+    @Test
+    fun `store should clear persisted value when unselected`() {
+        val localStorage = FakeLocalStorage(
+            initial = mapOf("last_repository" to "owner/repo"),
+        )
+        val store = PersistedSelectedRepositoryStore(localStorage)
 
-        override fun load(): Pair<String, String>? = loaded
+        store.unselect()
 
-        override fun save(owner: String, repo: String) {
-            saved = Pair(owner, repo)
+        assertEquals(null, localStorage.values["last_repository"])
+    }
+
+    private class FakeLocalStorage(
+        initial: Map<String, String> = emptyMap(),
+    ) : LocalStorage {
+        val values: MutableMap<String, String> = initial.toMutableMap()
+
+        override fun getString(key: String): String? = values[key]
+
+        override fun putString(key: String, value: String) {
+            values[key] = value
+        }
+
+        override fun remove(key: String) {
+            values.remove(key)
         }
     }
 }
