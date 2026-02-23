@@ -3,38 +3,50 @@ package io.github.hayatoyagi.prvisualizer
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
-data class RepoSelectionState(
-    val options: List<String> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: AppError? = null,
-)
+sealed interface RepoSelectionState {
+    data object Idle : RepoSelectionState
 
-data class AuthState(
-    val oauthToken: String = "",
-    val isAuthorizing: Boolean = false,
-    val deviceUserCode: String? = null,
-    val deviceVerificationUrl: String? = null,
-    val error: AppError? = null,
-) {
-    val isLoggedIn: Boolean
-        get() = oauthToken.isNotBlank()
+    data object Loading : RepoSelectionState
+
+    data class Ready(
+        val options: List<String>,
+    ) : RepoSelectionState
+
+    data class Error(
+        val options: List<String>,
+        val error: AppError,
+    ) : RepoSelectionState
 }
 
-data class SnapshotFetchState(
-    val snapshot: GitHubSnapshot? = null,
-    val isFetching: Boolean = false,
-    val error: AppError? = null,
-)
+sealed interface AuthState {
+    data object Unauthenticated : AuthState
 
-/**
- * Represents GitHub authentication and snapshot-fetch session.
- */
-data class SessionState(
-    val authState: AuthState = AuthState(),
-    val snapshotFetchState: SnapshotFetchState = SnapshotFetchState(),
-) {
-    val currentUser: String
-        get() = snapshotFetchState.snapshot?.viewerLogin.orEmpty()
+    data class Authorizing(
+        val deviceUserCode: String? = null,
+        val deviceVerificationUrl: String? = null,
+    ) : AuthState
+
+    data class Authenticated(
+        val oauthToken: String,
+    ) : AuthState
+
+    data class Failed(
+        val error: AppError,
+    ) : AuthState
+}
+
+sealed interface SnapshotFetchState {
+    data object Idle : SnapshotFetchState
+
+    data object Fetching : SnapshotFetchState
+
+    data class Ready(
+        val snapshot: GitHubSnapshot,
+    ) : SnapshotFetchState
+
+    data class Failed(
+        val error: AppError,
+    ) : SnapshotFetchState
 }
 
 /**
@@ -47,7 +59,20 @@ sealed interface DialogState {
 
     data class FileDetails(
         val filePath: String,
-    ) : DialogState
+        val commitsState: CommitsState = CommitsState.Loading,
+    ) : DialogState {
+        sealed interface CommitsState {
+            data object Loading : CommitsState
+
+            data class Ready(
+                val commits: List<FileCommit>,
+            ) : CommitsState
+
+            data class Failed(
+                val error: AppError,
+            ) : CommitsState
+        }
+    }
 
     data class PrDetails(
         val pr: PullRequest,
@@ -99,26 +124,31 @@ data class ColorState(
  * Main state container for the VisualizerViewModel.
  */
 data class VisualizerState(
-    val repoSelectionState: RepoSelectionState = RepoSelectionState(),
+    val repoSelectionState: RepoSelectionState = RepoSelectionState.Idle,
     val dialogState: DialogState = DialogState.None,
     val filterState: FilterState = FilterState(),
     val navigationState: NavigationState = NavigationState(),
     val colorState: ColorState = ColorState(),
-    val sessionState: SessionState = SessionState(),
+    val authState: AuthState = AuthState.Unauthenticated,
+    val snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle,
 ) {
+    val currentUser: String
+        get() = when (val fetchState = snapshotFetchState) {
+            is SnapshotFetchState.Ready -> fetchState.snapshot.viewerLogin.orEmpty()
+            SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> ""
+        }
+
     /**
      * Resets state when changing repositories.
      * Keeps toggle filters while clearing query, selection, colors, and navigation.
-     * Clears fetched snapshot and related errors so a fresh fetch is triggered.
+     * Clears fetched snapshot/error; auth errors are cleared back to unauthenticated.
      */
     fun resetForRepositoryChange(): VisualizerState = copy(
         dialogState = DialogState.None,
         filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),
-        sessionState = sessionState.copy(
-            snapshotFetchState = sessionState.snapshotFetchState.copy(snapshot = null, error = null),
-            authState = sessionState.authState.copy(error = null),
-        ),
+        snapshotFetchState = SnapshotFetchState.Idle,
+        authState = if (authState is AuthState.Failed) AuthState.Unauthenticated else authState,
     )
 }

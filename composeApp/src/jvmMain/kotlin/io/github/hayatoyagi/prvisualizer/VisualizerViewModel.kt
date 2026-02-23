@@ -6,17 +6,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
+import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
+import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.random.Random
+import kotlinx.coroutines.launch
 
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
+    private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>
         get() = selectedRepositoryStore.repoState
@@ -30,11 +35,15 @@ class VisualizerViewModel(
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
 
+    private var fileDetailsJob: Job? = null
+
     // region: セッション管理
     private val sessionManager = GitHubSessionManager(
         scope = viewModelScope,
-        getSessionState = { state.sessionState },
-        setSessionState = { state = state.copy(sessionState = it) },
+        getAuthState = { state.authState },
+        setAuthState = { state = state.copy(authState = it) },
+        getSnapshotFetchState = { state.snapshotFetchState },
+        setSnapshotFetchState = { state = state.copy(snapshotFetchState = it) },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
@@ -59,9 +68,7 @@ class VisualizerViewModel(
             }
             RepoState.Unselected -> {
                 state = state.copy(
-                    sessionState = state.sessionState.copy(
-                        snapshotFetchState = state.sessionState.snapshotFetchState.copy(snapshot = null, error = null),
-                    ),
+                    snapshotFetchState = SnapshotFetchState.Idle,
                 )
             }
         }
@@ -93,9 +100,14 @@ class VisualizerViewModel(
     }
 
     fun openFileDetailsDialog(filePath: String) {
+        fileDetailsJob?.cancel()
         state = state.copy(
-            dialogState = DialogState.FileDetails(filePath = filePath),
+            dialogState = DialogState.FileDetails(
+                filePath = filePath,
+                commitsState = DialogState.FileDetails.CommitsState.Loading,
+            ),
         )
+        fileDetailsJob = loadFileDetailsCommits(filePath)
     }
 
     fun openPrDetailsDialog(pr: PullRequest) {
@@ -105,8 +117,53 @@ class VisualizerViewModel(
     }
 
     fun closeDialog() {
+        fileDetailsJob?.cancel()
         state = state.copy(
             dialogState = DialogState.None,
+        )
+    }
+
+    fun reloadFileDetailsCommits() {
+        val fileDetails = state.dialogState as? DialogState.FileDetails ?: return
+        fileDetailsJob?.cancel()
+        fileDetailsJob = loadFileDetailsCommits(fileDetails.filePath)
+    }
+
+    private fun loadFileDetailsCommits(filePath: String): Job? {
+        val authState = state.authState as? AuthState.Authenticated ?: run {
+            updateFileDetailsCommitsState(
+                filePath = filePath,
+                commitsState = DialogState.FileDetails.CommitsState.Failed(AppError.AuthExpired()),
+            )
+            return null
+        }
+        val selectedRepo = selectedRepositoryStore.repoState.value as? RepoState.Selected
+            ?: return null
+        updateFileDetailsCommitsState(filePath = filePath, commitsState = DialogState.FileDetails.CommitsState.Loading)
+        return viewModelScope.launch {
+            val commitsResult = fileCommitsService.fetchFileCommits(
+                token = authState.oauthToken,
+                owner = selectedRepo.owner,
+                repo = selectedRepo.repo,
+                path = filePath,
+                limit = 10,
+            )
+            val commitsState = commitsResult.fold(
+                onSuccess = { commits -> DialogState.FileDetails.CommitsState.Ready(commits) },
+                onFailure = { error -> DialogState.FileDetails.CommitsState.Failed(AppError.from(error)) },
+            )
+            updateFileDetailsCommitsState(filePath = filePath, commitsState = commitsState)
+        }
+    }
+
+    private fun updateFileDetailsCommitsState(
+        filePath: String,
+        commitsState: DialogState.FileDetails.CommitsState,
+    ) {
+        val dialogState = state.dialogState as? DialogState.FileDetails ?: return
+        if (dialogState.filePath != filePath) return
+        state = state.copy(
+            dialogState = dialogState.copy(commitsState = commitsState),
         )
     }
 
@@ -318,9 +375,9 @@ class VisualizerViewModel(
     fun ensurePrColors(prs: List<PullRequest>) {
         val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {
-            val newMap = state.colorState.prColorMap.toMutableMap()
+            val newMap = LinkedHashMap(state.colorState.prColorMap)
             prsNeedingColors.forEach { pr ->
-                newMap[pr.id] = randomColorAvoidingMap(newMap)
+                newMap[pr.id] = PrColorAssigner.nextColor(newMap)
             }
             state = state.copy(
                 colorState = state.colorState.copy(prColorMap = newMap),
@@ -329,9 +386,9 @@ class VisualizerViewModel(
     }
 
     fun shufflePrColors(prs: List<PullRequest>) {
-        val newMap = mutableMapOf<String, Color>()
+        val newMap = LinkedHashMap<String, Color>()
         prs.forEach { pr ->
-            newMap[pr.id] = randomColorAvoidingMap(newMap)
+            newMap[pr.id] = PrColorAssigner.nextColor(newMap)
         }
         state = state.copy(
             colorState = state.colorState.copy(prColorMap = newMap),
@@ -351,19 +408,5 @@ class VisualizerViewModel(
                 prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex]),
             ),
         )
-    }
-
-    private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
-        // Avoid the 5 most recently assigned colors (map preserves insertion order)
-        val recentColors = assignedMap.values
-            .toList()
-            .takeLast(5)
-            .toSet()
-        val availableColors = AppColors.authorPalette.filter { it !in recentColors }
-        return if (availableColors.isNotEmpty()) {
-            availableColors[Random.nextInt(availableColors.size)]
-        } else {
-            AppColors.authorPalette[Random.nextInt(AppColors.authorPalette.size)]
-        }
     }
 }

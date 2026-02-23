@@ -43,13 +43,10 @@ class VisualizerStateTest {
     }
 
     @Test
-    fun `SessionState defaults should separate auth and snapshot state`() {
-        val session = SessionState()
-        assertFalse(session.authState.isLoggedIn)
-        assertNull(session.snapshotFetchState.snapshot)
-        assertFalse(session.snapshotFetchState.isFetching)
-        assertNull(session.authState.error)
-        assertNull(session.snapshotFetchState.error)
+    fun `VisualizerState defaults should separate auth and snapshot state`() {
+        val state = VisualizerState()
+        assertIs<AuthState.Unauthenticated>(state.authState)
+        assertIs<SnapshotFetchState.Idle>(state.snapshotFetchState)
     }
 
     @Test
@@ -80,16 +77,8 @@ class VisualizerStateTest {
             colorState = ColorState(
                 prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue),
             ),
-            sessionState = SessionState(
-                authState = AuthState(
-                    oauthToken = "token",
-                    error = AppError.Network("error"),
-                ),
-                snapshotFetchState = SnapshotFetchState(
-                    snapshot = null,
-                    error = AppError.Unknown("snapshot error"),
-                ),
-            ),
+            authState = AuthState.Failed(AppError.Network("error")),
+            snapshotFetchState = SnapshotFetchState.Failed(AppError.Unknown("snapshot error")),
         )
 
         val reset = state.resetForRepositoryChange()
@@ -102,8 +91,7 @@ class VisualizerStateTest {
         assertNull(reset.navigationState.selectedPath)
         assertEquals(0, reset.navigationState.viewportResetToken)
         assertTrue(reset.colorState.prColorMap.isEmpty())
-        assertNull(reset.sessionState.authState.error)
-        assertNull(reset.sessionState.snapshotFetchState.error)
-        assertNull(reset.sessionState.snapshotFetchState.snapshot)
+        assertIs<AuthState.Unauthenticated>(reset.authState)
+        assertIs<SnapshotFetchState.Idle>(reset.snapshotFetchState)
     }
 }
