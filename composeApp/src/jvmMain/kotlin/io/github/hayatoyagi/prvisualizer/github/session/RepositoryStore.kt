@@ -35,6 +35,7 @@ object RepositoryStore {
 
     /**
      * Saves the current repository to persistent storage.
+     * Silently fails if save operation encounters an error (e.g., permission issues).
      * @param owner Repository owner
      * @param repo Repository name
      */
@@ -51,6 +52,9 @@ object RepositoryStore {
             }
             val content = "$trimmedOwner/$trimmedRepo"
             Files.writeString(path, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        }.onFailure { exception ->
+            // Log error to stderr for debugging, but don't fail the application
+            System.err.println("Warning: Failed to save repository to persistent storage: ${exception.message}")
         }
     }
 

@@ -428,7 +428,7 @@ class VisualizerViewModelTest {
 
     @Test
     fun `selectRepo should persist repository to storage`() {
-        // Import the RepositoryStore for cleanup
+        // Clear any persisted repository before test
         io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore.clearRepository()
 
         val vm = VisualizerViewModel(initialOwner = "Initial", initialRepo = "Repo")
