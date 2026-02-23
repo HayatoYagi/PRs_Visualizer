@@ -2,7 +2,6 @@ package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
-import io.github.hayatoyagi.prvisualizer.repository.RepoState
 
 data class RepoSelectionState(
     val options: List<String> = emptyList(),
@@ -12,7 +11,6 @@ data class RepoSelectionState(
 
 data class AuthState(
     val oauthToken: String = "",
-    val currentUserOverride: String = "",
     val isAuthorizing: Boolean = false,
     val deviceUserCode: String? = null,
     val deviceVerificationUrl: String? = null,
@@ -36,7 +34,7 @@ data class SessionState(
     val snapshotFetchState: SnapshotFetchState = SnapshotFetchState(),
 ) {
     val currentUser: String
-        get() = snapshotFetchState.snapshot?.viewerLogin ?: authState.currentUserOverride
+        get() = snapshotFetchState.snapshot?.viewerLogin.orEmpty()
 }
 
 /**

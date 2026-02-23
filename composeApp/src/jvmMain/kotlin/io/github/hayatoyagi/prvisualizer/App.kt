@@ -202,6 +202,7 @@ fun App() {
                 currentUser = vm.state.sessionState.currentUser,
                 deviceUserCode = authState.deviceUserCode,
                 deviceVerificationUrl = authState.deviceVerificationUrl,
+                // Auth errors take priority; if both exist, the snapshot error is suppressed.
                 connectionError = authState.error ?: snapshotFetchState.error,
                 hasSnapshot = snapshotFetchState.snapshot != null,
                 onLogin = { vm.loginAndConnect(oauthClientId) },
@@ -243,21 +244,21 @@ fun App() {
                             defaultBranch = snapshotFetchState.snapshot?.defaultBranch ?: "main",
                             prColorMap = vm.state.colorState.prColorMap,
                             githubApi = githubApi,
-                            onDismiss = { vm.closeFileDetailsDialog() },
+                            onDismiss = { vm.closeDialog() },
                         )
                     }
                 }
                 is DialogState.PrDetails -> {
                     PrDetailsDialog(
                         pr = dialogState.pr,
-                        onDismiss = { vm.closePrDetailsDialog() },
+                        onDismiss = { vm.closeDialog() },
                         onOpenInBrowser = { url ->
                             openUrl(url)
-                            vm.closePrDetailsDialog()
+                            vm.closeDialog()
                         },
                         onSelectFile = { filePath ->
                             vm.selectFile(filePath)
-                            vm.closePrDetailsDialog()
+                            vm.closeDialog()
                         },
                     )
                 }

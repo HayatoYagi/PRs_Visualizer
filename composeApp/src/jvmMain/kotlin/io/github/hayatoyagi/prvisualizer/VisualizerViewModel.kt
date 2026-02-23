@@ -14,15 +14,12 @@ import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
     initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
-    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
     private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(
         initial = RepoState.from(owner = initialOwner, repo = initialRepo),
     ),
@@ -36,10 +33,7 @@ class VisualizerViewModel(
     var state by mutableStateOf(
         VisualizerState(
             sessionState = SessionState(
-                authState = AuthState(
-                    oauthToken = initialToken,
-                    currentUserOverride = initialUser,
-                ),
+                authState = AuthState(oauthToken = initialToken),
             ),
         ),
     )
@@ -63,16 +57,10 @@ class VisualizerViewModel(
         selectRepo = ::selectRepo,
     )
 
-    init {
-        viewModelScope.launch {
-            selectedRepositoryStore.repoState
-                .drop(1)
-                .collect { repoState ->
-                    applyRepositoryState(repoState)
-                }
-        }
-    }
-
+    /**
+     * Applies UI state changes for a repository transition.
+     * [lastAppliedRepoState] prevents re-applying state when the same repo is selected again.
+     */
     private fun applyRepositoryState(repoState: RepoState) {
         if (repoState == lastAppliedRepoState) return
         lastAppliedRepoState = repoState
@@ -128,13 +116,7 @@ class VisualizerViewModel(
         )
     }
 
-    fun closePrDetailsDialog() {
-        state = state.copy(
-            dialogState = DialogState.None,
-        )
-    }
-
-    fun closeFileDetailsDialog() {
+    fun closeDialog() {
         state = state.copy(
             dialogState = DialogState.None,
         )
@@ -343,16 +325,6 @@ class VisualizerViewModel(
             false
         }
     }
-
-    /**
-     * Returns true if back navigation is possible.
-     */
-    fun canNavigateBack(): Boolean = navigationHistory.canNavigateBack()
-
-    /**
-     * Returns true if forward navigation is possible.
-     */
-    fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 
     // region: 色管理
     fun ensurePrColors(prs: List<PullRequest>) {

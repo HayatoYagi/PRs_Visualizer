@@ -60,13 +60,30 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `closeFileDetailsDialog should close the dialog`() {
+    fun `closeDialog should close the dialog`() {
         val vm = VisualizerViewModel()
         vm.openFileDetailsDialog("src/main/App.kt")
         assertIs<DialogState.FileDetails>(vm.state.dialogState)
 
-        vm.closeFileDetailsDialog()
+        vm.closeDialog()
         assertIs<DialogState.None>(vm.state.dialogState)
+    }
+
+    @Test
+    fun `selectRepo same repo twice should apply reset only once`() {
+        val vm = VisualizerViewModel(initialOwner = "Owner", initialRepo = "Repo")
+
+        // Switch to a different repo — triggers reset
+        vm.updateQuery("search")
+        vm.selectRepo("Other/Repo")
+        assertEquals("", vm.state.filterState.query)
+
+        // Restore query, then select the identical repo again
+        vm.updateQuery("should stay")
+        vm.selectRepo("Other/Repo")
+
+        // Second selectRepo with the same identity must not reset state again
+        assertEquals("should stay", vm.state.filterState.query)
     }
 
     @Test

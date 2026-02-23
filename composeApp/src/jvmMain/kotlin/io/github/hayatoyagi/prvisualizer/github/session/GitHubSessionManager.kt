@@ -115,6 +115,9 @@ class GitHubSessionManager(
 
     private suspend fun resolveRepositoryIfNeeded(): Boolean {
         if (getRepoState() is RepoState.Selected) return true
+        // No repository is selected yet. Load the list and auto-select the first entry.
+        // loadRepositoryOptionsInternal() calls selectRepo(repos.first()) internally,
+        // which transitions getRepoState() from Unselected to Selected on success.
         loadRepositoryOptionsInternal()
         return getRepoState() is RepoState.Selected
     }
@@ -131,17 +134,7 @@ class GitHubSessionManager(
                 repo = selectedRepo.repo.trim(),
             )
         }.onSuccess { snapshot ->
-            updateSessionState { session ->
-                session.copy(
-                    snapshotFetchState = session.snapshotFetchState.copy(
-                        snapshot = snapshot,
-                        error = null,
-                    ),
-                    authState = session.authState.copy(
-                        currentUserOverride = snapshot.viewerLogin?.takeIf { it.isNotBlank() } ?: session.authState.currentUserOverride,
-                    ),
-                )
-            }
+            updateSnapshotFetchState { it.copy(snapshot = snapshot, error = null) }
             onSnapshotLoaded()
         }.onFailure { error ->
             if (handleAuthExpired(error)) return
