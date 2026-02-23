@@ -6,13 +6,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 class VisualizerViewModel(
@@ -33,8 +37,10 @@ class VisualizerViewModel(
     // region: セッション管理
     private val sessionManager = GitHubSessionManager(
         scope = viewModelScope,
-        getSessionState = { state.sessionState },
-        setSessionState = { state = state.copy(sessionState = it) },
+        getAuthState = { state.authState },
+        setAuthState = { state = state.copy(authState = it) },
+        getSnapshotFetchState = { state.snapshotFetchState },
+        setSnapshotFetchState = { state = state.copy(snapshotFetchState = it) },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
@@ -59,9 +65,7 @@ class VisualizerViewModel(
             }
             RepoState.Unselected -> {
                 state = state.copy(
-                    sessionState = state.sessionState.copy(
-                        snapshotFetchState = state.sessionState.snapshotFetchState.copy(snapshot = null, error = null),
-                    ),
+                    snapshotFetchState = SnapshotFetchState.Idle,
                 )
             }
         }
@@ -94,8 +98,12 @@ class VisualizerViewModel(
 
     fun openFileDetailsDialog(filePath: String) {
         state = state.copy(
-            dialogState = DialogState.FileDetails(filePath = filePath),
+            dialogState = DialogState.FileDetails(
+                filePath = filePath,
+                commitsState = DialogState.FileDetails.CommitsState.Loading,
+            ),
         )
+        loadFileDetailsCommits(filePath)
     }
 
     fun openPrDetailsDialog(pr: PullRequest) {
@@ -107,6 +115,61 @@ class VisualizerViewModel(
     fun closeDialog() {
         state = state.copy(
             dialogState = DialogState.None,
+        )
+    }
+
+    fun reloadFileDetailsCommits() {
+        val fileDetails = state.dialogState as? DialogState.FileDetails ?: return
+        loadFileDetailsCommits(fileDetails.filePath)
+    }
+
+    private fun loadFileDetailsCommits(filePath: String) {
+        val authState = state.authState as? AuthState.Authenticated ?: run {
+            updateFileDetailsCommitsState(
+                filePath = filePath,
+                commitsState = DialogState.FileDetails.CommitsState.Failed(AppError.AuthExpired()),
+            )
+            return
+        }
+        val selectedRepo = selectedRepositoryStore.repoState.value as? RepoState.Selected ?: run {
+            updateFileDetailsCommitsState(
+                filePath = filePath,
+                commitsState = DialogState.FileDetails.CommitsState.Failed(AppError.Unknown("Repository is not selected")),
+            )
+            return
+        }
+        updateFileDetailsCommitsState(filePath = filePath, commitsState = DialogState.FileDetails.CommitsState.Loading)
+        viewModelScope.launch {
+            val commitsResult = runCatching {
+                withContext(Dispatchers.IO) {
+                    GitHubApi(authState.oauthToken).fetchFileCommits(
+                        owner = selectedRepo.owner,
+                        repo = selectedRepo.repo,
+                        path = filePath,
+                        limit = 10,
+                    )
+                }
+            }
+            val commitsState = commitsResult.fold(
+                onSuccess = { commits -> DialogState.FileDetails.CommitsState.Ready(commits) },
+                onFailure = { error ->
+                    DialogState.FileDetails.CommitsState.Failed(
+                        AppError.Unknown(error.message ?: "Failed to load commits"),
+                    )
+                },
+            )
+            updateFileDetailsCommitsState(filePath = filePath, commitsState = commitsState)
+        }
+    }
+
+    private fun updateFileDetailsCommitsState(
+        filePath: String,
+        commitsState: DialogState.FileDetails.CommitsState,
+    ) {
+        val dialogState = state.dialogState as? DialogState.FileDetails ?: return
+        if (dialogState.filePath != filePath) return
+        state = state.copy(
+            dialogState = dialogState.copy(commitsState = commitsState),
         )
     }
 
