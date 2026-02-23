@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,10 +38,8 @@ fun PrListPane(
     selectedPrIds: Set<String>,
     selectedPath: String?,
     prColorMap: Map<String, Color>,
-    query: String,
     showDrafts: Boolean,
     onlyMine: Boolean,
-    onQueryChange: (String) -> Unit,
     onShowDraftsChange: (Boolean) -> Unit,
     onOnlyMineChange: (Boolean) -> Unit,
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
@@ -60,12 +57,6 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            label = { Text("Search") },
-            modifier = Modifier.fillMaxWidth(),
-        )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Switch(checked = showDrafts, onCheckedChange = onShowDraftsChange)
             Text("Show draft", color = AppColors.textBodyMuted)
@@ -140,7 +131,7 @@ fun PrListPane(
             }
         }
         Text(
-            text = "Cmd+R: reset view  /  Cmd+F: clear search",
+            text = "Cmd+R: reset view",
             color = AppColors.textHint,
             style = MaterialTheme.typography.bodySmall,
         )

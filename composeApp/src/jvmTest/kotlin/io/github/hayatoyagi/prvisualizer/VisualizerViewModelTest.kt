@@ -72,20 +72,20 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
         // Switch to a repo — triggers reset
-        vm.updateQuery("search")
+        vm.updateShowDrafts(false)
         vm.selectRepo("Other/Repo")
-        assertEquals("", vm.state.filterState.query)
+        assertFalse(vm.state.filterState.showDrafts)
 
-        // Restore query, then select the identical repo again
-        vm.updateQuery("should stay")
+        // Restore filter, then select the identical repo again
+        vm.updateShowDrafts(true)
         vm.selectRepo("Other/Repo")
 
         // Second selectRepo with the same identity must not reset state again
-        assertEquals("should stay", vm.state.filterState.query)
+        assertTrue(vm.state.filterState.showDrafts)
     }
 
     @Test
-    fun `selectRepo should preserve toggles and clear query selection state`() {
+    fun `selectRepo should preserve toggles and clear selection state`() {
         val vm = VisualizerViewModel(
             selectedRepositoryStore = InMemorySelectedRepositoryStore(
                 initial = RepoState.Selected(owner = "Old", repo = "Repo"),
@@ -96,7 +96,6 @@ class VisualizerViewModelTest {
         vm.openRepoDialog()
         vm.updateShowDrafts(false)
         vm.updateOnlyMine(true)
-        vm.updateQuery("search")
         vm.selectAllPrs(setOf("pr1", "pr2"))
 
         // Select new repo
@@ -108,7 +107,6 @@ class VisualizerViewModelTest {
         assertIs<DialogState.None>(vm.state.dialogState)
         assertFalse(vm.state.filterState.showDrafts)
         assertTrue(vm.state.filterState.onlyMine)
-        assertEquals("", vm.state.filterState.query)
         assertTrue(
             vm.state.filterState.selectedPrIds
                 .isEmpty(),
@@ -137,23 +135,6 @@ class VisualizerViewModelTest {
 
         vm.updateOnlyMine(true)
         assertTrue(vm.state.filterState.onlyMine)
-    }
-
-    @Test
-    fun `updateQuery should update search query`() {
-        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.updateQuery("test query")
-        assertEquals("test query", vm.state.filterState.query)
-    }
-
-    @Test
-    fun `clearQuery should clear search query`() {
-        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.updateQuery("test")
-        assertEquals("test", vm.state.filterState.query)
-
-        vm.clearQuery()
-        assertEquals("", vm.state.filterState.query)
     }
 
     @Test
@@ -361,12 +342,12 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialState = vm.state
 
-        vm.updateQuery("test")
+        vm.updateShowDrafts(false)
 
         // Original state reference should be different
         assertTrue(vm.state !== initialState)
-        assertEquals("", initialState.filterState.query)
-        assertEquals("test", vm.state.filterState.query)
+        assertTrue(initialState.filterState.showDrafts)
+        assertFalse(vm.state.filterState.showDrafts)
     }
 
     @Test

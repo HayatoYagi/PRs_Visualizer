@@ -68,11 +68,10 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     val filteredPrs = remember(
         vm.state.filterState.showDrafts,
         vm.state.filterState.onlyMine,
-        vm.state.filterState.query,
         allPrs,
         currentUser,
     ) {
-        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, vm.state.filterState.query, currentUser)
+        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, currentUser)
     }
     // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
     // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
@@ -183,16 +182,11 @@ fun App() {
                     if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) {
                         return@onPreviewKeyEvent false
                     }
-                    when (event.key) {
-                        Key.R -> {
-                            vm.resetViewport()
-                            true
-                        }
-                        Key.F -> {
-                            vm.clearQuery()
-                            true
-                        }
-                        else -> false
+                    if (event.key == Key.R) {
+                        vm.resetViewport()
+                        true
+                    } else {
+                        false
                     }
                 },
         ) {
@@ -307,10 +301,8 @@ fun App() {
                     selectedPrIds = uiState.effectiveSelectedIds,
                     selectedPath = vm.state.navigationState.selectedPath,
                     prColorMap = vm.state.colorState.prColorMap,
-                    query = vm.state.filterState.query,
                     showDrafts = vm.state.filterState.showDrafts,
                     onlyMine = vm.state.filterState.onlyMine,
-                    onQueryChange = { vm.updateQuery(it) },
                     onShowDraftsChange = { vm.updateShowDrafts(it) },
                     onOnlyMineChange = { vm.updateOnlyMine(it) },
                     onTogglePr = { prId, checked ->
