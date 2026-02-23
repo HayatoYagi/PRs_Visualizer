@@ -85,7 +85,6 @@ sealed interface DialogState {
 data class FilterState(
     val showDrafts: Boolean = true,
     val onlyMine: Boolean = false,
-    val query: String = "",
     val selectedPrIds: Set<String> = emptySet(),
 )
 
@@ -140,12 +139,12 @@ data class VisualizerState(
 
     /**
      * Resets state when changing repositories.
-     * Keeps toggle filters while clearing query, selection, colors, and navigation.
+     * Keeps toggle filters while clearing selection, colors, and navigation.
      * Clears fetched snapshot/error; auth errors are cleared back to unauthenticated.
      */
     fun resetForRepositoryChange(): VisualizerState = copy(
         dialogState = DialogState.None,
-        filterState = filterState.copy(query = "", selectedPrIds = emptySet()),
+        filterState = filterState.copy(selectedPrIds = emptySet()),
         navigationState = NavigationState(),
         colorState = ColorState(),
         snapshotFetchState = SnapshotFetchState.Idle,

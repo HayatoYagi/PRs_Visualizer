@@ -19,7 +19,6 @@ class VisualizerStateTest {
         val filterState = FilterState()
         assertTrue(filterState.showDrafts)
         assertFalse(filterState.onlyMine)
-        assertEquals("", filterState.query)
         assertTrue(filterState.selectedPrIds.isEmpty())
     }
 
@@ -60,13 +59,12 @@ class VisualizerStateTest {
     }
 
     @Test
-    fun `VisualizerState resetForRepositoryChange should preserve toggles and clear query selection state`() {
+    fun `VisualizerState resetForRepositoryChange should preserve toggles and clear selection state`() {
         val state = VisualizerState(
             dialogState = DialogState.FileDetails(filePath = "test.kt"),
             filterState = FilterState(
                 showDrafts = false,
                 onlyMine = true,
-                query = "search",
                 selectedPrIds = setOf("pr1", "pr2"),
             ),
             navigationState = NavigationState(
@@ -85,7 +83,6 @@ class VisualizerStateTest {
         assertIs<DialogState.None>(reset.dialogState)
         assertFalse(reset.filterState.showDrafts)
         assertTrue(reset.filterState.onlyMine)
-        assertEquals("", reset.filterState.query)
         assertTrue(reset.filterState.selectedPrIds.isEmpty())
         assertEquals("", reset.navigationState.focusPath)
         assertNull(reset.navigationState.selectedPath)
