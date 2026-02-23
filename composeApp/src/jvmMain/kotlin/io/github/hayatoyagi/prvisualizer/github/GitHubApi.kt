@@ -27,13 +27,6 @@ data class GitHubSnapshot(
 class GitHubApi(
     private val token: String,
 ) {
-    private companion object {
-        const val GITHUB_PAGE_SIZE = 100
-        const val SHORT_SHA_LENGTH = 7
-        const val MIN_ESTIMATED_LINES = 1
-        const val ESTIMATED_LINES_DIVISOR = 40
-    }
-
     private val client = HttpClient.newHttpClient()
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
@@ -275,4 +268,11 @@ class GitHubApi(
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
+
+    private companion object {
+        const val GITHUB_PAGE_SIZE = 100
+        const val SHORT_SHA_LENGTH = 7
+        const val MIN_ESTIMATED_LINES = 1
+        const val ESTIMATED_LINES_DIVISOR = 40
+    }
 }

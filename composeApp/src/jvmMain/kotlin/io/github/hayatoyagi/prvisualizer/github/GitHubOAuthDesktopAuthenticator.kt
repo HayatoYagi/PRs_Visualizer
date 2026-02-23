@@ -17,11 +17,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 class GitHubOAuthDesktopAuthenticator {
-    private companion object {
-        private val MIN_POLL_INTERVAL = 5.seconds
-        private val DEFAULT_EXPIRES_IN = 15.minutes
-    }
-
     private val client = HttpClient.newHttpClient()
 
     suspend fun authenticate(
@@ -177,4 +172,9 @@ class GitHubOAuthDesktopAuthenticator {
         val expiresInSeconds: Int,
         val intervalSeconds: Int,
     )
+
+    private companion object {
+        private val MIN_POLL_INTERVAL = 5.seconds
+        private val DEFAULT_EXPIRES_IN = 15.minutes
+    }
 }

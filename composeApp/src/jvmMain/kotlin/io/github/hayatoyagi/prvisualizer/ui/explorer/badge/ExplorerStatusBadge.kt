@@ -15,20 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-
-enum class ExplorerBadgeSize(
-    val badgeDp: Dp,
-    val fontSp: TextUnit,
-    val conflictFontSp: TextUnit,
-) {
-    Legend(14.dp, 9.sp, 10.sp),
-    Row(16.dp, 11.sp, 11.sp),
-}
 
 private const val CONFLICT_BADGE_ALPHA = 0.28f
 private const val NORMAL_BADGE_ALPHA = 0.22f

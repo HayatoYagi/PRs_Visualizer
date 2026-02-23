@@ -2,11 +2,6 @@ package io.github.hayatoyagi.prvisualizer.github
 
 import io.github.hayatoyagi.prvisualizer.FileNode
 
-internal data class FileSeed(
-    val path: String,
-    val estimatedLines: Int,
-)
-
 private const val ACTIVE_PR_WEIGHT = 8.0
 private const val DEFAULT_FILE_WEIGHT = 1.0
 
