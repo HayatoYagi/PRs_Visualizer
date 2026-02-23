@@ -82,17 +82,17 @@ object GitHubTokenStore {
         if (!Files.exists(path)) return null
         val script =
             """
-            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
-            ${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
-            if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
-            ${'$'}secure = ConvertTo-SecureString ${'$'}enc
-            ${'$'}bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR(${'$'}secure)
-            try {
-              [Runtime.InteropServices.Marshal]::PtrToStringBSTR(${'$'}bstr)
-            } finally {
-              [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
-            }
-            """.trimIndent()
+                |if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+                |${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
+                |if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
+                |${'$'}secure = ConvertTo-SecureString ${'$'}enc
+                |${'$'}bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR(${'$'}secure)
+                |try {
+                |  [Runtime.InteropServices.Marshal]::PtrToStringBSTR(${'$'}bstr)
+                |} finally {
+                |  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
+                |}
+            """.trimMargin()
         val result = runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(WINDOWS_TOKEN_ENV_PATH to path.toString()),
@@ -105,13 +105,13 @@ object GitHubTokenStore {
         val path = windowsTokenFilePath()
         val script =
             """
-            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
-            ${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
-            if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
-            ${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
-            ${'$'}enc = ConvertFrom-SecureString ${'$'}secure
-            Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
-            """.trimIndent()
+                |if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+                |${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
+                |if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
+                |${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
+                |${'$'}enc = ConvertFrom-SecureString ${'$'}secure
+                |Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
+            """.trimMargin()
         runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(

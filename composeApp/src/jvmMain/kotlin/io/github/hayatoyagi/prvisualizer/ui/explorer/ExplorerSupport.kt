@@ -43,7 +43,8 @@ fun buildExplorerRows(
                 .sortedWith(
                     compareBy<FileNode> { it !is FileNode.Directory }
                         .thenBy { it.name.lowercase() },
-                ).forEach { child ->
+                )
+                .forEach { child ->
                     visit(child, depth + 1)
                 }
         }

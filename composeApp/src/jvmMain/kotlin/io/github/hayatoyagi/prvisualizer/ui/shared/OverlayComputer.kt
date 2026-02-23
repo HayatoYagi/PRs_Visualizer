@@ -76,7 +76,8 @@ fun computeFileOverlayByPath(
             val dominant = items
                 .groupBy { it.second.changeType }
                 .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
-                ?.key ?: ChangeType.Modification
+                ?.key
+                ?: ChangeType.Modification
             val prs = items.map { it.first }.distinctBy { it.id }
             val lines = fileLines[path] ?: 1
             val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)
