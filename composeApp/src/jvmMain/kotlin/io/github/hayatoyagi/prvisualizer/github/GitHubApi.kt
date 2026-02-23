@@ -30,7 +30,7 @@ class GitHubApi(
     private val client = HttpClient.newHttpClient()
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
-        require(token.isNotBlank()) { "token is required" }
+        require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
         val repos = loadRepositoryNamesByPage { page ->
             requestArray("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
         }
@@ -43,7 +43,7 @@ class GitHubApi(
     ): GitHubSnapshot = withContext(Dispatchers.IO) {
         require(owner.isNotBlank()) { "owner is required" }
         require(repo.isNotBlank()) { "repo is required" }
-        require(token.isNotBlank()) { "token is required" }
+        require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
 
         val viewerLogin = fetchViewerLogin()
         val pullRequests = fetchOpenPullRequests(owner, repo)
@@ -164,7 +164,7 @@ class GitHubApi(
         require(owner.isNotBlank()) { "owner is required" }
         require(repo.isNotBlank()) { "repo is required" }
         require(path.isNotBlank()) { "path is required" }
-        require(token.isNotBlank()) { "token is required" }
+        require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
 
         val response = requestArray(
             "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
@@ -270,6 +270,7 @@ class GitHubApi(
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
 
     private companion object {
+        const val TOKEN_REQUIRED_MESSAGE = "token is required"
         const val GITHUB_PAGE_SIZE = 100
         const val SHORT_SHA_LENGTH = 7
         const val MIN_ESTIMATED_LINES = 1

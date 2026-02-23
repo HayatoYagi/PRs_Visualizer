@@ -8,6 +8,7 @@ import kotlin.time.Duration.Companion.seconds
 object GitHubTokenStore {
     private const val SERVICE_NAME = "io.github.hayatoyagi.prvisualizer.github-token"
     private const val ACCOUNT_NAME = "default-user"
+    private const val SECURITY_COMMAND = "security"
     private const val WINDOWS_TOKEN_ENV_PATH = "GHPV_PATH"
     private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
     private val COMMAND_TIMEOUT = 5.seconds
@@ -40,7 +41,7 @@ object GitHubTokenStore {
 
     private fun loadFromMacKeychain(): String? {
         val result = runCommand(
-            "security",
+            SECURITY_COMMAND,
             "find-generic-password",
             "-a",
             ACCOUNT_NAME,
@@ -54,7 +55,7 @@ object GitHubTokenStore {
 
     private fun saveToMacKeychain(token: String) {
         runCommand(
-            "security",
+            SECURITY_COMMAND,
             "add-generic-password",
             "-U",
             "-a",
@@ -68,7 +69,7 @@ object GitHubTokenStore {
 
     private fun clearFromMacKeychain() {
         runCommand(
-            "security",
+            SECURITY_COMMAND,
             "delete-generic-password",
             "-a",
             ACCOUNT_NAME,
