@@ -148,7 +148,7 @@ complexity:
     active: true
     threshold: 4
   NestedScopeFunctions:
-    active: false
+    active: true
     threshold: 1
     functions:
       - 'kotlin.apply'
@@ -325,7 +325,7 @@ naming:
     active: true
     forbiddenName: []
   FunctionMaxLength:
-    active: false
+    active: true
     maximumFunctionNameLength: 30
   FunctionMinLength:
     active: false
@@ -541,7 +541,7 @@ style:
       - 'to'
     allowOperators: false
   DataClassShouldBeImmutable:
-    active: false
+    active: true
   DestructuringDeclarationWithTooManyEntries:
     active: true
     maxDestructuringEntries: 3
@@ -594,8 +594,12 @@ style:
         value: 'TODO:'
     allowedPatterns: ''
   ForbiddenImport:
-    active: false
-    imports: []
+    active: true
+    imports:
+      - 'kotlin.io.print'
+      - 'kotlin.io.println'
+      - 'java.util.Date'
+      - 'java.text.SimpleDateFormat'
     forbiddenPatterns: ''
   ForbiddenMethodCall:
     active: false

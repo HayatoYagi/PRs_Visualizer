@@ -3,7 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.explorer
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 
 fun buildExplorerRows(
     root: FileNode.Directory,
@@ -12,7 +12,7 @@ fun buildExplorerRows(
     expandedPaths: Set<String> = setOf(""),
 ): List<ExplorerRow> {
     val rows = mutableListOf<ExplorerRow>()
-    val conflictedDirectoryPaths = computeConflictedDirectoryPaths(fileOverlayByPath)
+    val conflictedDirectoryPaths = computeConflictedDirs(fileOverlayByPath)
 
     fun visit(
         node: FileNode,

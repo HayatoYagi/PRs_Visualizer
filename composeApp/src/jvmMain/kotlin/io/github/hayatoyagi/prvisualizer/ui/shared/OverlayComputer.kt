@@ -48,7 +48,7 @@ fun totalLines(node: FileNode): Int = when (node) {
     is FileNode.Directory -> node.children.sumOf(::totalLines)
 }
 
-fun computeConflictedDirectoryPaths(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
+fun computeConflictedDirs(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
     val conflictedDirectories = mutableSetOf<String>()
     fileOverlayByPath.forEach { (filePath, overlay) ->
         if (overlay.prs.size <= 1) return@forEach
