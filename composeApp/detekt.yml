@@ -181,7 +181,7 @@ complexity:
 coroutines:
   active: true
   GlobalCoroutineUsage:
-    active: false
+    active: true
   InjectDispatcher:
     active: true
     dispatcherNames:
@@ -193,7 +193,7 @@ coroutines:
   SleepInsteadOfDelay:
     active: true
   SuspendFunSwallowedCancellation:
-    active: false
+    active: true
   SuspendFunWithCoroutineScopeReceiver:
     active: false
   SuspendFunWithFlowReturnType:
@@ -419,7 +419,7 @@ potential-bugs:
   CastNullableToNonNullableType:
     active: true
   CastToNullableType:
-    active: false
+    active: true
   Deprecation:
     active: false
   DontDowncastCollectionTypes:
@@ -482,14 +482,14 @@ potential-bugs:
   MapGetWithNotNullAssertionOperator:
     active: true
   MissingPackageDeclaration:
-    active: false
+    active: true
     excludes: ['**/*.kts']
   NullCheckOnMutableProperty:
     active: false
   NullableToStringCall:
-    active: false
+    active: true
   PropertyUsedBeforeDeclaration:
-    active: false
+    active: true
   UnconditionalJumpStatementInLoop:
     active: false
   UnnecessaryNotNullCheck:
