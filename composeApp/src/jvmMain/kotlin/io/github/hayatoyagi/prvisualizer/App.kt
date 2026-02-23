@@ -25,8 +25,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
-import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerRow
-import io.github.hayatoyagi.prvisualizer.ui.explorer.buildExplorerRows
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
@@ -51,7 +49,6 @@ data class VisualizerUiState(
     val focusRoot: FileNode.Directory,
     val fileOverlayByPath: Map<String, FileOverlay>,
     val directoryOverlayByPath: Map<String, DirectoryOverlay>,
-    val explorerRows: List<ExplorerRow>,
 )
 
 @Composable
@@ -123,9 +120,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
         computeDirectoryOverlayByPath(visiblePrs, allDirectories)
     }
-    val explorerRows = remember(root, fileOverlayByPath, directoryOverlayByPath) {
-        buildExplorerRows(root, fileOverlayByPath, directoryOverlayByPath)
-    }
     return VisualizerUiState(
         filteredPrs = filteredPrs,
         effectiveSelectedIds = effectiveSelectedIds,
@@ -133,7 +127,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
         focusRoot = focusRoot,
         fileOverlayByPath = fileOverlayByPath,
         directoryOverlayByPath = directoryOverlayByPath,
-        explorerRows = explorerRows,
     )
 }
 
@@ -253,11 +246,15 @@ fun App() {
 
             Row(modifier = Modifier.fillMaxSize()) {
                 ExplorerPane(
-                    rows = uiState.explorerRows,
+                    root = vm.state.sessionState.githubSnapshot?.rootNode,
+                    fileOverlayByPath = uiState.fileOverlayByPath,
+                    directoryOverlayByPath = uiState.directoryOverlayByPath,
                     focusPath = vm.state.navigationState.focusPath,
                     selectedPath = vm.state.navigationState.selectedPath,
+                    expandedPaths = vm.state.navigationState.explorerState.expandedPaths,
                     onSelectDirectory = { vm.selectDirectory(it) },
                     onSelectFile = { vm.selectFile(it) },
+                    onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
                     isLoading = vm.state.sessionState.isConnecting,
                 )
                 TreemapPane(

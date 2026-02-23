@@ -177,6 +177,18 @@ class VisualizerViewModelTest {
     }
 
     @Test
+    fun `selectDirectory should expand ancestor chain`() {
+        val vm = VisualizerViewModel()
+        vm.selectDirectory("src")
+        vm.toggleDirectoryExpanded("src")
+
+        vm.selectDirectory("src/ui")
+
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/ui"))
+    }
+
+    @Test
     fun `selectFile should update both paths and reset token`() {
         val vm = VisualizerViewModel()
         val initialToken = vm.state.navigationState.viewportResetToken
@@ -195,6 +207,18 @@ class VisualizerViewModelTest {
         vm.changeFocusPath("new/path")
         assertEquals("new/path", vm.state.navigationState.focusPath)
         assertEquals(initialToken + 1, vm.state.navigationState.viewportResetToken)
+    }
+
+    @Test
+    fun `changeFocusPath should expand ancestor chain`() {
+        val vm = VisualizerViewModel()
+        vm.selectDirectory("src")
+        vm.toggleDirectoryExpanded("src")
+
+        vm.changeFocusPath("src/main")
+
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/main"))
     }
 
     @Test
@@ -369,5 +393,36 @@ class VisualizerViewModelTest {
         // Back should go to "src" (before changeFocusPath pushed "src/main")
         assertTrue(vm.navigateBack())
         assertEquals("src", vm.state.navigationState.focusPath)
+    }
+
+    @Test
+    fun `navigateBack should expand ancestor chain of restored focusPath`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.selectDirectory("src/main")
+        vm.selectDirectory("docs")
+        vm.toggleDirectoryExpanded("src")
+
+        assertTrue(vm.navigateBack())
+        assertEquals("src/main", vm.state.navigationState.focusPath)
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/main"))
+    }
+
+    @Test
+    fun `navigateForward should expand ancestor chain of restored focusPath`() {
+        val vm = VisualizerViewModel()
+
+        vm.resetNavigation()
+        vm.selectDirectory("docs")
+        vm.selectDirectory("src/main")
+        assertTrue(vm.navigateBack())
+        vm.toggleDirectoryExpanded("src")
+
+        assertTrue(vm.navigateForward())
+        assertEquals("src/main", vm.state.navigationState.focusPath)
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src"))
+        assertTrue(vm.state.navigationState.explorerState.expandedPaths.contains("src/main"))
     }
 }

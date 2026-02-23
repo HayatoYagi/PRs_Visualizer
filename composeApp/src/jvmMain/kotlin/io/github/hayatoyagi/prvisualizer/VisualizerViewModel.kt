@@ -145,10 +145,14 @@ class VisualizerViewModel(
     // region: ナビゲーション
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
+        // Auto-expand the selected directory and its ancestor chain.
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, path)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             ),
         )
     }
@@ -156,21 +160,29 @@ class VisualizerViewModel(
     fun selectFile(path: String) {
         val parentPath = parentPathOf(path)
         navigationHistory.recordFocusPath(parentPath)
+        // Auto-expand parent directories so the file is visible
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, parentPath)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 selectedPath = path,
                 focusPath = parentPath,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             ),
         )
     }
 
     fun changeFocusPath(path: String) {
         navigationHistory.recordFocusPath(path)
+        // Auto-expand the focused directory and its ancestor chain.
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, path)
         state = state.copy(
             navigationState = state.navigationState.copy(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
+                explorerState = explorerState.copy(expandedPaths = expandedPaths),
             ),
         )
     }
@@ -195,16 +207,34 @@ class VisualizerViewModel(
         )
     }
 
+    fun toggleDirectoryExpanded(path: String) {
+        val explorerState = state.navigationState.explorerState
+        val expandedPaths = explorerState.expandedPaths
+        val newExpandedPaths = if (expandedPaths.contains(path)) {
+            expandedPaths - path
+        } else {
+            expandedPaths + path
+        }
+        state = state.copy(
+            navigationState = state.navigationState.copy(
+                explorerState = explorerState.copy(expandedPaths = newExpandedPaths),
+            ),
+        )
+    }
+
     /**
      * Navigates back in history. Returns true if navigation occurred.
      */
     fun navigateBack(): Boolean {
         val previousPath = navigationHistory.navigateBack()
         return if (previousPath != null) {
+            val explorerState = state.navigationState.explorerState
+            val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, previousPath)
             state = state.copy(
                 navigationState = state.navigationState.copy(
                     focusPath = previousPath,
                     viewportResetToken = state.navigationState.viewportResetToken + 1,
+                    explorerState = explorerState.copy(expandedPaths = expandedPaths),
                 ),
             )
             true
@@ -213,16 +243,37 @@ class VisualizerViewModel(
         }
     }
 
+    private fun expandPathAndAncestors(
+        expandedPaths: Set<String>,
+        path: String,
+    ): Set<String> {
+        if (path.isBlank()) return expandedPaths
+
+        var currentPath = ""
+        var newExpandedPaths = expandedPaths
+        for (segment in path.split('/')) {
+            if (segment.isBlank()) continue
+            currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
+            if (!newExpandedPaths.contains(currentPath)) {
+                newExpandedPaths = newExpandedPaths + currentPath
+            }
+        }
+        return newExpandedPaths
+    }
+
     /**
      * Navigates forward in history. Returns true if navigation occurred.
      */
     fun navigateForward(): Boolean {
         val nextPath = navigationHistory.navigateForward()
         return if (nextPath != null) {
+            val explorerState = state.navigationState.explorerState
+            val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, nextPath)
             state = state.copy(
                 navigationState = state.navigationState.copy(
                     focusPath = nextPath,
                     viewportResetToken = state.navigationState.viewportResetToken + 1,
+                    explorerState = explorerState.copy(expandedPaths = expandedPaths),
                 ),
             )
             true

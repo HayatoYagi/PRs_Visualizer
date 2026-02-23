@@ -17,16 +17,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ChangeType
+import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
+import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+
+private const val CHEVRON_ICON_WIDTH_DP = 12
+private const val CHEVRON_ICON_PADDING_DP = 4
+private const val CHEVRON_TOTAL_WIDTH_DP = CHEVRON_ICON_WIDTH_DP + CHEVRON_ICON_PADDING_DP
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     if (hasConflict) return ExplorerStatusKind.Conflict
@@ -40,14 +48,29 @@ private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
 
 @Composable
 fun ExplorerPane(
-    rows: List<ExplorerRow>,
+    root: FileNode.Directory?,
+    fileOverlayByPath: Map<String, FileOverlay>,
+    directoryOverlayByPath: Map<String, DirectoryOverlay>,
     focusPath: String,
     selectedPath: String?,
+    expandedPaths: Set<String>,
     onSelectDirectory: (String) -> Unit,
     onSelectFile: (String) -> Unit,
+    onToggleExpanded: (String) -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
+    val rows = remember(root, fileOverlayByPath, directoryOverlayByPath, expandedPaths) {
+        root?.let {
+            buildExplorerRows(
+                root = it,
+                fileOverlayByPath = fileOverlayByPath,
+                directoryOverlayByPath = directoryOverlayByPath,
+                expandedPaths = expandedPaths,
+            )
+        } ?: emptyList()
+    }
+
     Column(
         modifier = modifier
             .width(340.dp)
@@ -119,6 +142,22 @@ fun ExplorerPane(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Spacer(modifier = Modifier.width((row.depth * 12).dp))
+                            if (row.isDirectory) {
+                                val isExpanded = expandedPaths.contains(row.path)
+                                Text(
+                                    text = if (isExpanded) "▼" else "▶",
+                                    color = when {
+                                        isCurrentDir -> Color.White
+                                        isAncestor -> AppColors.explorerAncestorText
+                                        else -> AppColors.textSecondary
+                                    },
+                                    modifier = Modifier
+                                        .padding(end = CHEVRON_ICON_PADDING_DP.dp)
+                                        .clickable { onToggleExpanded(row.path) },
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
+                            }
                             Text(
                                 text = if (row.isDirectory) "${row.name}/" else row.name,
                                 color = when {
