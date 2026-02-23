@@ -57,7 +57,7 @@ Kotlin と [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatfo
 
 ### コードスタイル
 
-このプロジェクトは、Kotlinコードのフォーマットとスタイルチェックに [ktlint](https://github.com/pinterest/ktlint) を使用しています。
+このプロジェクトは、Kotlinコードのフォーマットとスタイルチェックに [ktlint](https://github.com/pinterest/ktlint) を使用し、静的コード解析に [detekt](https://detekt.dev/) を使用しています。
 
 コードスタイルをチェックする場合:
 ```bash
@@ -67,6 +67,11 @@ Kotlin と [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatfo
 コードを自動フォーマットする場合:
 ```bash
 ./gradlew ktlintFormat
+```
+
+静的コード解析を実行する場合:
+```bash
+./gradlew detekt
 ```
 
 ## 📦 今後の配布予定
