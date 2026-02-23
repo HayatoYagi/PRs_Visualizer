@@ -52,6 +52,45 @@ private const val DOUBLE_CLICK_THRESHOLD_MILLIS = 350L
 private const val LOADING_OVERLAY_ALPHA = 0.8f
 private const val PAN_CENTER_DIVISOR = 2f
 
+private data class MoveEventResult(
+    val pan: Offset,
+    val dragPointerPos: Offset?,
+    val hoveredNode: TreemapNode?,
+)
+
+private data class ZoomEventResult(
+    val zoom: Float,
+    val pan: Offset,
+)
+
+private data class ReleaseEventResult(
+    val lastClickKey: String?,
+    val lastClickAt: Long,
+)
+
+private data class TreemapViewportModel(
+    val visibleNodes: List<TreemapNode>,
+    val visibleDirectories: List<TreemapNode>,
+    val visibleFiles: List<TreemapNode>,
+    val fileOverlayByPath: Map<String, FileOverlay>,
+    val directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    val prColorMap: Map<String, Color>,
+    val selectedPath: String?,
+    val hoveredNode: TreemapNode?,
+    val hoveredOverlay: FileOverlay?,
+    val hoveredDirOverlay: DirectoryOverlay?,
+    val zoom: Float,
+    val pan: Offset,
+    val pointerPos: Offset,
+)
+
+private data class TreemapViewportCallbacks(
+    val onSizeChanged: (IntSize) -> Unit,
+    val onMoveEvent: (position: Offset, dragging: Boolean) -> Unit,
+    val onScrollEvent: (scrollY: Float) -> Unit,
+    val onReleaseEvent: (position: Offset, uptimeMillis: Long) -> Unit,
+)
+
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 fun TreemapPane(
@@ -105,143 +144,274 @@ fun TreemapPane(
     val hoveredDirOverlay = hoveredNode?.takeIf { it.isDirectory }?.let { directoryOverlayByPath[it.path] }
 
     Column(modifier = modifier.fillMaxHeight()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppColors.backgroundHeader)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(onClick = { onFocusPathChange("") }) {
-                Text("Root")
-            }
-            Button(
-                onClick = { onFocusPathChange(parentPathOf(focusPath)) },
-                enabled = focusPath.isNotBlank(),
-            ) {
-                Text("Up")
-            }
-            Text(
-                text = "Focus: /${focusPath.ifBlank { "" }}",
-                color = AppColors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Button(onClick = { copyToClipboard("/${focusPath.ifBlank { "" }}") }) {
-                Text("Copy")
-            }
-            Text(
-                text = "Visible PRs: ${visiblePrs.size}",
-                color = AppColors.textSecondary,
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clipToBounds()
-                .background(AppColors.backgroundCanvas)
-                .onSizeChanged {
-                    canvasSize = it
-                    if (pendingViewportCentering && it.width > MIN_CANVAS_SIZE_PX && it.height > MIN_CANVAS_SIZE_PX) {
-                        pan = centeredPan(canvasSize = it, zoom = zoom)
-                        pendingViewportCentering = false
-                    }
-                }.onPointerEvent(PointerEventType.Move) { event ->
-                    if (isLoading) return@onPointerEvent
-                    val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
-                    pointerPos = position
-                    val dragging = event.buttons.isSecondaryPressed
-                    if (dragging) {
-                        val prev = dragPointerPos
-                        if (prev != null) {
-                            pan += position - prev
-                        }
-                        dragPointerPos = position
-                    } else {
-                        dragPointerPos = null
-                    }
-
-                    val world = (position - pan) / zoom
-                    hoveredNode = visibleNodes.asReversed().firstOrNull { it.rect.contains(world) }
-                }.onPointerEvent(PointerEventType.Scroll) { event ->
-                    if (isLoading) return@onPointerEvent
-                    val scrollY = event.changes
-                        .firstOrNull()
-                        ?.scrollDelta
-                        ?.y ?: return@onPointerEvent
-                    val factor = if (scrollY > 0f) ZOOM_OUT_FACTOR else ZOOM_IN_FACTOR
-                    val newZoom = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
-                    val cursor = pointerPos
-                    val world = (cursor - pan) / zoom
-                    pan = cursor - world * newZoom
-                    zoom = newZoom
-                }.onPointerEvent(PointerEventType.Release) { event ->
-                    if (isLoading) return@onPointerEvent
-                    dragPointerPos = null
-                    val change = event.changes.firstOrNull() ?: return@onPointerEvent
-                    if (event.button != PointerButton.Primary) return@onPointerEvent
-                    val world = (change.position - pan) / zoom
-                    val node = visibleNodes.asReversed().firstOrNull { it.rect.contains(world) } ?: return@onPointerEvent
-
-                    if (!node.isDirectory) {
-                        onSelectedPathChange(node.path)
-                        val related = visiblePrs
-                            .filter { pr -> pr.files.any { it.path == node.path } }
-                            .map { it.id }
-                            .toSet()
-                        onRelatedPrsDetected(related)
-                    }
-
-                    val key = nodeKey(node)
-                    val isDoubleClick = key == lastClickKey && (change.uptimeMillis - lastClickAt) < DOUBLE_CLICK_THRESHOLD_MILLIS
-                    if (isDoubleClick) {
-                        if (node.isDirectory) {
-                            onFocusPathChange(node.path)
-                        } else {
-                            onFileDoubleClick(node.path)
-                        }
-                    }
-                    lastClickKey = key
-                    lastClickAt = change.uptimeMillis
-                },
-        ) {
-            TreemapCanvas(
+        TreemapPaneHeader(
+            focusPath = focusPath,
+            visiblePrCount = visiblePrs.size,
+            onFocusPathChange = onFocusPathChange,
+        )
+        TreemapViewport(
+            model = TreemapViewportModel(
+                visibleNodes = visibleNodes,
                 visibleDirectories = visibleDirectories,
                 visibleFiles = visibleFiles,
+                fileOverlayByPath = fileOverlayByPath,
                 directoryOverlayByPath = directoryOverlayByPath,
-                fileOverlayByPath = fileOverlayByPath,
                 prColorMap = prColorMap,
-                hoveredNode = hoveredNode,
                 selectedPath = selectedPath,
-                zoom = zoom,
-                pan = pan,
-            )
-            TreemapOverlay(
-                visibleNodes = visibleNodes,
-                visibleFiles = visibleFiles,
-                fileOverlayByPath = fileOverlayByPath,
                 hoveredNode = hoveredNode,
                 hoveredOverlay = hoveredOverlay,
                 hoveredDirOverlay = hoveredDirOverlay,
                 zoom = zoom,
                 pan = pan,
                 pointerPos = pointerPos,
-            )
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(AppColors.backgroundCanvas.copy(alpha = LOADING_OVERLAY_ALPHA)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = AppColors.textPrimary)
-                }
+            ),
+            isLoading = isLoading,
+            callbacks = TreemapViewportCallbacks(
+                onSizeChanged = { newSize ->
+                    canvasSize = newSize
+                    if (pendingViewportCentering && newSize.width > MIN_CANVAS_SIZE_PX && newSize.height > MIN_CANVAS_SIZE_PX) {
+                        pan = centeredPan(canvasSize = newSize, zoom = zoom)
+                        pendingViewportCentering = false
+                    }
+                },
+                onMoveEvent = { position, dragging ->
+                    val result = resolveMoveEvent(
+                        position = position,
+                        dragging = dragging,
+                        pan = pan,
+                        dragPointerPos = dragPointerPos,
+                        zoom = zoom,
+                        visibleNodes = visibleNodes,
+                    )
+                    pointerPos = position
+                    pan = result.pan
+                    dragPointerPos = result.dragPointerPos
+                    hoveredNode = result.hoveredNode
+                },
+                onScrollEvent = { scrollY ->
+                    val result = resolveZoomEvent(
+                        scrollY = scrollY,
+                        pointerPos = pointerPos,
+                        zoom = zoom,
+                        pan = pan,
+                    )
+                    zoom = result.zoom
+                    pan = result.pan
+                },
+                onReleaseEvent = { position, uptimeMillis ->
+                    val result = resolveReleaseEvent(
+                        position = position,
+                        uptimeMillis = uptimeMillis,
+                        zoom = zoom,
+                        pan = pan,
+                        visibleNodes = visibleNodes,
+                        visiblePrs = visiblePrs,
+                        lastClickKey = lastClickKey,
+                        lastClickAt = lastClickAt,
+                        onFocusPathChange = onFocusPathChange,
+                        onSelectedPathChange = onSelectedPathChange,
+                        onRelatedPrsDetected = onRelatedPrsDetected,
+                        onFileDoubleClick = onFileDoubleClick,
+                    )
+                    dragPointerPos = null
+                    lastClickKey = result.lastClickKey
+                    lastClickAt = result.lastClickAt
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun TreemapPaneHeader(
+    focusPath: String,
+    visiblePrCount: Int,
+    onFocusPathChange: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppColors.backgroundHeader)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Button(onClick = { onFocusPathChange("") }) {
+            Text("Root")
+        }
+        Button(
+            onClick = { onFocusPathChange(parentPathOf(focusPath)) },
+            enabled = focusPath.isNotBlank(),
+        ) {
+            Text("Up")
+        }
+        Text(
+            text = "Focus: /${focusPath.ifBlank { "" }}",
+            color = AppColors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Button(onClick = { copyToClipboard("/${focusPath.ifBlank { "" }}") }) {
+            Text("Copy")
+        }
+        Text(
+            text = "Visible PRs: $visiblePrCount",
+            color = AppColors.textSecondary,
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalComposeUiApi::class)
+private fun TreemapViewport(
+    model: TreemapViewportModel,
+    isLoading: Boolean,
+    callbacks: TreemapViewportCallbacks,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clipToBounds()
+            .background(AppColors.backgroundCanvas)
+            .onSizeChanged(callbacks.onSizeChanged)
+            .treemapMoveHandler(isLoading = isLoading, onMoveEvent = callbacks.onMoveEvent)
+            .treemapScrollHandler(isLoading = isLoading, onScrollEvent = callbacks.onScrollEvent)
+            .treemapReleaseHandler(isLoading = isLoading, onReleaseEvent = callbacks.onReleaseEvent),
+    ) {
+        TreemapCanvas(
+            visibleDirectories = model.visibleDirectories,
+            visibleFiles = model.visibleFiles,
+            directoryOverlayByPath = model.directoryOverlayByPath,
+            fileOverlayByPath = model.fileOverlayByPath,
+            prColorMap = model.prColorMap,
+            hoveredNode = model.hoveredNode,
+            selectedPath = model.selectedPath,
+            zoom = model.zoom,
+            pan = model.pan,
+        )
+        TreemapOverlay(
+            visibleNodes = model.visibleNodes,
+            visibleFiles = model.visibleFiles,
+            fileOverlayByPath = model.fileOverlayByPath,
+            hoveredNode = model.hoveredNode,
+            hoveredOverlay = model.hoveredOverlay,
+            hoveredDirOverlay = model.hoveredDirOverlay,
+            zoom = model.zoom,
+            pan = model.pan,
+            pointerPos = model.pointerPos,
+        )
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(AppColors.backgroundCanvas.copy(alpha = LOADING_OVERLAY_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = AppColors.textPrimary)
             }
         }
     }
 }
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.treemapMoveHandler(
+    isLoading: Boolean,
+    onMoveEvent: (position: Offset, dragging: Boolean) -> Unit,
+): Modifier = onPointerEvent(PointerEventType.Move) { event ->
+    if (isLoading) return@onPointerEvent
+    val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
+    onMoveEvent(position, event.buttons.isSecondaryPressed)
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.treemapScrollHandler(
+    isLoading: Boolean,
+    onScrollEvent: (scrollY: Float) -> Unit,
+): Modifier = onPointerEvent(PointerEventType.Scroll) { event ->
+    if (isLoading) return@onPointerEvent
+    val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
+    onScrollEvent(scrollY)
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.treemapReleaseHandler(
+    isLoading: Boolean,
+    onReleaseEvent: (position: Offset, uptimeMillis: Long) -> Unit,
+): Modifier = onPointerEvent(PointerEventType.Release) { event ->
+    if (isLoading || event.button != PointerButton.Primary) return@onPointerEvent
+    val change = event.changes.firstOrNull() ?: return@onPointerEvent
+    onReleaseEvent(change.position, change.uptimeMillis)
+}
+
+private fun resolveMoveEvent(
+    position: Offset,
+    dragging: Boolean,
+    pan: Offset,
+    dragPointerPos: Offset?,
+    zoom: Float,
+    visibleNodes: List<TreemapNode>,
+): MoveEventResult {
+    val nextPan = if (dragging && dragPointerPos != null) pan + (position - dragPointerPos) else pan
+    val nextDragPointer = if (dragging) position else null
+    val hoveredNode = visibleNodes.asReversed().firstOrNull { it.rect.contains((position - nextPan) / zoom) }
+    return MoveEventResult(
+        pan = nextPan,
+        dragPointerPos = nextDragPointer,
+        hoveredNode = hoveredNode,
+    )
+}
+
+private fun resolveZoomEvent(
+    scrollY: Float,
+    pointerPos: Offset,
+    zoom: Float,
+    pan: Offset,
+): ZoomEventResult {
+    val factor = if (scrollY > 0f) ZOOM_OUT_FACTOR else ZOOM_IN_FACTOR
+    val newZoom = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
+    val world = (pointerPos - pan) / zoom
+    val newPan = pointerPos - world * newZoom
+    return ZoomEventResult(zoom = newZoom, pan = newPan)
+}
+
+private fun resolveReleaseEvent(
+    position: Offset,
+    uptimeMillis: Long,
+    zoom: Float,
+    pan: Offset,
+    visibleNodes: List<TreemapNode>,
+    visiblePrs: List<PullRequest>,
+    lastClickKey: String?,
+    lastClickAt: Long,
+    onFocusPathChange: (String) -> Unit,
+    onSelectedPathChange: (String?) -> Unit,
+    onRelatedPrsDetected: (Set<String>) -> Unit,
+    onFileDoubleClick: (String) -> Unit,
+): ReleaseEventResult {
+    val node = visibleNodes.asReversed().firstOrNull { it.rect.contains((position - pan) / zoom) }
+        ?: return ReleaseEventResult(lastClickKey = lastClickKey, lastClickAt = lastClickAt)
+
+    if (!node.isDirectory) {
+        onSelectedPathChange(node.path)
+        onRelatedPrsDetected(relatedPrIdsForNode(nodePath = node.path, visiblePrs = visiblePrs))
+    }
+
+    val key = nodeKey(node)
+    val isDoubleClick = key == lastClickKey && (uptimeMillis - lastClickAt) < DOUBLE_CLICK_THRESHOLD_MILLIS
+    if (isDoubleClick) {
+        if (node.isDirectory) onFocusPathChange(node.path) else onFileDoubleClick(node.path)
+    }
+    return ReleaseEventResult(lastClickKey = key, lastClickAt = uptimeMillis)
+}
+
+private fun relatedPrIdsForNode(
+    nodePath: String,
+    visiblePrs: List<PullRequest>,
+): Set<String> = visiblePrs
+    .filter { pr -> pr.files.any { it.path == nodePath } }
+    .map { it.id }
+    .toSet()
 
 private fun centeredPan(
     canvasSize: IntSize,

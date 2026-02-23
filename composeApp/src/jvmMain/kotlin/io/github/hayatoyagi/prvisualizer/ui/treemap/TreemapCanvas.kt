@@ -52,73 +52,118 @@ fun TreemapCanvas(
         computeConflictedDirectoryPaths(fileOverlayByPath)
     }
     Canvas(modifier = modifier.fillMaxSize()) {
-        visibleDirectories.forEach { node ->
-            val widthPx = node.rect.width * zoom
-            val heightPx = node.rect.height * zoom
-            if (widthPx < MIN_DIRECTORY_RENDER_SIZE_PX || heightPx < MIN_DIRECTORY_RENDER_SIZE_PX) return@forEach
-            val overlay = directoryOverlayByPath[node.path]
-            val fill = when (overlay?.dominantType) {
-                ChangeType.Addition -> AppColors.treemapAddition
-                ChangeType.Modification -> AppColors.treemapModification
-                ChangeType.Deletion -> AppColors.treemapDeletion
-                null -> AppColors.treemapNeutralDir
-            }
-            val alpha = if (overlay?.dominantType == null) {
-                DIRECTORY_NEUTRAL_ALPHA
-            } else {
-                (BASE_ALPHA + overlay.density * ALPHA_DENSITY_MULTIPLIER).coerceIn(MIN_ALPHA, MAX_ALPHA)
-            }
-            drawNodeCell(
-                node = node,
-                zoom = zoom,
-                pan = pan,
-                fill = fill,
-                alpha = alpha,
-                prs = overlay?.prs.orEmpty(),
-                prColorMap = prColorMap,
-                fallback = AppColors.treemapFallbackBorderDir,
-                isHighlighted = hoveredNode?.path == node.path,
-                hasConflict = conflictedDirectoryPaths.contains(node.path),
-            )
-        }
-
-        visibleFiles.forEach { node ->
-            val widthPx = node.rect.width * zoom
-            val heightPx = node.rect.height * zoom
-            val overlay = fileOverlayByPath[node.path]
-            if (widthPx < MIN_FILE_RENDER_SIZE_PX || heightPx < MIN_FILE_RENDER_SIZE_PX) {
-                if (node.hasActivePr) {
-                    drawCircle(
-                        color = AppColors.treemapActivePrDot,
-                        radius = ACTIVE_PR_DOT_RADIUS_PX,
-                        center = node.rect.center * zoom + pan,
-                    )
-                }
-                return@forEach
-            }
-            val prs = overlay?.prs.orEmpty()
-            val fill = when (overlay?.dominantType) {
-                ChangeType.Addition -> AppColors.treemapAddition
-                ChangeType.Modification -> AppColors.treemapModification
-                ChangeType.Deletion -> AppColors.treemapDeletion
-                null -> AppColors.treemapNeutralFile
-            }
-            val alpha = (BASE_ALPHA + (overlay?.density ?: 0f) * ALPHA_DENSITY_MULTIPLIER).coerceIn(MIN_ALPHA, MAX_ALPHA)
-            drawNodeCell(
-                node = node,
-                zoom = zoom,
-                pan = pan,
-                fill = fill,
-                alpha = alpha,
-                prs = prs,
-                prColorMap = prColorMap,
-                fallback = AppColors.treemapFallbackBorderFile,
-                isHighlighted = node.path == hoveredNode?.path || node.path == selectedPath,
-                hasConflict = prs.size > 1,
-            )
-        }
+        drawDirectoryLayer(
+            visibleDirectories = visibleDirectories,
+            directoryOverlayByPath = directoryOverlayByPath,
+            conflictedDirectoryPaths = conflictedDirectoryPaths,
+            prColorMap = prColorMap,
+            hoveredNode = hoveredNode,
+            zoom = zoom,
+            pan = pan,
+        )
+        drawFileLayer(
+            visibleFiles = visibleFiles,
+            fileOverlayByPath = fileOverlayByPath,
+            prColorMap = prColorMap,
+            hoveredNode = hoveredNode,
+            selectedPath = selectedPath,
+            zoom = zoom,
+            pan = pan,
+        )
     }
 }
+
+private fun DrawScope.drawDirectoryLayer(
+    visibleDirectories: List<TreemapNode>,
+    directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    conflictedDirectoryPaths: Set<String>,
+    prColorMap: Map<String, Color>,
+    hoveredNode: TreemapNode?,
+    zoom: Float,
+    pan: Offset,
+) {
+    visibleDirectories.forEach { node ->
+        val widthPx = node.rect.width * zoom
+        val heightPx = node.rect.height * zoom
+        if (widthPx < MIN_DIRECTORY_RENDER_SIZE_PX || heightPx < MIN_DIRECTORY_RENDER_SIZE_PX) return@forEach
+        val overlay = directoryOverlayByPath[node.path]
+        drawNodeCell(
+            node = node,
+            zoom = zoom,
+            pan = pan,
+            fill = overlayFillColor(overlay?.dominantType, isDirectory = true),
+            alpha = directoryAlpha(overlay),
+            prs = overlay?.prs.orEmpty(),
+            prColorMap = prColorMap,
+            fallback = AppColors.treemapFallbackBorderDir,
+            isHighlighted = hoveredNode?.path == node.path,
+            hasConflict = conflictedDirectoryPaths.contains(node.path),
+        )
+    }
+}
+
+private fun DrawScope.drawFileLayer(
+    visibleFiles: List<TreemapNode>,
+    fileOverlayByPath: Map<String, FileOverlay>,
+    prColorMap: Map<String, Color>,
+    hoveredNode: TreemapNode?,
+    selectedPath: String?,
+    zoom: Float,
+    pan: Offset,
+) {
+    visibleFiles.forEach { node ->
+        val widthPx = node.rect.width * zoom
+        val heightPx = node.rect.height * zoom
+        val overlay = fileOverlayByPath[node.path]
+        if (widthPx < MIN_FILE_RENDER_SIZE_PX || heightPx < MIN_FILE_RENDER_SIZE_PX) {
+            drawSmallActivePrDot(node = node, zoom = zoom, pan = pan)
+            return@forEach
+        }
+        val prs = overlay?.prs.orEmpty()
+        drawNodeCell(
+            node = node,
+            zoom = zoom,
+            pan = pan,
+            fill = overlayFillColor(overlay?.dominantType, isDirectory = false),
+            alpha = overlayDensityAlpha(overlay?.density ?: 0f),
+            prs = prs,
+            prColorMap = prColorMap,
+            fallback = AppColors.treemapFallbackBorderFile,
+            isHighlighted = node.path == hoveredNode?.path || node.path == selectedPath,
+            hasConflict = prs.size > 1,
+        )
+    }
+}
+
+private fun DrawScope.drawSmallActivePrDot(
+    node: TreemapNode,
+    zoom: Float,
+    pan: Offset,
+) {
+    if (!node.hasActivePr) return
+    drawCircle(
+        color = AppColors.treemapActivePrDot,
+        radius = ACTIVE_PR_DOT_RADIUS_PX,
+        center = node.rect.center * zoom + pan,
+    )
+}
+
+private fun overlayFillColor(
+    dominantType: ChangeType?,
+    isDirectory: Boolean,
+): Color = when (dominantType) {
+    ChangeType.Addition -> AppColors.treemapAddition
+    ChangeType.Modification -> AppColors.treemapModification
+    ChangeType.Deletion -> AppColors.treemapDeletion
+    null -> if (isDirectory) AppColors.treemapNeutralDir else AppColors.treemapNeutralFile
+}
+
+private fun directoryAlpha(overlay: DirectoryOverlay?): Float {
+    if (overlay?.dominantType == null) return DIRECTORY_NEUTRAL_ALPHA
+    return overlayDensityAlpha(overlay.density)
+}
+
+private fun overlayDensityAlpha(density: Float): Float = (BASE_ALPHA + density * ALPHA_DENSITY_MULTIPLIER).coerceIn(MIN_ALPHA, MAX_ALPHA)
 
 private fun DrawScope.drawNodeCell(
     node: TreemapNode,
