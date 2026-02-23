@@ -233,8 +233,8 @@ class VisualizerViewModel(
         }
         state = state.copy(
             navigationState = state.navigationState.copy(
-                explorerState = explorerState.copy(expandedPaths = newExpandedPaths)
-            )
+                explorerState = explorerState.copy(expandedPaths = newExpandedPaths),
+            ),
         )
     }
 
