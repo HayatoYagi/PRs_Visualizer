@@ -1,7 +1,6 @@
-package io.github.hayatoyagi.prvisualizer.github.session
+package io.github.hayatoyagi.prvisualizer.repository.store
 
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
-import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.storage.FileLocalStorage
 import io.github.hayatoyagi.prvisualizer.storage.LocalStorage
 import kotlinx.coroutines.flow.MutableStateFlow

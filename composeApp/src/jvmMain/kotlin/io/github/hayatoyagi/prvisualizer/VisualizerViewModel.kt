@@ -11,7 +11,7 @@ import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
-import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlinx.coroutines.Job

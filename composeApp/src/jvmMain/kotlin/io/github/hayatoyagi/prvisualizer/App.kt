@@ -24,7 +24,7 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
-import io.github.hayatoyagi.prvisualizer.github.session.PersistedSelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
