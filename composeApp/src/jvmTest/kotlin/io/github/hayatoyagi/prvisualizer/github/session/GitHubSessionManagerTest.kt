@@ -10,172 +10,173 @@ import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class GitHubSessionManagerTest {
     @Test
-    fun `initializeSession should restore token resolve repo and fetch snapshot`() = runBlocking {
-        var authState: AuthState = AuthState.Unauthenticated
-        var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
-        var repoState: RepoState = RepoState.Unselected
-        var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
-        var snapshotLoaded = false
+    fun `initializeSession should restore token resolve repo and fetch snapshot`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Unauthenticated
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
+            var repoState: RepoState = RepoState.Unselected
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
+            var snapshotLoaded = false
 
-        val authService = FakeAuthService(
-            restoredToken = "restored-token",
-            loginResult = Result.success("unused"),
-        )
-        val repoService = FakeRepoSelectionService(Result.success(listOf("owner/repo")))
-        val snapshotService = FakeSnapshotFetchService(
-            result = Result.success(snapshot()),
-        )
+            val authService = FakeAuthService(
+                restoredToken = "restored-token",
+                loginResult = Result.success("unused"),
+            )
+            val repoService = FakeRepoSelectionService(Result.success(listOf("owner/repo")))
+            val snapshotService = FakeSnapshotFetchService(
+                result = Result.success(snapshot()),
+            )
 
-        val manager = GitHubSessionManager(
-            scope = CoroutineScope(coroutineContext),
-            getAuthState = { authState },
-            setAuthState = { authState = it },
-            getSnapshotFetchState = { snapshotFetchState },
-            setSnapshotFetchState = { snapshotFetchState = it },
-            getRepoState = { repoState },
-            getRepoSelectionState = { repoSelectionState },
-            setRepoSelectionState = { repoSelectionState = it },
-            onSnapshotLoaded = { snapshotLoaded = true },
-            selectRepo = { fullName ->
-                repoState = RepoState.Selected(
-                    owner = fullName.substringBefore('/'),
-                    repo = fullName.substringAfter('/'),
-                )
-            },
-            authService = authService,
-            repoSelectionService = repoService,
-            snapshotFetchService = snapshotService,
-        )
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = { snapshotLoaded = true },
+                selectRepo = { fullName ->
+                    repoState = RepoState.Selected(
+                        owner = fullName.substringBefore('/'),
+                        repo = fullName.substringAfter('/'),
+                    )
+                },
+                authService = authService,
+                repoSelectionService = repoService,
+                snapshotFetchService = snapshotService,
+            )
 
-        manager.initializeSession()
-        repeat(5) { yield() }
+            manager.initializeSession()
 
-        val authenticated = assertIs<AuthState.Authenticated>(authState)
-        assertEquals("restored-token", authenticated.oauthToken)
-        assertIs<RepoState.Selected>(repoState)
-        assertTrue(snapshotLoaded)
-        assertNotFetching(snapshotFetchState)
-        assertTrue(snapshotService.fetchCalled)
-    }
-
-    @Test
-    fun `loginAndConnect should set OAuthFailed when login fails`() = runBlocking {
-        var authState: AuthState = AuthState.Unauthenticated
-        var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
-        var repoState: RepoState = RepoState.Selected("owner", "repo")
-        var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
-
-        val manager = GitHubSessionManager(
-            scope = CoroutineScope(coroutineContext),
-            getAuthState = { authState },
-            setAuthState = { authState = it },
-            getSnapshotFetchState = { snapshotFetchState },
-            setSnapshotFetchState = { snapshotFetchState = it },
-            getRepoState = { repoState },
-            getRepoSelectionState = { repoSelectionState },
-            setRepoSelectionState = { repoSelectionState = it },
-            onSnapshotLoaded = {},
-            selectRepo = {},
-            authService = FakeAuthService(
-                restoredToken = "",
-                loginResult = Result.failure(IllegalStateException("boom")),
-            ),
-            repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
-            snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
-        )
-
-        manager.loginAndConnect("client-id")
-        repeat(5) { yield() }
-
-        val failed = assertIs<AuthState.Failed>(authState)
-        val error = assertIs<AppError.OAuthFailed>(failed.error)
-        assertFalse(authState is AuthState.Authorizing)
-        assertTrue(error.message.contains("boom"))
-    }
+            val authenticated = assertIs<AuthState.Authenticated>(authState)
+            assertEquals("restored-token", authenticated.oauthToken)
+            assertIs<RepoState.Selected>(repoState)
+            assertTrue(snapshotLoaded)
+            assertNotFetching(snapshotFetchState)
+            assertTrue(snapshotService.fetchCalled)
+        }
 
     @Test
-    fun `refresh should not fetch when repository remains unselected`() = runBlocking {
-        var authState: AuthState = AuthState.Authenticated("token")
-        var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
-        var repoState: RepoState = RepoState.Unselected
-        var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
+    fun `loginAndConnect should set OAuthFailed when login fails`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Unauthenticated
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
 
-        val snapshotService = FakeSnapshotFetchService(Result.success(snapshot()))
-        val manager = GitHubSessionManager(
-            scope = CoroutineScope(coroutineContext),
-            getAuthState = { authState },
-            setAuthState = { authState = it },
-            getSnapshotFetchState = { snapshotFetchState },
-            setSnapshotFetchState = { snapshotFetchState = it },
-            getRepoState = { repoState },
-            getRepoSelectionState = { repoSelectionState },
-            setRepoSelectionState = { repoSelectionState = it },
-            onSnapshotLoaded = {},
-            selectRepo = {},
-            authService = FakeAuthService(
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                authService = FakeAuthService(
+                    restoredToken = "",
+                    loginResult = Result.failure(IllegalStateException("boom")),
+                ),
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
+            )
+
+            manager.loginAndConnect("client-id")
+
+            val failed = assertIs<AuthState.Failed>(authState)
+            val error = assertIs<AppError.OAuthFailed>(failed.error)
+            assertFalse(authState is AuthState.Authorizing)
+            assertTrue(error.message.contains("boom"))
+        }
+
+    @Test
+    fun `refresh should not fetch when repository remains unselected`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Authenticated("token")
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
+            var repoState: RepoState = RepoState.Unselected
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
+
+            val snapshotService = FakeSnapshotFetchService(Result.success(snapshot()))
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                authService = FakeAuthService(
+                    restoredToken = "",
+                    loginResult = Result.success("token"),
+                ),
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = snapshotService,
+            )
+
+            manager.refresh()
+
+            assertFalse(snapshotService.fetchCalled)
+            assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
+        }
+
+    @Test
+    fun `refresh should clear auth and snapshot state when token is expired`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Authenticated("token")
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Ready(snapshot())
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Loading
+
+            val authService = FakeAuthService(
                 restoredToken = "",
                 loginResult = Result.success("token"),
-            ),
-            repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
-            snapshotFetchService = snapshotService,
-        )
+            )
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                authService = authService,
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(
+                    result = Result.failure(GitHubAuthExpiredException("expired")),
+                ),
+            )
 
-        manager.refresh()
-        repeat(5) { yield() }
+            manager.refresh()
 
-        assertFalse(snapshotService.fetchCalled)
-        assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
-        Unit
-    }
-
-    @Test
-    fun `refresh should clear auth and snapshot state when token is expired`() = runBlocking {
-        var authState: AuthState = AuthState.Authenticated("token")
-        var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Ready(snapshot())
-        var repoState: RepoState = RepoState.Selected("owner", "repo")
-        var repoSelectionState: RepoSelectionState = RepoSelectionState.Loading
-
-        val authService = FakeAuthService(
-            restoredToken = "",
-            loginResult = Result.success("token"),
-        )
-        val manager = GitHubSessionManager(
-            scope = CoroutineScope(coroutineContext),
-            getAuthState = { authState },
-            setAuthState = { authState = it },
-            getSnapshotFetchState = { snapshotFetchState },
-            setSnapshotFetchState = { snapshotFetchState = it },
-            getRepoState = { repoState },
-            getRepoSelectionState = { repoSelectionState },
-            setRepoSelectionState = { repoSelectionState = it },
-            onSnapshotLoaded = {},
-            selectRepo = {},
-            authService = authService,
-            repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
-            snapshotFetchService = FakeSnapshotFetchService(
-                result = Result.failure(GitHubAuthExpiredException("expired")),
-            ),
-        )
-
-        manager.refresh()
-        repeat(5) { yield() }
-
-        val authError = assertIs<AuthState.Failed>(authState)
-        assertIs<AppError.AuthExpired>(authError.error)
-        assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
-        assertTrue(authService.clearTokenCalled)
-        assertEquals(RepoSelectionState.Idle, repoSelectionState)
-    }
+            val authError = assertIs<AuthState.Failed>(authState)
+            assertIs<AppError.AuthExpired>(authError.error)
+            assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
+            assertTrue(authService.clearTokenCalled)
+            assertEquals(RepoSelectionState.Idle, repoSelectionState)
+        }
 
     private fun assertNotFetching(snapshotFetchState: SnapshotFetchState) {
         assertFalse(snapshotFetchState is SnapshotFetchState.Fetching)
@@ -226,7 +227,5 @@ class GitHubSessionManagerTest {
             fetchCalled = true
             return result
         }
-
-        override fun toConnectionError(error: Throwable): AppError = AppError.Unknown(error.message ?: "unknown")
     }
 }

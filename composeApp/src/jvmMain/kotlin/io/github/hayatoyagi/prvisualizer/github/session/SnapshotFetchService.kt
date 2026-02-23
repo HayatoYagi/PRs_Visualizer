@@ -1,8 +1,6 @@
 package io.github.hayatoyagi.prvisualizer.github.session
 
-import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
-import io.github.hayatoyagi.prvisualizer.github.GitHubApiException
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
 interface SnapshotFetchService {
@@ -11,8 +9,6 @@ interface SnapshotFetchService {
         owner: String,
         repo: String,
     ): Result<GitHubSnapshot>
-
-    fun toConnectionError(error: Throwable): AppError
 }
 
 class SnapshotFetchServiceImpl(
@@ -32,13 +28,5 @@ class SnapshotFetchServiceImpl(
                 repo = repo.trim(),
             )
         }
-    }
-
-    override fun toConnectionError(error: Throwable): AppError = when (error) {
-        is java.net.ConnectException, is java.net.UnknownHostException ->
-            AppError.Network(error.message ?: "Network error")
-        is GitHubApiException ->
-            AppError.ApiError(error.statusCode, error.message ?: "API error")
-        else -> AppError.Unknown(error.message ?: "Unknown error")
     }
 }

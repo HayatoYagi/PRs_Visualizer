@@ -7,20 +7,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
-import io.github.hayatoyagi.prvisualizer.github.GitHubApi
+import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
+import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.repository.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore = InMemorySelectedRepositoryStore(),
+    private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>
         get() = selectedRepositoryStore.repoState
@@ -33,6 +34,8 @@ class VisualizerViewModel(
 
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
+
+    private var fileDetailsJob: Job? = null
 
     // region: セッション管理
     private val sessionManager = GitHubSessionManager(
@@ -97,13 +100,14 @@ class VisualizerViewModel(
     }
 
     fun openFileDetailsDialog(filePath: String) {
+        fileDetailsJob?.cancel()
         state = state.copy(
             dialogState = DialogState.FileDetails(
                 filePath = filePath,
                 commitsState = DialogState.FileDetails.CommitsState.Loading,
             ),
         )
-        loadFileDetailsCommits(filePath)
+        fileDetailsJob = loadFileDetailsCommits(filePath)
     }
 
     fun openPrDetailsDialog(pr: PullRequest) {
@@ -120,36 +124,29 @@ class VisualizerViewModel(
 
     fun reloadFileDetailsCommits() {
         val fileDetails = state.dialogState as? DialogState.FileDetails ?: return
-        loadFileDetailsCommits(fileDetails.filePath)
+        fileDetailsJob?.cancel()
+        fileDetailsJob = loadFileDetailsCommits(fileDetails.filePath)
     }
 
-    private fun loadFileDetailsCommits(filePath: String) {
+    private fun loadFileDetailsCommits(filePath: String): Job? {
         val authState = state.authState as? AuthState.Authenticated ?: run {
             updateFileDetailsCommitsState(
                 filePath = filePath,
                 commitsState = DialogState.FileDetails.CommitsState.Failed(AppError.AuthExpired()),
             )
-            return
+            return null
         }
-        val selectedRepo = selectedRepositoryStore.repoState.value as? RepoState.Selected ?: run {
-            updateFileDetailsCommitsState(
-                filePath = filePath,
-                commitsState = DialogState.FileDetails.CommitsState.Failed(AppError.Unknown("Repository is not selected")),
-            )
-            return
-        }
+        val selectedRepo = selectedRepositoryStore.repoState.value as? RepoState.Selected
+            ?: return null
         updateFileDetailsCommitsState(filePath = filePath, commitsState = DialogState.FileDetails.CommitsState.Loading)
-        viewModelScope.launch {
-            val commitsResult = runCatching {
-                withContext(Dispatchers.IO) {
-                    GitHubApi(authState.oauthToken).fetchFileCommits(
-                        owner = selectedRepo.owner,
-                        repo = selectedRepo.repo,
-                        path = filePath,
-                        limit = 10,
-                    )
-                }
-            }
+        return viewModelScope.launch {
+            val commitsResult = fileCommitsService.fetchFileCommits(
+                token = authState.oauthToken,
+                owner = selectedRepo.owner,
+                repo = selectedRepo.repo,
+                path = filePath,
+                limit = 10,
+            )
             val commitsState = commitsResult.fold(
                 onSuccess = { commits -> DialogState.FileDetails.CommitsState.Ready(commits) },
                 onFailure = { error ->

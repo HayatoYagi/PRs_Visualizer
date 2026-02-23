@@ -9,10 +9,7 @@ interface RepoSelectionService {
 class RepoSelectionServiceImpl(
     private val apiFactory: (String) -> GitHubApi = ::GitHubApi,
 ) : RepoSelectionService {
-    override suspend fun fetchRepositoryOptions(token: String): Result<List<String>> {
-        if (token.isBlank()) return Result.success(emptyList())
-        return runCatching {
-            apiFactory(token.trim()).fetchAccessibleRepositoryNames()
-        }
+    override suspend fun fetchRepositoryOptions(token: String): Result<List<String>> = runCatching {
+        apiFactory(token.trim()).fetchAccessibleRepositoryNames()
     }
 }

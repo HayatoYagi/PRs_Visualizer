@@ -4,6 +4,7 @@ import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.github.GitHubApiException
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import kotlinx.coroutines.CoroutineScope
@@ -134,7 +135,7 @@ class GitHubSessionManager(
             onSnapshotLoaded()
         }.onFailure { error ->
             if (handleAuthExpired(error)) return
-            setSnapshotFetchState(SnapshotFetchState.Failed(snapshotFetchService.toConnectionError(error)))
+            setSnapshotFetchState(SnapshotFetchState.Failed(toConnectionError(error)))
         }
     }
 
@@ -168,6 +169,14 @@ class GitHubSessionManager(
                     ),
                 )
             }
+    }
+
+    private fun toConnectionError(error: Throwable): AppError = when (error) {
+        is java.net.ConnectException, is java.net.UnknownHostException ->
+            AppError.Network(error.message ?: "Network error")
+        is GitHubApiException ->
+            AppError.ApiError(error.statusCode, error.message ?: "API error")
+        else -> AppError.Unknown(error.message ?: "Unknown error")
     }
 
     private fun handleAuthExpired(error: Throwable): Boolean {
