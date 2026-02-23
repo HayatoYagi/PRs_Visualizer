@@ -39,6 +39,8 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,6 +73,11 @@ fun FileDetailsDialog(
             }
         }
     }
+
+    val encodedBranch = encodeGitHubPathPart(defaultBranch)
+    val encodedFilePath = filePath
+        .split('/')
+        .joinToString("/") { encodeGitHubPathPart(it) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -116,7 +123,7 @@ fun FileDetailsDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     TextButton(
-                        onClick = { openUrl("https://github.com/$repoFullName/blob/$defaultBranch/$filePath") },
+                        onClick = { openUrl("https://github.com/$repoFullName/blob/$encodedBranch/$encodedFilePath") },
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("🔗 Open File on GitHub")
@@ -280,6 +287,10 @@ fun FileDetailsDialog(
             TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
         },
     )
+}
+
+private fun encodeGitHubPathPart(value: String): String {
+    return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 }
 
 private fun formatDate(isoDate: String): String = try {
