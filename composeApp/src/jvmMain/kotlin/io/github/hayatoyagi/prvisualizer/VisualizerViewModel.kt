@@ -83,7 +83,7 @@ class VisualizerViewModel(
             dialogState = DialogState.None,
         )
     }
-    
+
     fun closeFileDetailsDialog() {
         state = state.copy(
             dialogState = DialogState.None,
