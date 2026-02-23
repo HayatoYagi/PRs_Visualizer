@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +26,6 @@ import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
-import io.github.hayatoyagi.prvisualizer.ui.shared.ExplorerRow
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val CHEVRON_ICON_WIDTH_DP = 12
@@ -53,6 +52,7 @@ fun ExplorerPane(
     onSelectFile: (String) -> Unit,
     onToggleExpanded: (String) -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -82,77 +82,84 @@ fun ExplorerPane(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppColors.backgroundPaneList),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
-                val isCurrentDir = row.isDirectory && row.path == focusPath
-                val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
-                val isSelectedFile = !row.isDirectory && row.path == selectedPath
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            when {
-                                isCurrentDir -> AppColors.explorerSelectionFocused
-                                isSelectedFile -> AppColors.explorerSelectionFile
-                                else -> Color.Transparent
-                            },
-                        )
-                        .clickable {
-                            if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
-                        }
-                        .padding(vertical = 4.dp, horizontal = 6.dp),
-                ) {
-                    val statusKind = row.statusKindOrNull()
-
-                    Row(
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = AppColors.textPrimary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(AppColors.backgroundPaneList),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(rows, key = { if (it.isDirectory) "d:${it.path}" else "f:${it.path}" }) { row ->
+                    val isCurrentDir = row.isDirectory && row.path == focusPath
+                    val isAncestor = row.isDirectory && focusPath.startsWith("${row.path}/")
+                    val isSelectedFile = !row.isDirectory && row.path == selectedPath
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 30.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .background(
+                                when {
+                                    isCurrentDir -> AppColors.explorerSelectionFocused
+                                    isSelectedFile -> AppColors.explorerSelectionFile
+                                    else -> Color.Transparent
+                                },
+                            ).clickable {
+                                if (row.isDirectory) onSelectDirectory(row.path) else onSelectFile(row.path)
+                            }.padding(vertical = 4.dp, horizontal = 6.dp),
                     ) {
-                        Spacer(modifier = Modifier.width((row.depth * 12).dp))
-                        
-                        // Add expand/collapse chevron for directories
-                        if (row.isDirectory) {
-                            val isExpanded = expandedPaths.contains(row.path)
+                        val statusKind = row.statusKindOrNull()
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 30.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Spacer(modifier = Modifier.width((row.depth * 12).dp))
+                            if (row.isDirectory) {
+                                val isExpanded = expandedPaths.contains(row.path)
+                                Text(
+                                    text = if (isExpanded) "▼" else "▶",
+                                    color = when {
+                                        isCurrentDir -> Color.White
+                                        isAncestor -> AppColors.explorerAncestorText
+                                        else -> AppColors.textSecondary
+                                    },
+                                    modifier = Modifier
+                                        .padding(end = CHEVRON_ICON_PADDING_DP.dp)
+                                        .clickable { onToggleExpanded(row.path) },
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
+                            }
                             Text(
-                                text = if (isExpanded) "▼" else "▶",
+                                text = if (row.isDirectory) "${row.name}/" else row.name,
                                 color = when {
                                     isCurrentDir -> Color.White
                                     isAncestor -> AppColors.explorerAncestorText
-                                    else -> AppColors.textSecondary
+                                    else -> AppColors.textBody
                                 },
-                                modifier = Modifier
-                                    .padding(end = CHEVRON_ICON_PADDING_DP.dp)
-                                    .clickable { onToggleExpanded(row.path) },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
-                        } else {
-                            Spacer(modifier = Modifier.width(CHEVRON_TOTAL_WIDTH_DP.dp))
                         }
-                        
-                        Text(
-                            text = if (row.isDirectory) "${row.name}/" else row.name,
-                            color = when {
-                                isCurrentDir -> Color.White
-                                isAncestor -> AppColors.explorerAncestorText
-                                else -> AppColors.textBody
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(24.dp),
-                    ) {
-                        statusKind?.let {
-                            ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(24.dp),
+                        ) {
+                            statusKind?.let {
+                                ExplorerStatusBadge(kind = it, withLabel = false, size = ExplorerBadgeSize.Row)
+                            }
                         }
                     }
                 }

@@ -4,10 +4,10 @@ import androidx.compose.ui.graphics.Color
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class VisualizerStateTest {
-
     @Test
     fun `RepoState should have correct fullName`() {
         val repoState = RepoState(owner = "TestOwner", repo = "TestRepo")
@@ -24,9 +24,8 @@ class VisualizerStateTest {
 
     @Test
     fun `DialogState defaults should be correct`() {
-        val dialogState = DialogState()
-        assertFalse(dialogState.isRepoDialogOpen)
-        assertEquals("", dialogState.repoPickerQuery)
+        val dialogState = DialogState.None
+        assertIs<DialogState.None>(dialogState)
     }
 
     @Test
@@ -51,10 +50,10 @@ class VisualizerStateTest {
         val navState = NavigationState(
             focusPath = "some/path",
             selectedPath = "some/file.kt",
-            viewportResetToken = 5
+            viewportResetToken = 5,
         )
         val reset = navState.resetNavigation()
-        
+
         assertEquals("", reset.focusPath)
         assertEquals(null, reset.selectedPath)
         assertEquals(5, reset.viewportResetToken)
@@ -65,10 +64,10 @@ class VisualizerStateTest {
         val navState = NavigationState(
             focusPath = "some/path",
             selectedPath = "some/file.kt",
-            viewportResetToken = 3
+            viewportResetToken = 3,
         )
         val reset = navState.resetViewport()
-        
+
         assertEquals("some/path", reset.focusPath)
         assertEquals("some/file.kt", reset.selectedPath)
         assertEquals(4, reset.viewportResetToken)
@@ -85,7 +84,7 @@ class VisualizerStateTest {
         val state = VisualizerState()
         assertEquals("", state.repoState.owner)
         assertEquals("", state.repoState.repo)
-        assertFalse(state.dialogState.isRepoDialogOpen)
+        assertIs<DialogState.None>(state.dialogState)
         assertTrue(state.filterState.showDrafts)
         assertFalse(state.filterState.onlyMine)
         assertEquals("", state.navigationState.focusPath)
@@ -96,21 +95,21 @@ class VisualizerStateTest {
     fun `VisualizerState resetForNewRepo should preserve toggles and clear query selection state`() {
         val state = VisualizerState(
             repoState = RepoState(owner = "OldOwner", repo = "OldRepo"),
-            dialogState = DialogState(isRepoDialogOpen = true, repoPickerQuery = "test"),
+            dialogState = DialogState.FileDetails(filePath = "test.kt"),
             filterState = FilterState(
                 showDrafts = false,
                 onlyMine = true,
                 query = "search",
-                selectedPrIds = setOf("pr1", "pr2")
+                selectedPrIds = setOf("pr1", "pr2"),
             ),
             navigationState = NavigationState(
                 focusPath = "old/path",
                 selectedPath = "old/file.kt",
-                viewportResetToken = 10
+                viewportResetToken = 10,
             ),
             colorState = ColorState(
-                prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue)
-            )
+                prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue),
+            ),
         )
 
         val reset = state.resetForNewRepo(owner = "NewOwner", repo = "NewRepo")
@@ -120,8 +119,7 @@ class VisualizerStateTest {
         assertEquals("NewRepo", reset.repoState.repo)
 
         // Dialog should be closed and cleared
-        assertFalse(reset.dialogState.isRepoDialogOpen)
-        assertEquals("", reset.dialogState.repoPickerQuery)
+        assertIs<DialogState.None>(reset.dialogState)
 
         // Toggle filters are preserved while query and selected IDs are cleared
         assertFalse(reset.filterState.showDrafts)
@@ -141,11 +139,11 @@ class VisualizerStateTest {
     @Test
     fun `VisualizerState should support immutable updates`() {
         val state = VisualizerState(
-            repoState = RepoState(owner = "Owner", repo = "Repo")
+            repoState = RepoState(owner = "Owner", repo = "Repo"),
         )
 
         val updated = state.copy(
-            filterState = state.filterState.copy(query = "test")
+            filterState = state.filterState.copy(query = "test"),
         )
 
         // Original should be unchanged
@@ -172,7 +170,7 @@ class VisualizerStateTest {
         val state = ColorState()
 
         val updated = state.copy(
-            prColorMap = state.prColorMap + ("pr1" to Color.Red)
+            prColorMap = state.prColorMap + ("pr1" to Color.Red),
         )
 
         assertTrue(state.prColorMap.isEmpty())

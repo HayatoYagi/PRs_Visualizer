@@ -5,7 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
+import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.random.Random
@@ -13,40 +15,70 @@ import kotlin.random.Random
 class VisualizerViewModel(
     initialOwner: String = EnvConfig.get("GITHUB_OWNER") ?: "HayatoYagi",
     initialRepo: String = EnvConfig.get("GITHUB_REPO") ?: "GitHub_PRs_Visualizer",
+    initialToken: String = EnvConfig.get("GITHUB_TOKEN") ?: "",
+    initialUser: String = EnvConfig.get("GITHUB_USER") ?: "hayatoy",
 ) : ViewModel() {
-
     // Main state container
     var state by mutableStateOf(
         VisualizerState(
             repoState = RepoState(owner = initialOwner, repo = initialRepo),
-        )
+            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
+        ),
     )
         private set
+
     // Navigation history for back/forward buttons
     private val navigationHistory = NavigationHistory()
 
-    // Dialog intents
+    // region: セッション管理
+    private val sessionManager = GitHubSessionManager(
+        scope = viewModelScope,
+        getSessionState = { state.sessionState },
+        setSessionState = { state = state.copy(sessionState = it) },
+        getRepoState = { state.repoState },
+        onSnapshotLoaded = {
+            resetNavigation()
+            resetViewport()
+        },
+        selectRepo = ::selectRepo,
+    )
+
+    fun initializeSession() = sessionManager.initializeSession()
+
+    fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
+
+    fun refresh() = sessionManager.refresh()
+
+    fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
+
+    fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    // region: ダイアログ管理
     fun openRepoDialog() {
         state = state.copy(
-            dialogState = state.dialogState.copy(
-                repoPickerQuery = "${state.repoState.owner}/${state.repoState.repo}".trim().trim('/'),
-                isRepoDialogOpen = true,
-            )
+            dialogState = DialogState.RepoPicker,
         )
     }
 
     fun closeRepoDialog() {
         state = state.copy(
-            dialogState = state.dialogState.copy(isRepoDialogOpen = false)
+            dialogState = DialogState.None,
         )
     }
 
-    fun updateRepoPickerQuery(q: String) {
+    fun openFileDetailsDialog(filePath: String) {
         state = state.copy(
-            dialogState = state.dialogState.copy(repoPickerQuery = q)
+            dialogState = DialogState.FileDetails(filePath = filePath),
         )
     }
 
+    fun closeFileDetailsDialog() {
+        state = state.copy(
+            dialogState = DialogState.None,
+        )
+    }
+
+    // region: リポジトリ選択
     fun selectRepo(fullName: String) {
         val newOwner = fullName.substringBefore('/', state.repoState.owner)
         val newRepo = fullName.substringAfter('/', fullName)
@@ -55,45 +87,48 @@ class VisualizerViewModel(
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
-    // PR filter intents
+    // region: PR フィルタ
     fun updateShowDrafts(value: Boolean) {
         state = state.copy(
-            filterState = state.filterState.copy(showDrafts = value)
+            filterState = state.filterState.copy(showDrafts = value),
         )
     }
 
     fun updateOnlyMine(value: Boolean) {
         state = state.copy(
-            filterState = state.filterState.copy(onlyMine = value)
+            filterState = state.filterState.copy(onlyMine = value),
         )
     }
 
     fun updateQuery(value: String) {
         state = state.copy(
-            filterState = state.filterState.copy(query = value)
+            filterState = state.filterState.copy(query = value),
         )
     }
 
     fun clearQuery() {
         state = state.copy(
-            filterState = state.filterState.copy(query = "")
+            filterState = state.filterState.copy(query = ""),
         )
     }
 
-    fun togglePr(prId: String, checked: Boolean) {
+    fun togglePr(
+        prId: String,
+        checked: Boolean,
+    ) {
         val newSelectedPrIds = if (checked) {
             state.filterState.selectedPrIds + prId
         } else {
             state.filterState.selectedPrIds - prId
         }
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = newSelectedPrIds)
+            filterState = state.filterState.copy(selectedPrIds = newSelectedPrIds),
         )
     }
 
     fun selectAllPrs(available: Set<String>) {
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = available)
+            filterState = state.filterState.copy(selectedPrIds = available),
         )
     }
 
@@ -101,13 +136,13 @@ class VisualizerViewModel(
         if (related.isNotEmpty()) {
             state = state.copy(
                 filterState = state.filterState.copy(
-                    selectedPrIds = state.filterState.selectedPrIds + related
-                )
+                    selectedPrIds = state.filterState.selectedPrIds + related,
+                ),
             )
         }
     }
 
-    // Navigation intents
+    // region: ナビゲーション
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
         // Auto-expand the selected directory
@@ -122,7 +157,7 @@ class VisualizerViewModel(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
                 explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            )
+            ),
         )
     }
 
@@ -146,7 +181,7 @@ class VisualizerViewModel(
                 focusPath = parentPath,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
                 explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            )
+            ),
         )
     }
 
@@ -164,19 +199,19 @@ class VisualizerViewModel(
                 focusPath = path,
                 viewportResetToken = state.navigationState.viewportResetToken + 1,
                 explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            )
+            ),
         )
     }
 
     fun updateSelectedPath(path: String?) {
         state = state.copy(
-            navigationState = state.navigationState.copy(selectedPath = path)
+            navigationState = state.navigationState.copy(selectedPath = path),
         )
     }
 
     fun resetNavigation() {
         state = state.copy(
-            navigationState = state.navigationState.resetNavigation()
+            navigationState = state.navigationState.resetNavigation(),
         )
         navigationHistory.clear()
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
@@ -184,7 +219,7 @@ class VisualizerViewModel(
 
     fun resetViewport() {
         state = state.copy(
-            navigationState = state.navigationState.resetViewport()
+            navigationState = state.navigationState.resetViewport(),
         )
     }
 
@@ -213,7 +248,7 @@ class VisualizerViewModel(
                 navigationState = state.navigationState.copy(
                     focusPath = previousPath,
                     viewportResetToken = state.navigationState.viewportResetToken + 1,
-                )
+                ),
             )
             true
         } else {
@@ -231,7 +266,7 @@ class VisualizerViewModel(
                 navigationState = state.navigationState.copy(
                     focusPath = nextPath,
                     viewportResetToken = state.navigationState.viewportResetToken + 1,
-                )
+                ),
             )
             true
         } else {
@@ -249,7 +284,7 @@ class VisualizerViewModel(
      */
     fun canNavigateForward(): Boolean = navigationHistory.canNavigateForward()
 
-    // PR color management intents
+    // region: 色管理
     fun ensurePrColors(prs: List<PullRequest>) {
         val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {
@@ -258,7 +293,7 @@ class VisualizerViewModel(
                 newMap[pr.id] = randomColorAvoidingMap(newMap)
             }
             state = state.copy(
-                colorState = state.colorState.copy(prColorMap = newMap)
+                colorState = state.colorState.copy(prColorMap = newMap),
             )
         }
     }
@@ -269,7 +304,7 @@ class VisualizerViewModel(
             newMap[pr.id] = randomColorAvoidingMap(newMap)
         }
         state = state.copy(
-            colorState = state.colorState.copy(prColorMap = newMap)
+            colorState = state.colorState.copy(prColorMap = newMap),
         )
     }
 
@@ -283,14 +318,17 @@ class VisualizerViewModel(
         val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
         state = state.copy(
             colorState = state.colorState.copy(
-                prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex])
-            )
+                prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex]),
+            ),
         )
     }
 
     private fun randomColorAvoidingMap(assignedMap: Map<String, Color>): Color {
         // Avoid the 5 most recently assigned colors (map preserves insertion order)
-        val recentColors = assignedMap.values.toList().takeLast(5).toSet()
+        val recentColors = assignedMap.values
+            .toList()
+            .takeLast(5)
+            .toSet()
         val availableColors = AppColors.authorPalette.filter { it !in recentColors }
         return if (availableColors.isNotEmpty()) {
             availableColors[Random.nextInt(availableColors.size)]
