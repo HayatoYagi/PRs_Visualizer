@@ -37,6 +37,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 private const val ISO_DATE_PREFIX_LENGTH = 10
+private const val ISO_DATE_PARTS_COUNT = 3
 
 @Composable
 fun FileDetailsDialog(
@@ -303,7 +304,7 @@ private fun formatDate(isoDate: String): String {
     // Full date is visible on hover and in GitHub when clicking commit
     val date = isoDate.substringBefore('T')
     val parts = date.split('-')
-    return if (parts.size == 3) {
+    return if (parts.size == ISO_DATE_PARTS_COUNT) {
         "${parts[1]}/${parts[2]}"
     } else {
         isoDate.take(ISO_DATE_PREFIX_LENGTH)

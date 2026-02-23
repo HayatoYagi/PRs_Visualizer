@@ -11,6 +11,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
+import java.net.HttpURLConnection
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -28,6 +29,9 @@ class GitHubApi(
 ) {
     private companion object {
         const val GITHUB_PAGE_SIZE = 100
+        const val SHORT_SHA_LENGTH = 7
+        const val MIN_ESTIMATED_LINES = 1
+        const val ESTIMATED_LINES_DIVISOR = 40
     }
 
     private val client = HttpClient.newHttpClient()
@@ -181,7 +185,7 @@ class GitHubApi(
             val committer = commit?.optJSONObject("committer")
 
             commits += FileCommit(
-                sha = commitObj.optString("sha", "").take(7),
+                sha = commitObj.optString("sha", "").take(SHORT_SHA_LENGTH),
                 message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
                 author = author?.optString("name")?.takeIf { it.isNotBlank() }
                     ?: committer?.optString("name")?.takeIf { it.isNotBlank() }
@@ -198,7 +202,7 @@ class GitHubApi(
         status: String,
         additions: Int,
         deletions: Int,
-    ): Int = if (status == "added" && additions == 0 && deletions == 0) 1 else additions
+    ): Int = if (status == "added" && additions == 0 && deletions == 0) MIN_ESTIMATED_LINES else additions
 
     private fun fetchRepositoryFiles(
         owner: String,
@@ -217,7 +221,7 @@ class GitHubApi(
             if (path.isBlank()) return@repeat
             if (isBinaryFile(path)) return@repeat
             val size = node.optInt("size", 0)
-            val estimatedLines = maxOf(1, size / 40)
+            val estimatedLines = maxOf(MIN_ESTIMATED_LINES, size / ESTIMATED_LINES_DIVISOR)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
         }
         return files
@@ -261,10 +265,10 @@ class GitHubApi(
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() == 401) {
+        if (response.statusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
             throw GitHubAuthExpiredException("GitHub token expired or revoked. Please login again.")
         }
-        if (response.statusCode() !in 200..299) {
+        if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
         return response.body()

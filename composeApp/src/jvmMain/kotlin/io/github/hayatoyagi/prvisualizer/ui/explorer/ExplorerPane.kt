@@ -35,6 +35,7 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 private const val CHEVRON_ICON_WIDTH_DP = 12
 private const val CHEVRON_ICON_PADDING_DP = 4
 private const val CHEVRON_TOTAL_WIDTH_DP = CHEVRON_ICON_WIDTH_DP + CHEVRON_ICON_PADDING_DP
+private const val INDENT_PER_LEVEL_DP = 12
 
 private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     if (hasConflict) return ExplorerStatusKind.Conflict
@@ -141,7 +142,7 @@ fun ExplorerPane(
                                 .padding(end = 30.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Spacer(modifier = Modifier.width((row.depth * 12).dp))
+                            Spacer(modifier = Modifier.width((row.depth * INDENT_PER_LEVEL_DP).dp))
                             if (row.isDirectory) {
                                 val isExpanded = expandedPaths.contains(row.path)
                                 Text(

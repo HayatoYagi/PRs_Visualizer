@@ -7,12 +7,21 @@ import org.json.JSONObject
 import java.awt.Desktop
 import java.net.URI
 import java.net.URLEncoder
+import java.net.HttpURLConnection
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class GitHubOAuthDesktopAuthenticator {
+    private companion object {
+        private val MIN_POLL_INTERVAL = 5.seconds
+        private val DEFAULT_EXPIRES_IN = 15.minutes
+    }
+
     private val client = HttpClient.newHttpClient()
 
     suspend fun authenticate(
@@ -42,12 +51,11 @@ class GitHubOAuthDesktopAuthenticator {
         )
         openVerificationPage(autoVerificationUrl)
 
-        var pollIntervalSeconds = start.intervalSeconds.coerceAtLeast(5)
-        val startedAt = System.currentTimeMillis()
-        val expiresInMillis = start.expiresInSeconds * 1_000L
+        var pollInterval = start.intervalSeconds.seconds.coerceAtLeast(MIN_POLL_INTERVAL)
+        val deadline = TimeSource.Monotonic.markNow() + start.expiresInSeconds.seconds
 
-        while (System.currentTimeMillis() - startedAt < expiresInMillis) {
-            delay(pollIntervalSeconds * 1_000L)
+        while (deadline.hasNotPassedNow()) {
+            delay(pollInterval)
             val body = exchangeDeviceCode(clientId = clientId, deviceCode = start.deviceCode)
             val json = JSONObject(body)
             val token = json.optString("access_token")
@@ -55,7 +63,7 @@ class GitHubOAuthDesktopAuthenticator {
 
             when (val error = json.optString("error")) {
                 "authorization_pending" -> Unit
-                "slow_down" -> pollIntervalSeconds += 5
+                "slow_down" -> pollInterval += MIN_POLL_INTERVAL
                 "expired_token" -> error("Device code expired. Please click Login with GitHub again.")
                 "access_denied" -> error("Authorization canceled by user.")
                 "device_flow_disabled" -> error("Device Flow is disabled for this GitHub App. Enable 'Device Flow' in app settings.")
@@ -88,7 +96,7 @@ class GitHubOAuthDesktopAuthenticator {
             .build()
 
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() !in 200..299) {
+        if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             error("Failed to start Device Flow: ${response.statusCode()} ${response.body()}")
         }
         val json = JSONObject(response.body())
@@ -103,8 +111,8 @@ class GitHubOAuthDesktopAuthenticator {
                 error("Device Flow response missing verification_uri: ${response.body()}")
             },
             verificationUriComplete = json.optString("verification_uri_complete").ifBlank { null },
-            expiresInSeconds = json.optInt("expires_in", 900),
-            intervalSeconds = json.optInt("interval", 5),
+            expiresInSeconds = json.optInt("expires_in", DEFAULT_EXPIRES_IN.inWholeSeconds.toInt()),
+            intervalSeconds = json.optInt("interval", MIN_POLL_INTERVAL.inWholeSeconds.toInt()),
         )
     }
 
@@ -126,7 +134,7 @@ class GitHubOAuthDesktopAuthenticator {
             .build()
 
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() !in 200..299) {
+        if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             error("OAuth device token poll failed: ${response.statusCode()} ${response.body()}")
         }
         return response.body()
