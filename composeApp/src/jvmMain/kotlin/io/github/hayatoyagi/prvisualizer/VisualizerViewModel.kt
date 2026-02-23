@@ -72,6 +72,18 @@ class VisualizerViewModel(
         )
     }
 
+    fun openPrDetailsDialog(pr: PullRequest) {
+        state = state.copy(
+            dialogState = DialogState.PrDetails(pr = pr),
+        )
+    }
+
+    fun closePrDetailsDialog() {
+        state = state.copy(
+            dialogState = DialogState.None,
+        )
+    }
+
     fun closeFileDetailsDialog() {
         state = state.copy(
             dialogState = DialogState.None,

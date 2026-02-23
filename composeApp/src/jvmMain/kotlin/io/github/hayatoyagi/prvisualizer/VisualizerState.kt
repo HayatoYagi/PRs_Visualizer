@@ -24,6 +24,10 @@ sealed interface DialogState {
     data class FileDetails(
         val filePath: String,
     ) : DialogState
+
+    data class PrDetails(
+        val pr: PullRequest,
+    ) : DialogState
 }
 
 /**

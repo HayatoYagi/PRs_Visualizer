@@ -26,6 +26,7 @@ import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
+import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
@@ -241,6 +242,20 @@ fun App() {
                         )
                     }
                 }
+                is DialogState.PrDetails -> {
+                    PrDetailsDialog(
+                        pr = dialogState.pr,
+                        onDismiss = { vm.closePrDetailsDialog() },
+                        onOpenInBrowser = { url ->
+                            openUrl(url)
+                            vm.closePrDetailsDialog()
+                        },
+                        onSelectFile = { filePath ->
+                            vm.selectFile(filePath)
+                            vm.closePrDetailsDialog()
+                        },
+                    )
+                }
                 is DialogState.None -> Unit
             }
 
@@ -294,7 +309,7 @@ fun App() {
                         }
                         vm.togglePr(prId, checked)
                     },
-                    onOpenPr = { openUrl(it) },
+                    onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
                     onCyclePrColor = { vm.cyclePrColor(it) },
                     isLoading = vm.state.sessionState.isConnecting,
                 )
