@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
+import io.github.hayatoyagi.prvisualizer.github.session.RepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.random.Random
@@ -20,10 +21,16 @@ class VisualizerViewModel(
 ) : ViewModel() {
     // Main state container
     var state by mutableStateOf(
-        VisualizerState(
-            repoState = RepoState(owner = initialOwner, repo = initialRepo),
-            sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
-        ),
+        run {
+            // Try to restore repository from persistent storage
+            val restoredRepo = RepositoryStore.loadRepository()
+            val owner = restoredRepo?.first ?: initialOwner
+            val repo = restoredRepo?.second ?: initialRepo
+            VisualizerState(
+                repoState = RepoState(owner = owner, repo = repo),
+                sessionState = SessionState(oauthToken = initialToken, currentUserOverride = initialUser),
+            )
+        },
     )
         private set
 
@@ -97,6 +104,8 @@ class VisualizerViewModel(
         state = state.resetForNewRepo(owner = newOwner, repo = newRepo)
         navigationHistory.clear()
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
+        // Persist the repository selection
+        RepositoryStore.saveRepository(newOwner, newRepo)
     }
 
     // region: PR フィルタ
