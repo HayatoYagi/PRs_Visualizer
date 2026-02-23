@@ -42,7 +42,9 @@ internal fun buildTree(
     fun freeze(dir: MutableDir): FileNode.Directory {
         val frozenChildren = dir.children.map { child ->
             when (child) {
-                is MutableDir -> freeze(child)
+                is MutableDir -> {
+                    freeze(child)
+                }
                 is FileSeed -> {
                     val extension = child.path.substringAfterLast('.', missingDelimiterValue = "")
                     FileNode.File(
@@ -57,7 +59,9 @@ internal fun buildTree(
                         ),
                     )
                 }
-                else -> error("Unexpected node type")
+                else -> {
+                    error("Unexpected node type")
+                }
             }
         }
 
