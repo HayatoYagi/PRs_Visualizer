@@ -1,5 +1,7 @@
 package io.github.hayatoyagi.prvisualizer.github
 
+import io.github.hayatoyagi.prvisualizer.ChangeType
+import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
@@ -14,15 +16,11 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 
-private data class FileSeed(
-    val path: String,
-    val estimatedLines: Int,
-)
-
 data class GitHubSnapshot(
     val rootNode: FileNode.Directory,
     val pullRequests: List<PullRequest>,
     val viewerLogin: String?,
+    val defaultBranch: String,
 )
 
 class GitHubApi(
@@ -38,7 +36,10 @@ class GitHubApi(
         repos.distinct().sortedBy { it.lowercase() }
     }
 
-    suspend fun fetchSnapshot(owner: String, repo: String): GitHubSnapshot = withContext(Dispatchers.IO) {
+    suspend fun fetchSnapshot(
+        owner: String,
+        repo: String,
+    ): GitHubSnapshot = withContext(Dispatchers.IO) {
         require(owner.isNotBlank()) { "owner is required" }
         require(repo.isNotBlank()) { "repo is required" }
         require(token.isNotBlank()) { "token is required" }
@@ -52,8 +53,26 @@ class GitHubApi(
             .map { it.path }
             .toSet()
 
-        val rootNode = buildTree(fileSeeds, activePaths)
-        GitHubSnapshot(rootNode = rootNode, pullRequests = pullRequests, viewerLogin = viewerLogin)
+        // Include files that are newly added in PRs (not in default branch)
+        val allPrFileChanges = pullRequests.flatMap { it.files }
+        val newlyAddedFiles = allPrFileChanges
+            .filter { it.changeType == ChangeType.Addition }
+            .filter { change -> fileSeeds.none { seed -> seed.path == change.path } }
+            .groupBy { it.path }
+            .map { (path, changes) ->
+                // Use max additions if multiple PRs add the same file
+                val maxAdditions = changes.maxOf { it.additions }
+                FileSeed(path = path, estimatedLines = maxOf(1, maxAdditions))
+            }
+
+        val allFileSeeds = fileSeeds + newlyAddedFiles
+        val rootNode = buildTree(allFileSeeds, activePaths)
+        GitHubSnapshot(
+            rootNode = rootNode,
+            pullRequests = pullRequests,
+            viewerLogin = viewerLogin,
+            defaultBranch = defaultBranch,
+        )
     }
 
     private fun fetchViewerLogin(): String? {
@@ -61,12 +80,18 @@ class GitHubApi(
         return response.optString("login").ifBlank { null }
     }
 
-    private fun fetchDefaultBranch(owner: String, repo: String): String {
+    private fun fetchDefaultBranch(
+        owner: String,
+        repo: String,
+    ): String {
         val response = requestJson("https://api.github.com/repos/${enc(owner)}/${enc(repo)}")
         return response.optString("default_branch").ifBlank { "main" }
     }
 
-    private fun fetchOpenPullRequests(owner: String, repo: String): List<PullRequest> {
+    private fun fetchOpenPullRequests(
+        owner: String,
+        repo: String,
+    ): List<PullRequest> {
         val pulls = mutableListOf<PullRequest>()
         var page = 1
         while (true) {
@@ -95,7 +120,11 @@ class GitHubApi(
         return pulls
     }
 
-    private fun fetchPullRequestFiles(owner: String, repo: String, number: Int): List<PrFileChange> {
+    private fun fetchPullRequestFiles(
+        owner: String,
+        repo: String,
+        number: Int,
+    ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
         var page = 1
         while (true) {
@@ -106,10 +135,15 @@ class GitHubApi(
 
             repeat(response.length()) { idx ->
                 val file = response.getJSONObject(idx)
+                val path = file.optString("filename")
+                if (isBinaryFile(path)) return@repeat
+                val additions = file.optInt("additions")
+                val deletions = file.optInt("deletions")
+                val status = file.optString("status")
                 files += PrFileChange(
-                    path = file.optString("filename"),
-                    additions = file.optInt("additions"),
-                    deletions = file.optInt("deletions"),
+                    path = path,
+                    additions = normalizedAdditionsForStatus(status, additions, deletions),
+                    deletions = deletions,
                 )
             }
             if (response.length() < 100) break
@@ -118,7 +152,53 @@ class GitHubApi(
         return files
     }
 
-    private fun fetchRepositoryFiles(owner: String, repo: String, branch: String): List<FileSeed> {
+    suspend fun fetchFileCommits(
+        owner: String,
+        repo: String,
+        path: String,
+        limit: Int = 10,
+    ): List<FileCommit> = withContext(Dispatchers.IO) {
+        require(owner.isNotBlank()) { "owner is required" }
+        require(repo.isNotBlank()) { "repo is required" }
+        require(path.isNotBlank()) { "path is required" }
+        require(token.isNotBlank()) { "token is required" }
+
+        val response = requestArray(
+            "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
+        )
+
+        val commits = mutableListOf<FileCommit>()
+        repeat(response.length()) { idx ->
+            val commitObj = response.getJSONObject(idx)
+            val commit = commitObj.optJSONObject("commit")
+            val author = commit?.optJSONObject("author")
+            val committer = commit?.optJSONObject("committer")
+
+            commits += FileCommit(
+                sha = commitObj.optString("sha", "").take(7),
+                message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
+                author = author?.optString("name")?.takeIf { it.isNotBlank() }
+                    ?: committer?.optString("name")?.takeIf { it.isNotBlank() }
+                    ?: "Unknown",
+                date = author?.optString("date") ?: committer?.optString("date") ?: "",
+                url = commitObj.optString("html_url", ""),
+            )
+        }
+        return@withContext commits
+    }
+
+    // GitHub can return added empty files as status=added with +0/-0.
+    internal fun normalizedAdditionsForStatus(
+        status: String,
+        additions: Int,
+        deletions: Int,
+    ): Int = if (status == "added" && additions == 0 && deletions == 0) 1 else additions
+
+    private fun fetchRepositoryFiles(
+        owner: String,
+        repo: String,
+        branch: String,
+    ): List<FileSeed> {
         val response = requestJson(
             "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/git/trees/${enc(branch)}?recursive=1",
         )
@@ -129,6 +209,7 @@ class GitHubApi(
             if (node.optString("type") != "blob") return@repeat
             val path = node.optString("path")
             if (path.isBlank()) return@repeat
+            if (isBinaryFile(path)) return@repeat
             val size = node.optInt("size", 0)
             val estimatedLines = maxOf(1, size / 40)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
@@ -164,7 +245,8 @@ class GitHubApi(
     }
 
     private fun requestBody(url: String): String {
-        val request = HttpRequest.newBuilder(URI(url))
+        val request = HttpRequest
+            .newBuilder(URI(url))
             .header("Accept", "application/vnd.github+json")
             .header("Authorization", "Bearer $token")
             .header("X-GitHub-Api-Version", "2022-11-28")
@@ -178,62 +260,6 @@ class GitHubApi(
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
         return response.body()
-    }
-
-    private fun buildTree(allFiles: List<FileSeed>, activePaths: Set<String>): FileNode.Directory {
-        data class MutableDir(val path: String, val name: String, val children: MutableList<Any> = mutableListOf())
-
-        val root = MutableDir(path = "", name = "repo")
-        val dirsByPath = mutableMapOf("" to root)
-
-        fun ensureDir(path: String): MutableDir {
-            return dirsByPath.getOrPut(path) {
-                val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
-                val dirName = path.substringAfterLast('/')
-                val parent = ensureDir(parentPath)
-                val newDir = MutableDir(path = path, name = dirName)
-                parent.children += newDir
-                newDir
-            }
-        }
-
-        allFiles.forEach { file ->
-            val parentPath = file.path.substringBeforeLast('/', missingDelimiterValue = "")
-            val dir = ensureDir(parentPath)
-            dir.children += file
-        }
-
-        fun freeze(dir: MutableDir): FileNode.Directory {
-            val frozenChildren = dir.children.map { child ->
-                when (child) {
-                    is MutableDir -> freeze(child)
-                    is FileSeed -> {
-                        val extension = child.path.substringAfterLast('.', missingDelimiterValue = "")
-                        FileNode.File(
-                            path = child.path,
-                            name = child.path.substringAfterLast('/'),
-                            extension = extension,
-                            totalLines = child.estimatedLines,
-                            hasActivePr = activePaths.contains(child.path),
-                            weight = maxOf(
-                                child.estimatedLines.toDouble(),
-                                if (activePaths.contains(child.path)) 8.0 else 1.0,
-                            ),
-                        )
-                    }
-                    else -> error("Unexpected node type")
-                }
-            }
-
-            return FileNode.Directory(
-                path = dir.path,
-                name = if (dir.path.isEmpty()) "repo" else dir.name,
-                children = frozenChildren.sortedByDescending { it.weight },
-                weight = frozenChildren.sumOf { it.weight }.coerceAtLeast(1.0),
-            )
-        }
-
-        return freeze(root)
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)

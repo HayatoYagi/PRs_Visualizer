@@ -4,11 +4,12 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ktlint)
 }
 
 kotlin {
     jvm()
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -31,7 +32,6 @@ kotlin {
     }
 }
 
-
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
@@ -41,5 +41,14 @@ compose.desktop {
             packageName = "io.github.hayatoyagi.prvisualizer"
             packageVersion = "1.0.0"
         }
+    }
+}
+
+ktlint {
+    version.set("1.3.1")
+    android.set(false)
+    filter {
+        exclude("**/generated/**")
+        exclude("**/build/**")
     }
 }

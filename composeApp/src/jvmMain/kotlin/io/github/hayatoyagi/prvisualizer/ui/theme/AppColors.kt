@@ -1,6 +1,14 @@
 package io.github.hayatoyagi.prvisualizer.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import io.github.hayatoyagi.prvisualizer.PullRequest
+
+fun authorColor(author: String): Color = AppColors.authorPalette[(author.hashCode().ushr(1)) % AppColors.authorPalette.size]
+
+fun prColor(
+    pr: PullRequest,
+    colorMap: Map<String, Color>,
+): Color = colorMap[pr.id] ?: authorColor("${pr.author}:${pr.number}")
 
 object AppColors {
     // Backgrounds

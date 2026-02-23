@@ -10,12 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,15 +43,10 @@ fun PrDetailsDialog(
                     text = "PR #${pr.number}",
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(
+                TextButton(
                     onClick = { onOpenInBrowser(pr.url) },
-                    modifier = Modifier.size(40.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.OpenInBrowser,
-                        contentDescription = "Open in browser",
-                        tint = AppColors.textSecondary,
-                    )
+                    Text("Open", color = AppColors.textSecondary)
                 }
             }
         },

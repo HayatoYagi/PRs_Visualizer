@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,9 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -35,12 +36,9 @@ import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.computeTreemap
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
-import io.github.hayatoyagi.prvisualizer.ui.shared.nodeKey
-import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
@@ -58,8 +56,10 @@ fun TreemapPane(
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
     onRelatedPrsDetected: (Set<String>) -> Unit,
+    onFileDoubleClick: (String) -> Unit,
     repoFullName: String,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     var zoom by remember { mutableStateOf(0.8f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -139,8 +139,8 @@ fun TreemapPane(
                         pan = centeredPan(canvasSize = it, zoom = zoom)
                         pendingViewportCentering = false
                     }
-                }
-                .onPointerEvent(PointerEventType.Move) { event ->
+                }.onPointerEvent(PointerEventType.Move) { event ->
+                    if (isLoading) return@onPointerEvent
                     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
                     pointerPos = position
                     val dragging = event.buttons.isSecondaryPressed
@@ -156,17 +156,20 @@ fun TreemapPane(
 
                     val world = (position - pan) / zoom
                     hoveredNode = visibleNodes.asReversed().firstOrNull { it.rect.contains(world) }
-                }
-                .onPointerEvent(PointerEventType.Scroll) { event ->
-                    val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
+                }.onPointerEvent(PointerEventType.Scroll) { event ->
+                    if (isLoading) return@onPointerEvent
+                    val scrollY = event.changes
+                        .firstOrNull()
+                        ?.scrollDelta
+                        ?.y ?: return@onPointerEvent
                     val factor = if (scrollY > 0f) 0.9f else 1.1f
                     val newZoom = (zoom * factor).coerceIn(0.4f, 8f)
                     val cursor = pointerPos
                     val world = (cursor - pan) / zoom
                     pan = cursor - world * newZoom
                     zoom = newZoom
-                }
-                .onPointerEvent(PointerEventType.Release) { event ->
+                }.onPointerEvent(PointerEventType.Release) { event ->
+                    if (isLoading) return@onPointerEvent
                     dragPointerPos = null
                     val change = event.changes.firstOrNull() ?: return@onPointerEvent
                     if (event.button != PointerButton.Primary) return@onPointerEvent
@@ -188,7 +191,7 @@ fun TreemapPane(
                         if (node.isDirectory) {
                             onFocusPathChange(node.path)
                         } else {
-                            openUrl("https://github.com/${repoFullName}/blob/main/${node.path}")
+                            onFileDoubleClick(node.path)
                         }
                     }
                     lastClickKey = key
@@ -217,11 +220,24 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             )
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(AppColors.backgroundCanvas.copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = AppColors.textPrimary)
+                }
+            }
         }
     }
 }
 
-private fun centeredPan(canvasSize: IntSize, zoom: Float): Offset {
+private fun centeredPan(
+    canvasSize: IntSize,
+    zoom: Float,
+): Offset {
     if (canvasSize.width <= 0 || canvasSize.height <= 0) return Offset.Zero
     return Offset(
         x = canvasSize.width * (1f - zoom) / 2f,

@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -85,8 +84,7 @@ fun TreemapOverlay(
                         x = (pointerPos.x + 12f).toInt(),
                         y = (pointerPos.y + 12f).toInt(),
                     )
-                }
-                .border(1.dp, AppColors.tooltipBorder),
+                }.border(1.dp, AppColors.tooltipBorder),
             color = AppColors.tooltipBackground,
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
