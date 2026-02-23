@@ -39,9 +39,9 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
+import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import kotlinx.coroutines.launch
 
 @Composable
 fun FileDetailsDialog(
@@ -289,9 +289,7 @@ fun FileDetailsDialog(
     )
 }
 
-private fun encodeGitHubPathPart(value: String): String {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
-}
+private fun encodeGitHubPathPart(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 
 private fun formatDate(isoDate: String): String = try {
     // ISO 8601 format: 2026-02-20T13:58:03Z
