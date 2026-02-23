@@ -398,7 +398,7 @@ private fun resolveReleaseEvent(
     }
 
     val key = nodeKey(node)
-    val isDoubleClick = key == lastClickKey && (uptimeMillis - lastClickAt) < DOUBLE_CLICK_THRESHOLD_MILLIS
+    val isDoubleClick = key == lastClickKey && uptimeMillis - lastClickAt < DOUBLE_CLICK_THRESHOLD_MILLIS
     if (isDoubleClick) {
         if (node.isDirectory) onFocusPathChange(node.path) else onFileDoubleClick(node.path)
     }

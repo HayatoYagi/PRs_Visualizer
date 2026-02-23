@@ -17,11 +17,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 class GitHubOAuthDesktopAuthenticator {
-    private companion object {
-        private val MIN_POLL_INTERVAL = 5.seconds
-        private val DEFAULT_EXPIRES_IN = 15.minutes
-    }
-
     private val client = HttpClient.newHttpClient()
 
     suspend fun authenticate(
@@ -61,17 +56,30 @@ class GitHubOAuthDesktopAuthenticator {
             val token = json.optString("access_token")
             if (token.isNotBlank()) return token
 
-            when (val error = json.optString("error")) {
-                "authorization_pending" -> Unit
-                "slow_down" -> pollInterval += MIN_POLL_INTERVAL
-                "expired_token" -> error("Device code expired. Please click Login with GitHub again.")
-                "access_denied" -> error("Authorization canceled by user.")
-                "device_flow_disabled" -> error("Device Flow is disabled for this GitHub App. Enable 'Device Flow' in app settings.")
-                "incorrect_client_credentials" -> error("Incorrect GitHub client_id. Check GITHUB_CLIENT_ID.")
-                "" -> error("OAuth response missing access_token: $body")
+            val errorType = json.optString("error")
+            when (errorType) {
+                "authorization_pending" -> {}
+                "slow_down" -> {
+                    pollInterval += MIN_POLL_INTERVAL
+                }
+                "expired_token" -> {
+                    error("Device code expired. Please click Login with GitHub again.")
+                }
+                "access_denied" -> {
+                    error("Authorization canceled by user.")
+                }
+                "device_flow_disabled" -> {
+                    error("Device Flow is disabled for this GitHub App. Enable 'Device Flow' in app settings.")
+                }
+                "incorrect_client_credentials" -> {
+                    error("Incorrect GitHub client_id. Check GITHUB_CLIENT_ID.")
+                }
+                "" -> {
+                    error("OAuth response missing access_token: $body")
+                }
                 else -> {
                     val desc = json.optString("error_description")
-                    if (desc.isNotBlank()) error("$error: $desc") else error("$error: $body")
+                    if (desc.isNotBlank()) error("$errorType: $desc") else error("$errorType: $body")
                 }
             }
         }
@@ -164,4 +172,9 @@ class GitHubOAuthDesktopAuthenticator {
         val expiresInSeconds: Int,
         val intervalSeconds: Int,
     )
+
+    private companion object {
+        private val MIN_POLL_INTERVAL = 5.seconds
+        private val DEFAULT_EXPIRES_IN = 15.minutes
+    }
 }

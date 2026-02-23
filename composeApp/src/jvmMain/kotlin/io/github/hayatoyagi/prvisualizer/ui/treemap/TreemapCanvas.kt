@@ -17,7 +17,7 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirectoryPaths
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val MIN_DIRECTORY_RENDER_SIZE_PX = 1f
@@ -49,7 +49,7 @@ fun TreemapCanvas(
     modifier: Modifier = Modifier,
 ) {
     val conflictedDirectoryPaths = remember(fileOverlayByPath) {
-        computeConflictedDirectoryPaths(fileOverlayByPath)
+        computeConflictedDirs(fileOverlayByPath)
     }
     Canvas(modifier = modifier.fillMaxSize()) {
         drawDirectoryLayer(

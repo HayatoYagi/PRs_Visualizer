@@ -2,11 +2,6 @@ package io.github.hayatoyagi.prvisualizer.github
 
 import io.github.hayatoyagi.prvisualizer.FileNode
 
-internal data class FileSeed(
-    val path: String,
-    val estimatedLines: Int,
-)
-
 private const val ACTIVE_PR_WEIGHT = 8.0
 private const val DEFAULT_FILE_WEIGHT = 1.0
 
@@ -42,7 +37,9 @@ internal fun buildTree(
     fun freeze(dir: MutableDir): FileNode.Directory {
         val frozenChildren = dir.children.map { child ->
             when (child) {
-                is MutableDir -> freeze(child)
+                is MutableDir -> {
+                    freeze(child)
+                }
                 is FileSeed -> {
                     val extension = child.path.substringAfterLast('.', missingDelimiterValue = "")
                     FileNode.File(
@@ -57,7 +54,9 @@ internal fun buildTree(
                         ),
                     )
                 }
-                else -> error("Unexpected node type")
+                else -> {
+                    error("Unexpected node type")
+                }
             }
         }
 

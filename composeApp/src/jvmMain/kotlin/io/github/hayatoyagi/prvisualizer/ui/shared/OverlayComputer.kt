@@ -48,7 +48,7 @@ fun totalLines(node: FileNode): Int = when (node) {
     is FileNode.Directory -> node.children.sumOf(::totalLines)
 }
 
-fun computeConflictedDirectoryPaths(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
+fun computeConflictedDirs(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
     val conflictedDirectories = mutableSetOf<String>()
     fileOverlayByPath.forEach { (filePath, overlay) ->
         if (overlay.prs.size <= 1) return@forEach
@@ -76,7 +76,8 @@ fun computeFileOverlayByPath(
             val dominant = items
                 .groupBy { it.second.changeType }
                 .maxByOrNull { it.value.sumOf { pair -> pair.second.changedLines } }
-                ?.key ?: ChangeType.Modification
+                ?.key
+                ?: ChangeType.Modification
             val prs = items.map { it.first }.distinctBy { it.id }
             val lines = fileLines[path] ?: 1
             val density = (totalChanged.toFloat() / lines.toFloat()).coerceIn(0f, 1f)

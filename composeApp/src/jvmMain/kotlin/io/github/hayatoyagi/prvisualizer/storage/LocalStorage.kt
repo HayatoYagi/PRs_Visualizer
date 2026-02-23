@@ -47,17 +47,19 @@ class FileLocalStorage(
         val userHome = System.getProperty("user.home")
         val baseDir = when {
             isMacOs() -> Path.of(userHome, "Library", "Application Support")
-            isWindows() -> {
-                val appData = System.getenv("APPDATA")
-                if (appData.isNullOrBlank()) {
-                    Path.of(userHome, "AppData", "Roaming")
-                } else {
-                    Path.of(appData)
-                }
-            }
+            isWindows() -> resolveWindowsAppData(userHome)
             else -> Path.of(userHome, ".local", "share")
         }
         return baseDir.resolve(appName).resolve("$key.txt")
+    }
+
+    private fun resolveWindowsAppData(userHome: String): Path {
+        val appData = System.getenv("APPDATA")
+        return if (appData.isNullOrBlank()) {
+            Path.of(userHome, "AppData", "Roaming")
+        } else {
+            Path.of(appData)
+        }
     }
 
     private fun isMacOs(): Boolean = System.getProperty("os.name").contains("mac", ignoreCase = true)

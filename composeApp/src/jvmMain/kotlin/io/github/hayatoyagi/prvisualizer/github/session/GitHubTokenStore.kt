@@ -8,6 +8,7 @@ import kotlin.time.Duration.Companion.seconds
 object GitHubTokenStore {
     private const val SERVICE_NAME = "io.github.hayatoyagi.prvisualizer.github-token"
     private const val ACCOUNT_NAME = "default-user"
+    private const val SECURITY_COMMAND = "security"
     private const val WINDOWS_TOKEN_ENV_PATH = "GHPV_PATH"
     private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
     private val COMMAND_TIMEOUT = 5.seconds
@@ -40,7 +41,7 @@ object GitHubTokenStore {
 
     private fun loadFromMacKeychain(): String? {
         val result = runCommand(
-            "security",
+            SECURITY_COMMAND,
             "find-generic-password",
             "-a",
             ACCOUNT_NAME,
@@ -54,7 +55,7 @@ object GitHubTokenStore {
 
     private fun saveToMacKeychain(token: String) {
         runCommand(
-            "security",
+            SECURITY_COMMAND,
             "add-generic-password",
             "-U",
             "-a",
@@ -68,7 +69,7 @@ object GitHubTokenStore {
 
     private fun clearFromMacKeychain() {
         runCommand(
-            "security",
+            SECURITY_COMMAND,
             "delete-generic-password",
             "-a",
             ACCOUNT_NAME,
@@ -82,17 +83,17 @@ object GitHubTokenStore {
         if (!Files.exists(path)) return null
         val script =
             """
-            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
-            ${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
-            if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
-            ${'$'}secure = ConvertTo-SecureString ${'$'}enc
-            ${'$'}bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR(${'$'}secure)
-            try {
-              [Runtime.InteropServices.Marshal]::PtrToStringBSTR(${'$'}bstr)
-            } finally {
-              [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
-            }
-            """.trimIndent()
+                |if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+                |${'$'}enc = Get-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Raw
+                |if ([string]::IsNullOrWhiteSpace(${'$'}enc)) { exit 2 }
+                |${'$'}secure = ConvertTo-SecureString ${'$'}enc
+                |${'$'}bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR(${'$'}secure)
+                |try {
+                |  [Runtime.InteropServices.Marshal]::PtrToStringBSTR(${'$'}bstr)
+                |} finally {
+                |  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR(${'$'}bstr)
+                |}
+            """.trimMargin()
         val result = runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(WINDOWS_TOKEN_ENV_PATH to path.toString()),
@@ -105,13 +106,13 @@ object GitHubTokenStore {
         val path = windowsTokenFilePath()
         val script =
             """
-            if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
-            ${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
-            if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
-            ${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
-            ${'$'}enc = ConvertFrom-SecureString ${'$'}secure
-            Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
-            """.trimIndent()
+                |if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+                |${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
+                |if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
+                |${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
+                |${'$'}enc = ConvertFrom-SecureString ${'$'}secure
+                |Set-Content -Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH -Value ${'$'}enc -NoNewline
+            """.trimMargin()
         runCommand(
             command = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-Command", script),
             extraEnv = mapOf(
@@ -141,7 +142,7 @@ object GitHubTokenStore {
         extraEnv: Map<String, String> = emptyMap(),
     ): CommandResult? {
         return runCatching {
-            val builder = ProcessBuilder(*command)
+            val builder = ProcessBuilder(command.toList())
             if (extraEnv.isNotEmpty()) {
                 builder.environment().putAll(extraEnv)
             }

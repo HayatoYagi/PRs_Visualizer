@@ -10,10 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 class PersistedSelectedRepositoryStore(
     private val localStorage: LocalStorage = FileLocalStorage(appName = "GitHubPRsVisualizer"),
 ) : SelectedRepositoryStore {
-    private companion object {
-        const val LAST_REPOSITORY_KEY = "last_repository"
-    }
-
     private val mutableRepoState = MutableStateFlow(
         localStorage.getString(LAST_REPOSITORY_KEY)
             ?.toRepoStateOrNull()
@@ -39,5 +35,9 @@ class PersistedSelectedRepositoryStore(
         val parts = split('/')
         if (parts.size != 2) return null
         return RepoState.from(owner = parts[0], repo = parts[1]).takeIf { it is RepoState.Selected }
+    }
+
+    private companion object {
+        const val LAST_REPOSITORY_KEY = "last_repository"
     }
 }
