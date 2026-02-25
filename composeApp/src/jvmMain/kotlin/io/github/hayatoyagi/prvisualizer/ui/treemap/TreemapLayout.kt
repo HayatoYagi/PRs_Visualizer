@@ -11,26 +11,22 @@ fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
 
 private class TreemapLayoutEngine {
     val nodes = mutableListOf<TreemapNode>()
+    private val aggregatesByPath = mutableMapOf<String, Aggregate>()
 
-    // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    private fun totalLines(node: FileNode): Int = when (node) {
-        is FileNode.File -> node.totalLines
-        is FileNode.Directory -> node.children.sumOf { totalLines(it) }
-    }
-
-    // TODO: Precompute/memoize subtree aggregates to avoid repeated recursive scans on large trees.
-    private fun hasActivePr(node: FileNode): Boolean = when (node) {
-        is FileNode.File -> node.hasActivePr
-        is FileNode.Directory -> node.children.any { hasActivePr(it) }
-    }
+    private data class Aggregate(
+        val totalLines: Int,
+        val hasActivePr: Boolean,
+    )
 
     fun compute(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
+        precomputeAggregates(root)
         layout(root, bounds, depth = 0)
         return nodes
     }
 
     private fun layout(node: FileNode, rect: Rect, depth: Int) {
         if (rect.width <= 0f || rect.height <= 0f) return
+        val aggregate = aggregateFor(node)
 
         nodes += TreemapNode(
             path = node.path,
@@ -38,8 +34,8 @@ private class TreemapLayoutEngine {
             rect = rect,
             depth = depth,
             isDirectory = node is FileNode.Directory,
-            totalLines = totalLines(node),
-            hasActivePr = hasActivePr(node),
+            totalLines = aggregate.totalLines,
+            hasActivePr = aggregate.hasActivePr,
         )
 
         val directory = node as? FileNode.Directory ?: return
@@ -82,6 +78,28 @@ private class TreemapLayoutEngine {
             layoutRow(currentRow, remainingBounds, remainingWeight, depth)
         }
     }
+
+    private fun precomputeAggregates(root: FileNode.Directory) {
+        aggregatesByPath.clear()
+        computeAggregate(root)
+    }
+
+    private fun computeAggregate(node: FileNode): Aggregate {
+        val aggregate = when (node) {
+            is FileNode.File -> Aggregate(totalLines = node.totalLines, hasActivePr = node.hasActivePr)
+            is FileNode.Directory -> {
+                val childAggregates = node.children.map { computeAggregate(it) }
+                Aggregate(
+                    totalLines = childAggregates.sumOf { it.totalLines },
+                    hasActivePr = childAggregates.any { it.hasActivePr },
+                )
+            }
+        }
+        aggregatesByPath[node.path] = aggregate
+        return aggregate
+    }
+
+    private fun aggregateFor(node: FileNode): Aggregate = aggregatesByPath[node.path] ?: computeAggregate(node)
 
     // Check if adding a new item to the current row improves the worst aspect ratio
     private fun improvesRatio(
