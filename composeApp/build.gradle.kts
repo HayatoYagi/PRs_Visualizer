@@ -45,6 +45,10 @@ compose.resources {
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
+        jvmArgs(
+            "-Xdock:name=GitHubPRsVisualizer",
+            "-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png",
+        )
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
