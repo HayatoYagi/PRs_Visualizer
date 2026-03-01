@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -29,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
@@ -62,9 +66,11 @@ fun PrListPane(
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
     onOpenPr: (PullRequest) -> Unit,
     onCyclePrColor: (String) -> Unit,
+    onShuffleColors: () -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
+    val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
     Column(
         modifier = modifier
             .width(340.dp)
@@ -74,10 +80,13 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
+            visiblePrCount = visiblePrCount,
             showDrafts = showDrafts,
             onlyMine = onlyMine,
             onShowDraftsChange = onShowDraftsChange,
             onOnlyMineChange = onOnlyMineChange,
+            canShuffleColors = prColorMap.isNotEmpty(),
+            onShuffleColors = onShuffleColors,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
@@ -101,12 +110,40 @@ fun PrListPane(
 
 @Composable
 private fun PrListHeader(
+    visiblePrCount: Int,
     showDrafts: Boolean,
     onlyMine: Boolean,
     onShowDraftsChange: (Boolean) -> Unit,
     onOnlyMineChange: (Boolean) -> Unit,
+    canShuffleColors: Boolean,
+    onShuffleColors: () -> Unit,
 ) {
-    Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Visible PRs: $visiblePrCount",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        TooltipIconButton(
+            tooltip = "Shuffle Colors",
+            enabled = canShuffleColors,
+            onClick = onShuffleColors,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Shuffle,
+                contentDescription = "Shuffle Colors",
+                tint = if (canShuffleColors) AppColors.textPrimary else AppColors.textSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
     PrFilterSwitch(checked = showDrafts, label = "Show draft", onCheckedChange = onShowDraftsChange)
     PrFilterSwitch(checked = onlyMine, label = "Only my PRs", onCheckedChange = onOnlyMineChange)
 }

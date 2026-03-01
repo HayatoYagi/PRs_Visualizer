@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +33,8 @@ import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
+import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private val CHEVRON_ICON_WIDTH = 12.dp
@@ -114,6 +119,7 @@ fun ExplorerPane(
 
 @Composable
 private fun ExplorerHeader(focusPath: String) {
+    val currentPath = "/${focusPath.ifBlank { "" }}"
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,13 +133,30 @@ private fun ExplorerHeader(focusPath: String) {
             ExplorerStatusBadge(kind = ExplorerStatusKind.Deletion, withLabel = true, size = ExplorerBadgeSize.Legend)
         }
     }
-    Text(
-        text = "Current: /${focusPath.ifBlank { "" }}",
-        color = AppColors.textSecondary,
-        style = MaterialTheme.typography.bodySmall,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = "Current: $currentPath",
+            color = AppColors.textSecondary,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        TooltipIconButton(
+            tooltip = "Copy current path",
+            onClick = { copyToClipboard(currentPath) },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ContentCopy,
+                contentDescription = "Copy current path",
+                tint = AppColors.textSecondary,
+            )
+        }
+    }
 }
 
 @Composable
@@ -215,6 +238,7 @@ private fun ExplorerRowItem(
             Text(
                 text = explorerLabel(row),
                 color = explorerLabelColor(isCurrentDir = isCurrentDir, isAncestor = isAncestor),
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

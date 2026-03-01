@@ -5,6 +5,7 @@ import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
+import io.github.hayatoyagi.prvisualizer.github.GitHubConfig
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -24,38 +25,25 @@ class GitHubSessionManager(
     private val setRepoSelectionState: (RepoSelectionState) -> Unit,
     private val onSnapshotLoaded: () -> Unit,
     private val selectRepo: (String) -> Unit,
+    private val unselectRepo: () -> Unit,
     private val authService: AuthService = AuthServiceImpl(),
     private val repoSelectionService: RepoSelectionService = RepoSelectionServiceImpl(),
     private val snapshotFetchService: SnapshotFetchService = SnapshotFetchServiceImpl(),
 ) {
     private var restoreAttempted = false
 
-    /**
-     * Initializes the session by restoring saved token and connecting if available.
-     */
     fun initializeSession() {
         scope.launch { restoreTokenAndConnectIfNeeded() }
     }
 
-    /**
-     * Initiates login flow and establishes connection.
-     *
-     * @param clientId The GitHub OAuth client ID
-     */
-    fun loginAndConnect(clientId: String) {
-        scope.launch { loginAndConnectInternal(clientId) }
+    fun loginAndConnect() {
+        scope.launch { loginAndConnectInternal() }
     }
 
-    /**
-     * Refreshes the connection by fetching latest data.
-     */
     fun refresh() {
         scope.launch { connectWithResolvedRepository() }
     }
 
-    /**
-     * Ensures repository options are loaded if needed.
-     */
     fun ensureRepositoryOptions() {
         scope.launch {
             val token = authenticatedTokenOrBlank()
@@ -69,11 +57,18 @@ class GitHubSessionManager(
         }
     }
 
-    /**
-     * Loads or reloads the list of available repositories.
-     */
     fun loadRepositoryOptions() {
         scope.launch { loadRepositoryOptionsInternal() }
+    }
+
+    fun logout() {
+        scope.launch {
+            authService.clearToken()
+            setAuthState(AuthState.Unauthenticated)
+            setSnapshotFetchState(SnapshotFetchState.Idle)
+            setRepoSelectionState(RepoSelectionState.Idle)
+            unselectRepo()
+        }
     }
 
     private suspend fun restoreTokenAndConnectIfNeeded() {
@@ -90,11 +85,11 @@ class GitHubSessionManager(
         }
     }
 
-    private suspend fun loginAndConnectInternal(clientId: String) {
+    private suspend fun loginAndConnectInternal() {
         setAuthState(AuthState.Authorizing())
 
         authService.login(
-            clientId = clientId.trim(),
+            clientId = GitHubConfig.CLIENT_ID,
             onDeviceFlowStart = { prompt ->
                 setAuthState(
                     AuthState.Authorizing(
@@ -161,7 +156,7 @@ class GitHubSessionManager(
                 setRepoSelectionState(
                     RepoSelectionState.Error(
                         options = previousOptions,
-                        error = AppError.Network(error.message ?: "Failed to load repositories"),
+                        error = AppError.from(error),
                     ),
                 )
             }

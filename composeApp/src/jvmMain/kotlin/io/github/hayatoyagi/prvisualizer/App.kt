@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -23,7 +26,6 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.hayatoyagi.prvisualizer.github.EnvConfig
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
@@ -40,7 +42,6 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
@@ -114,11 +115,9 @@ fun App() {
             selectedRepositoryStore = PersistedSelectedRepositoryStore(),
         )
     }
-    val oauthClientId = remember { EnvConfig.get("GITHUB_CLIENT_ID")?.trim().orEmpty() }
     val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
-    val isLoggedIn = authState is AuthState.Authenticated
     val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
 
     val uiState = rememberVisualizerUiState(vm)
@@ -132,17 +131,13 @@ fun App() {
             ToolbarRow(
                 owner = selectedRepo?.owner.orEmpty(),
                 repo = selectedRepo?.repo.orEmpty(),
-                isLoggedIn = isLoggedIn,
-                onOpenRepoDialog = { vm.openRepoDialog() },
-                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-            )
-            AuthRow(
-                oauthClientId = oauthClientId,
                 authState = authState,
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
-                onLogin = { vm.loginAndConnect(oauthClientId) },
+                onLogin = { vm.loginAndConnect() },
+                onLogout = { vm.logout() },
                 onRefresh = { vm.refresh() },
+                onOpenRepoDialog = { vm.openRepoDialog() },
             )
             AppDialogHost(
                 vm = vm,
@@ -243,8 +238,47 @@ private fun AppDialogHost(
                 vm.closeDialog()
             },
         )
+        is DialogState.AuthError -> ErrorDialog(
+            title = "Authentication error",
+            error = dialogState.error,
+            onDismiss = { vm.dismissErrorDialog() },
+        )
+        is DialogState.SnapshotFetchError -> ErrorDialog(
+            title = "Failed to load repository",
+            error = dialogState.error,
+            onDismiss = { vm.dismissErrorDialog() },
+        )
         is DialogState.None -> Unit
     }
+}
+
+@Composable
+private fun ErrorDialog(
+    title: String,
+    error: AppError,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(errorDialogMessage(error)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
+    )
+}
+
+private fun errorDialogMessage(error: AppError): String = when (error) {
+    is AppError.Network -> "Network error: ${error.message}"
+    is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.AuthExpired -> error.message
+    is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+    is AppError.Unknown -> "Error: ${error.message}"
 }
 
 @Composable
@@ -332,6 +366,7 @@ private fun AppMainRow(
             },
             onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
             onCyclePrColor = { vm.cyclePrColor(it) },
+            onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
             isLoading = isConnecting,
         )
     }

@@ -1,12 +1,27 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
+
+// Read version from version.properties
+val versionFile = file("${rootProject.projectDir}/version.properties")
+if (!versionFile.exists()) {
+    throw GradleException("version.properties file not found at ${versionFile.absolutePath}")
+}
+val versionProps = Properties()
+versionFile.inputStream().use { versionProps.load(it) }
+val appVersion =
+    versionProps.getProperty("version")
+        ?: throw GradleException("'version' property not found in version.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
 }
+
+val appDisplayName = "PRs Visualizer for GitHub"
 
 kotlin {
     jvm()
@@ -27,8 +42,9 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.coroutinesSwing)
-            implementation("org.json:json:20250107")
+            implementation(libs.kotlinx.serialization.json)
         }
         jvmTest.dependencies {
             implementation(libs.kotlinx.coroutinesTest)
@@ -36,14 +52,39 @@ kotlin {
     }
 }
 
+compose.resources {
+    packageOfResClass = "io.github.hayatoyagi.prvisualizer.generated.resources"
+    publicResClass = true
+}
+
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
+        jvmArgs(
+            "-Dapp.display.name=$appDisplayName",
+            "-Xdock:name=$appDisplayName",
+            "-Dapple.awt.application.name=$appDisplayName",
+            "-Dcom.apple.mrj.application.apple.menu.about.name=$appDisplayName",
+            "-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png",
+        )
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.github.hayatoyagi.prvisualizer"
-            packageVersion = "1.0.0"
+            packageName = "PRsVisualizerForGitHub"
+            packageVersion = appVersion
+            modules("java.net.http")
+
+            // Application icon configuration
+            macOS {
+                bundleID = "io.github.hayatoyagi.prvisualizer"
+                iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon.png"))
+            }
         }
     }
 }

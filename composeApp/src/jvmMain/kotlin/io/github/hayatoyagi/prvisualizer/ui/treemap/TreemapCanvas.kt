@@ -31,8 +31,8 @@ private const val MAX_ALPHA = 0.96f
 private const val BORDER_WIDTH_PX = 8f
 private const val NODE_INSET_PX = 1.5f
 private const val HIGHLIGHT_STROKE_WIDTH_PX = 2.5f
-private const val CONFLICT_STRIPE_SPACING_PX = 8f
-private const val CONFLICT_STRIPE_WIDTH_PX = 1f
+private const val CONFLICT_STRIPE_SPACING_PX = 12f
+private const val CONFLICT_STRIPE_WIDTH_PX = 3f
 private const val DOUBLE_INSET_MULTIPLIER = 2f
 
 /**

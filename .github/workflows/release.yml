@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ main, master ]
+
+jobs:
+  release:
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_dir: 'deb'
+            artifact_pattern: '*.deb'
+          - os: macos-latest
+            artifact_dir: 'dmg'
+            artifact_pattern: '*.dmg'
+          - os: windows-latest
+            artifact_dir: 'msi'
+            artifact_pattern: '*.msi'
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: 0
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      
+    - name: Read version
+      id: version
+      shell: bash
+      run: |
+        VERSION=$(grep "^version=" version.properties | cut -d'=' -f2)
+        if [ -z "$VERSION" ]; then
+          echo "::error::VERSION is empty. Check version.properties."
+          exit 1
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+    
+    - name: Build distribution for ${{ matrix.os }}
+      run: ./gradlew :composeApp:packageReleaseDistributionForCurrentOS --stacktrace
+      
+    - name: Find artifact
+      id: find_artifact
+      shell: bash
+      run: |
+        ARTIFACT=$(find composeApp/build/compose/binaries/main-release/${{ matrix.artifact_dir }} -name "${{ matrix.artifact_pattern }}" | head -n 1)
+        if [ -z "$ARTIFACT" ]; then
+          echo "::error::No artifact found in composeApp/build/compose/binaries/main-release/${{ matrix.artifact_dir }} matching pattern ${{ matrix.artifact_pattern }}"
+          exit 1
+        fi
+        echo "ARTIFACT_PATH=$ARTIFACT" >> $GITHUB_OUTPUT
+        echo "Found artifact: $ARTIFACT"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.os }}-${{ steps.version.outputs.VERSION }}
+        path: ${{ steps.find_artifact.outputs.ARTIFACT_PATH }}
+  
+  create-release:
+    needs: release
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: 0
+        fetch-tags: true
+      
+    - name: Read version
+      id: version
+      run: |
+        VERSION=$(grep "^version=" version.properties | cut -d'=' -f2)
+        if [ -z "$VERSION" ]; then
+          echo "::error::VERSION is empty. Check version.properties."
+          exit 1
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ steps.version.outputs.VERSION }}"
+        TAG="v${VERSION}"
+        
+        # Check if tag already exists
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "Tag $TAG already exists, skipping release creation"
+          exit 0
+        fi
+        
+        files=()
+        while IFS= read -r -d '' file; do
+          files+=("$file")
+        done < <(find artifacts -type f -print0)
+
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "::error::No artifact files found under artifacts/"
+          exit 1
+        fi
+
+        # Create release with artifacts
+        gh release create "$TAG" \
+          --title "Release $VERSION" \
+          --generate-notes \
+          "${files[@]}"

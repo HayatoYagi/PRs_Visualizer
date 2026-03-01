@@ -7,8 +7,7 @@ import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
@@ -28,6 +27,7 @@ class GitHubApi(
     private val token: String,
 ) {
     private val client = HttpClient.newHttpClient()
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * Fetches the list of repositories accessible to the authenticated user.
@@ -37,7 +37,7 @@ class GitHubApi(
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
         val repos = loadRepositoryNamesByPage { page ->
-            requestArray("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
+            requestList<GitHubRepository>("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
         }
         repos.distinct().sortedBy { it.lowercase() }
     }
@@ -89,16 +89,16 @@ class GitHubApi(
     }
 
     private fun fetchViewerLogin(): String? {
-        val response = requestJson("https://api.github.com/user")
-        return response.optString("login").ifBlank { null }
+        val response = request<GitHubUser>("https://api.github.com/user")
+        return response.login.ifBlank { null }
     }
 
     private fun fetchDefaultBranch(
         owner: String,
         repo: String,
     ): String {
-        val response = requestJson("https://api.github.com/repos/${enc(owner)}/${enc(repo)}")
-        return response.optString("default_branch").ifBlank { "main" }
+        val response = request<GitHubRepository>("https://api.github.com/repos/${enc(owner)}/${enc(repo)}")
+        return response.defaultBranch?.ifBlank { null } ?: "main"
     }
 
     private fun fetchOpenPullRequests(
@@ -109,23 +109,22 @@ class GitHubApi(
         var page = 1
         var hasNextPage: Boolean
         do {
-            val response = requestArray(
+            val response = requestList<GitHubPullRequest>(
                 "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            val responseSize = response.length()
+            val responseSize = response.size
             hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(responseSize) { idx ->
-                val pr = response.getJSONObject(idx)
-                val number = pr.optInt("number")
+            response.forEach { pr ->
+                val number = pr.number
                 val files = fetchPullRequestFiles(owner, repo, number)
                 pulls += PullRequest(
-                    id = pr.optString("node_id", "pr-$number"),
+                    id = pr.nodeId.ifBlank { "pr-$number" },
                     number = number,
-                    title = pr.optString("title"),
-                    author = pr.optJSONObject("user")?.optString("login").orEmpty(),
-                    isDraft = pr.optBoolean("draft", false),
-                    url = pr.optString("html_url"),
+                    title = pr.title,
+                    author = pr.user?.login.orEmpty(),
+                    isDraft = pr.draft,
+                    url = pr.htmlUrl,
                     files = files,
                 )
             }
@@ -143,19 +142,18 @@ class GitHubApi(
         var page = 1
         var hasNextPage: Boolean
         do {
-            val response = requestArray(
+            val response = requestList<GitHubPullRequestFile>(
                 "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
-            val responseSize = response.length()
+            val responseSize = response.size
             hasNextPage = responseSize == GITHUB_PAGE_SIZE
 
-            repeat(responseSize) { idx ->
-                val file = response.getJSONObject(idx)
-                val path = file.optString("filename")
-                if (isBinaryFile(path)) return@repeat
-                val additions = file.optInt("additions")
-                val deletions = file.optInt("deletions")
-                val status = file.optString("status")
+            response.forEach { file ->
+                val path = file.filename
+                if (isBinaryFile(path)) return@forEach
+                val additions = file.additions
+                val deletions = file.deletions
+                val status = file.status
                 files += PrFileChange(
                     path = path,
                     additions = normalizedAdditionsForStatus(status, additions, deletions),
@@ -187,25 +185,23 @@ class GitHubApi(
         require(path.isNotBlank()) { "path is required" }
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
 
-        val response = requestArray(
+        val response = requestList<GitHubCommit>(
             "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
         )
 
-        val commits = mutableListOf<FileCommit>()
-        repeat(response.length()) { idx ->
-            val commitObj = response.getJSONObject(idx)
-            val commit = commitObj.optJSONObject("commit")
-            val author = commit?.optJSONObject("author")
-            val committer = commit?.optJSONObject("committer")
+        val commits = response.map { commitObj ->
+            val commit = commitObj.commit
+            val author = commit?.author
+            val committer = commit?.committer
 
-            commits += FileCommit(
-                sha = commitObj.optString("sha", "").take(SHORT_SHA_LENGTH),
-                message = commit?.optString("message", "")?.lines()?.firstOrNull() ?: "",
-                author = author?.optString("name")?.takeIf { it.isNotBlank() }
-                    ?: committer?.optString("name")?.takeIf { it.isNotBlank() }
+            FileCommit(
+                sha = commitObj.sha.take(SHORT_SHA_LENGTH),
+                message = commit?.message?.lines()?.firstOrNull() ?: "",
+                author = author?.name?.takeIf { it.isNotBlank() }
+                    ?: committer?.name?.takeIf { it.isNotBlank() }
                     ?: "Unknown",
-                date = author?.optString("date") ?: committer?.optString("date") ?: "",
-                url = commitObj.optString("html_url", ""),
+                date = author?.date ?: committer?.date ?: "",
+                url = commitObj.htmlUrl,
             )
         }
         return@withContext commits
@@ -223,46 +219,42 @@ class GitHubApi(
         repo: String,
         branch: String,
     ): List<FileSeed> {
-        val response = requestJson(
+        val response = request<GitHubTree>(
             "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/git/trees/${enc(branch)}?recursive=1",
         )
-        val tree = response.optJSONArray("tree") ?: JSONArray()
         val files = mutableListOf<FileSeed>()
-        repeat(tree.length()) { idx ->
-            val node = tree.getJSONObject(idx)
-            if (node.optString("type") != "blob") return@repeat
-            val path = node.optString("path")
-            if (path.isBlank()) return@repeat
-            if (isBinaryFile(path)) return@repeat
-            val size = node.optInt("size", 0)
+        response.tree.forEach { node ->
+            if (node.type != "blob") return@forEach
+            val path = node.path
+            if (path.isBlank()) return@forEach
+            if (isBinaryFile(path)) return@forEach
+            val size = node.size
             val estimatedLines = maxOf(MIN_ESTIMATED_LINES, size / ESTIMATED_LINES_DIVISOR)
             files += FileSeed(path = path, estimatedLines = estimatedLines)
         }
         return files
     }
 
-    private fun requestJson(url: String): JSONObject {
+    private inline fun <reified T> request(url: String): T {
         val body = requestBody(url)
-        return JSONObject(body)
+        return json.decodeFromString<T>(body)
     }
 
-    private fun requestArray(url: String): JSONArray {
+    private inline fun <reified T> requestList(url: String): List<T> {
         val body = requestBody(url)
-        return JSONArray(body)
+        return json.decodeFromString<List<T>>(body)
     }
 
-    private fun loadRepositoryNamesByPage(requestPage: (Int) -> JSONArray?): List<String> {
+    private fun loadRepositoryNamesByPage(requestPage: (Int) -> List<GitHubRepository>): List<String> {
         val repos = mutableListOf<String>()
         var page = 1
         var hasNextPage: Boolean
         do {
             val response = requestPage(page)
-            val responseSize = response?.length() ?: 0
+            val responseSize = response.size
             hasNextPage = responseSize == GITHUB_PAGE_SIZE
-            if (response == null) return repos
-            repeat(responseSize) { index ->
-                val repo = response.getJSONObject(index)
-                val repoName = repo.optString("full_name")
+            response.forEach { repo ->
+                val repoName = repo.fullName
                 if (repoName.isNotBlank()) repos += repoName
             }
             page += 1

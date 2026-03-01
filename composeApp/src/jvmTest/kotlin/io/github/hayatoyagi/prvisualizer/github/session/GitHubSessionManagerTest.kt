@@ -55,6 +55,7 @@ class GitHubSessionManagerTest {
                         repo = fullName.substringAfter('/'),
                     )
                 },
+                unselectRepo = {},
                 authService = authService,
                 repoSelectionService = repoService,
                 snapshotFetchService = snapshotService,
@@ -89,6 +90,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = FakeAuthService(
                     restoredToken = "",
                     loginResult = Result.failure(IllegalStateException("boom")),
@@ -97,7 +99,7 @@ class GitHubSessionManagerTest {
                 snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
             )
 
-            manager.loginAndConnect("client-id")
+            manager.loginAndConnect()
 
             val failed = assertIs<AuthState.Failed>(authState)
             val error = assertIs<AppError.OAuthFailed>(failed.error)
@@ -125,6 +127,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = FakeAuthService(
                     restoredToken = "",
                     loginResult = Result.success("token"),
@@ -162,6 +165,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = authService,
                 repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
                 snapshotFetchService = FakeSnapshotFetchService(
@@ -176,6 +180,45 @@ class GitHubSessionManagerTest {
             assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
             assertTrue(authService.clearTokenCalled)
             assertEquals(RepoSelectionState.Idle, repoSelectionState)
+        }
+
+    @Test
+    fun `logout should clear token and reset all states`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Authenticated("token")
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Ready(snapshot())
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Ready(listOf("owner/repo"))
+            var unselectRepoCalled = false
+
+            val authService = FakeAuthService(
+                restoredToken = "",
+                loginResult = Result.success("token"),
+            )
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                unselectRepo = { unselectRepoCalled = true },
+                authService = authService,
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
+            )
+
+            manager.logout()
+
+            assertEquals(AuthState.Unauthenticated, authState)
+            assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
+            assertEquals(RepoSelectionState.Idle, repoSelectionState)
+            assertTrue(authService.clearTokenCalled)
+            assertTrue(unselectRepoCalled)
         }
 
     private fun assertNotFetching(snapshotFetchState: SnapshotFetchState) {
