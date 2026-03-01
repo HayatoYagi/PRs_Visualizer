@@ -27,7 +27,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
@@ -321,7 +321,7 @@ private fun Modifier.treemapMoveHandler(
 ): Modifier = onPointerEvent(PointerEventType.Move) { event ->
     if (isLoading) return@onPointerEvent
     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
-    onMoveEvent(position, event.buttons.isSecondaryPressed)
+    onMoveEvent(position, event.buttons.isPrimaryPressed)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
