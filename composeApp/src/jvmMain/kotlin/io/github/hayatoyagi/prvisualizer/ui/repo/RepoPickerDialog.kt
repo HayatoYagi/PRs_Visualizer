@@ -149,7 +149,7 @@ fun RepoPickerDialog(
 private fun isValidOwnerRepoFormat(text: String): Boolean {
     val parts = text.split('/')
     if (parts.size != 2) return false
-    val owner = parts[0].trim()
-    val repo = parts[1].trim()
+    val owner = parts[0]
+    val repo = parts[1]
     return owner.isNotEmpty() && repo.isNotEmpty()
 }
