@@ -18,7 +18,6 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.treemap.components.TreemapPaneHeader
 import io.github.hayatoyagi.prvisualizer.ui.treemap.components.TreemapViewport
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.INITIAL_ZOOM
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.MAX_ZOOM
@@ -87,11 +86,6 @@ fun TreemapPane(
     val viewportCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
 
     Column(modifier = modifier.fillMaxHeight()) {
-        TreemapPaneHeader(
-            focusPath = focusPath,
-            visiblePrCount = visiblePrs.size,
-            onFocusPathChange = onFocusPathChange,
-        )
         TreemapViewport(
             model = TreemapViewportModel(
                 visibleNodes = visibleNodes,
