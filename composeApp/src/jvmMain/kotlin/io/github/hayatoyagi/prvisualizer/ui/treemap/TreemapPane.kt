@@ -27,8 +27,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -51,6 +53,7 @@ private const val MAX_ZOOM = 8f
 private const val DOUBLE_CLICK_THRESHOLD_MILLIS = 350L
 private const val LOADING_OVERLAY_ALPHA = 0.8f
 private const val PAN_CENTER_DIVISOR = 2f
+private const val LEGEND_PADDING_DP = 8
 
 private data class MoveEventResult(
     val pan: Offset,
@@ -269,6 +272,7 @@ private fun TreemapViewport(
     isLoading: Boolean,
     callbacks: TreemapViewportCallbacks,
 ) {
+    var legendBounds by remember { mutableStateOf<Rect?>(null) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -277,7 +281,13 @@ private fun TreemapViewport(
             .onSizeChanged(callbacks.onSizeChanged)
             .treemapMoveHandler(isLoading = isLoading, onMoveEvent = callbacks.onMoveEvent)
             .treemapScrollHandler(isLoading = isLoading, onScrollEvent = callbacks.onScrollEvent)
-            .treemapReleaseHandler(isLoading = isLoading, onReleaseEvent = callbacks.onReleaseEvent),
+            .treemapReleaseHandler(
+                isLoading = isLoading,
+                onReleaseEvent = { position, uptimeMillis ->
+                    if (legendBounds?.contains(position) == true) return@treemapReleaseHandler
+                    callbacks.onReleaseEvent(position, uptimeMillis)
+                },
+            ),
     ) {
         TreemapCanvas(
             visibleDirectories = model.visibleDirectories,
@@ -301,6 +311,14 @@ private fun TreemapViewport(
             pan = model.pan,
             pointerPos = model.pointerPos,
         )
+        TreemapLegend(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(LEGEND_PADDING_DP.dp)
+                .onGloballyPositioned { coordinates ->
+                    legendBounds = coordinates.boundsInParent()
+                },
+        )
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -321,7 +339,7 @@ private fun Modifier.treemapMoveHandler(
 ): Modifier = onPointerEvent(PointerEventType.Move) { event ->
     if (isLoading) return@onPointerEvent
     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
-    onMoveEvent(position, event.buttons.isSecondaryPressed)
+    onMoveEvent(position, event.buttons.isPrimaryPressed)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)

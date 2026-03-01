@@ -6,7 +6,7 @@ A desktop application for visually understanding the state of open pull requests
 
 ## 🖼️ Screenshot
 
-![GitHub PRs Visualizer screenshot](./docs/images/screenshot-2026-02-20-231900.png)
+![GitHub PRs Visualizer screenshot](./docs/images/screenshot-2026-03-01-153211.png)
 *Note: This screenshot shows a development build UI and may differ from future releases.*
 
 ## 🎯 Who Should Use This Tool

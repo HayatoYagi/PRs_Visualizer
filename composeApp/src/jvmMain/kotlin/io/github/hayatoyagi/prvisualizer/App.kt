@@ -40,7 +40,6 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
@@ -115,7 +114,6 @@ fun App() {
     val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
-    val isLoggedIn = authState is AuthState.Authenticated
     val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
 
     val uiState = rememberVisualizerUiState(vm)
@@ -129,17 +127,13 @@ fun App() {
             ToolbarRow(
                 owner = selectedRepo?.owner.orEmpty(),
                 repo = selectedRepo?.repo.orEmpty(),
-                isLoggedIn = isLoggedIn,
-                onOpenRepoDialog = { vm.openRepoDialog() },
-                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-            )
-            AuthRow(
                 oauthClientId = oauthClientId,
                 authState = authState,
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
                 onLogin = { vm.loginAndConnect(oauthClientId) },
                 onRefresh = { vm.refresh() },
+                onOpenRepoDialog = { vm.openRepoDialog() },
             )
             AppDialogHost(
                 vm = vm,
@@ -329,6 +323,7 @@ private fun AppMainRow(
             },
             onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
             onCyclePrColor = { vm.cyclePrColor(it) },
+            onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
             isLoading = isConnecting,
         )
     }
