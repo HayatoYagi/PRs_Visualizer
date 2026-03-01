@@ -1,4 +1,4 @@
-# GitHub PRs Visualizer
+# PRs Visualizer for GitHub
 
 🇬🇧 English | [🇯🇵 日本語](./README.ja.md)
 
@@ -6,7 +6,7 @@ A desktop application for visually understanding the state of open pull requests
 
 ## 🖼️ Screenshot
 
-![GitHub PRs Visualizer screenshot](./docs/images/screenshot-2026-03-01-153211.png)
+![PRs Visualizer for GitHub screenshot](./docs/images/screenshot-2026-03-01-153211.png)
 *Note: This screenshot shows a development build UI and may differ from future releases.*
 
 ## 🎯 Who Should Use This Tool
@@ -77,7 +77,7 @@ To run static code analysis:
 ## 📦 Pre-built Application Distribution
 
 You can download pre-built applications from the GitHub Releases page:
-- [Releases](https://github.com/HayatoYagi/GitHub_PRs_Visualizer/releases)
+- [Releases](https://github.com/HayatoYagi/PRs_Visualizer/releases)
 
 Installers are available for each platform:
 - macOS: `.dmg` file

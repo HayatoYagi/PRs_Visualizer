@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PersistedSelectedRepositoryStore(
-    private val localStorage: LocalStorage = FileLocalStorage(appName = "GitHubPRsVisualizer"),
+    private val localStorage: LocalStorage = FileLocalStorage(appName = "PRsVisualizerForGitHub"),
 ) : SelectedRepositoryStore {
     private val mutableRepoState = MutableStateFlow(
         localStorage.getString(LAST_REPOSITORY_KEY)

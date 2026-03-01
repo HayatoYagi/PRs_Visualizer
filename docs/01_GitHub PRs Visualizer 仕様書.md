@@ -1,4 +1,4 @@
-# **GitHub PRs Visualizer 開発仕様書**
+# **PRs Visualizer for GitHub 開発仕様書**
 
 ## **1\. プロジェクト概要**
 
