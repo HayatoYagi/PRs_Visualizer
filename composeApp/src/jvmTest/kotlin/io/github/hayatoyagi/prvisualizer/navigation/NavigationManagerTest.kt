@@ -4,6 +4,7 @@ import io.github.hayatoyagi.prvisualizer.NavigationState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -34,9 +35,10 @@ class NavigationManagerTest {
 
         manager.selectDirectory("src/ui/components")
 
-        assertTrue(capturedState?.explorerState?.expandedPaths?.contains("src") == true)
-        assertTrue(capturedState?.explorerState?.expandedPaths?.contains("src/ui") == true)
-        assertTrue(capturedState?.explorerState?.expandedPaths?.contains("src/ui/components") == true)
+        val state = assertNotNull(capturedState)
+        assertTrue(state.explorerState.expandedPaths.contains("src"))
+        assertTrue(state.explorerState.expandedPaths.contains("src/ui"))
+        assertTrue(state.explorerState.expandedPaths.contains("src/ui/components"))
     }
 
     @Test
@@ -125,14 +127,16 @@ class NavigationManagerTest {
 
         // Expand
         manager.toggleDirectoryExpanded("src")
-        assertTrue(capturedState?.explorerState?.expandedPaths?.contains("src") == true)
+        val expandedState = assertNotNull(capturedState)
+        assertTrue(expandedState.explorerState.expandedPaths.contains("src"))
 
         // Update manager state
-        capturedState?.let { manager.updateState(it) }
+        manager.updateState(expandedState)
 
         // Collapse
         manager.toggleDirectoryExpanded("src")
-        assertFalse(capturedState?.explorerState?.expandedPaths?.contains("src") == true)
+        val collapsedState = assertNotNull(capturedState)
+        assertFalse(collapsedState.explorerState.expandedPaths.contains("src"))
     }
 
     @Test
