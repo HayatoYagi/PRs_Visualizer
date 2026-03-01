@@ -4,11 +4,13 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
     jvm()
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -28,9 +30,11 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("org.json:json:20250107")
         }
+        jvmTest.dependencies {
+            implementation(libs.kotlinx.coroutinesTest)
+        }
     }
 }
-
 
 compose.desktop {
     application {
@@ -42,4 +46,23 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+ktlint {
+    version.set("1.3.1")
+    android.set(false)
+    filter {
+        exclude("**/generated/**")
+        exclude("**/build/**")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$projectDir/detekt.yml")
+    source.setFrom(
+        files("src/jvmMain/kotlin"),
+        files("src/commonMain/kotlin"),
+    )
 }

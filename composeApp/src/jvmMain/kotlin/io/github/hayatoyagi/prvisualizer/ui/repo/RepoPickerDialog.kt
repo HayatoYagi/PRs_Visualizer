@@ -16,41 +16,80 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable
 fun RepoPickerDialog(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    options: List<String>,
-    isLoading: Boolean,
+    initialQuery: String,
+    repoSelectionState: RepoSelectionState,
     onReload: () -> Unit,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
+    val options = when (repoSelectionState) {
+        RepoSelectionState.Idle,
+        RepoSelectionState.Loading,
+        -> emptyList()
+        is RepoSelectionState.Ready -> repoSelectionState.options
+        is RepoSelectionState.Error -> repoSelectionState.options
+    }
+    val isLoading = repoSelectionState is RepoSelectionState.Loading
+    val loadingError = (repoSelectionState as? RepoSelectionState.Error)?.error
+
+    var query by rememberSaveable { mutableStateOf(initialQuery) }
+    val filteredOptions = remember(options, query) {
+        filterRepoOptions(options, query)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Repository") },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = query,
-                    onValueChange = onQueryChange,
+                    onValueChange = { query = it },
                     label = { Text("Search owner/repo") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = AppColors.backgroundPaneList,
+                        unfocusedContainerColor = AppColors.backgroundPaneList,
+                        disabledContainerColor = AppColors.backgroundPaneList,
+                        focusedTextColor = AppColors.textPrimary,
+                        unfocusedTextColor = AppColors.textPrimary,
+                        focusedLabelColor = AppColors.textSecondary,
+                        unfocusedLabelColor = AppColors.textSecondary,
+                        cursorColor = AppColors.textPrimary,
+                    ),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onReload) {
                         Text(if (isLoading) "Loading..." else "Reload")
                     }
                     Text(
-                        text = "${options.size} results",
+                        text = "${filteredOptions.size} results",
                         color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+                if (loadingError != null) {
+                    Text(
+                        text = loadingError.message,
+                        color = AppColors.textWarning,
                     )
                 }
                 LazyColumn(
@@ -60,7 +99,7 @@ fun RepoPickerDialog(
                         .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    items(options) { fullName ->
+                    items(filteredOptions) { fullName ->
                         Text(
                             text = fullName,
                             color = AppColors.textRepoOption,
@@ -74,7 +113,7 @@ fun RepoPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
         },
     )
 }

@@ -63,3 +63,11 @@ data class TreemapNode(
     val totalLines: Int,
     val hasActivePr: Boolean,
 )
+
+data class FileCommit(
+    val sha: String,
+    val message: String,
+    val author: String,
+    val date: String,
+    val url: String,
+)
