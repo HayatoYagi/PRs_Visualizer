@@ -1,7 +1,11 @@
 package io.github.hayatoyagi.prvisualizer.ui.dialog
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.DialogState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.VisualizerUiState
@@ -10,6 +14,7 @@ import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
+import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val DEFAULT_BRANCH = "main"
 
@@ -20,6 +25,7 @@ private const val DEFAULT_BRANCH = "main"
  * - Repository picker dialog
  * - File details dialog
  * - PR details dialog
+ * - Error dialogs
  */
 @Composable
 fun DialogHost(
@@ -35,6 +41,7 @@ fun DialogHost(
     onRefresh: () -> Unit,
     onRetryLoadCommits: () -> Unit,
     onDismissDialog: () -> Unit,
+    onDismissErrorDialog: () -> Unit,
     onOpenPrInBrowser: (String) -> Unit,
     onSelectFile: (String) -> Unit,
 ) {
@@ -68,8 +75,47 @@ fun DialogHost(
                 onSelectFile(filePath)
             },
         )
+        is DialogState.AuthError -> ErrorDialog(
+            title = "Authentication error",
+            error = dialogState.error,
+            onDismiss = onDismissErrorDialog,
+        )
+        is DialogState.SnapshotFetchError -> ErrorDialog(
+            title = "Failed to load repository",
+            error = dialogState.error,
+            onDismiss = onDismissErrorDialog,
+        )
         is DialogState.None -> Unit
     }
+}
+
+@Composable
+private fun ErrorDialog(
+    title: String,
+    error: AppError,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(errorDialogMessage(error)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
+    )
+}
+
+private fun errorDialogMessage(error: AppError): String = when (error) {
+    is AppError.Network -> "Network error: ${error.message}"
+    is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.AuthExpired -> error.message
+    is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+    is AppError.Unknown -> "Error: ${error.message}"
 }
 
 @Composable
