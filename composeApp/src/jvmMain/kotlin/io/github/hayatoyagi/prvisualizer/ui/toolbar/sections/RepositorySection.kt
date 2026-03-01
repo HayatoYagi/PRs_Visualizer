@@ -20,13 +20,14 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 @Composable
 fun RepositorySection(
     isConnecting: Boolean,
+    canRefresh: Boolean,
     canOpenRepoDialog: Boolean,
     repoFullName: String,
     toolbarTextStyle: TextStyle,
     onRefresh: () -> Unit,
     onOpenRepoDialog: () -> Unit,
 ) {
-    val isRefreshEnabled = !isConnecting && canOpenRepoDialog
+    val isRefreshEnabled = !isConnecting && canRefresh
     val refreshLabel = if (isConnecting) "Refreshing..." else "Refresh Repository"
 
     TooltipIconButton(
