@@ -95,7 +95,7 @@ fun ToolbarRow(
         // Missing client ID notice
         if (oauthClientId.isBlank()) {
             Text(
-                text = "Missing GITHUB_CLIENT_ID",
+                text = "Missing GITHUB_CLIENT_ID in .env",
                 color = AppColors.textWarning,
             )
         }
