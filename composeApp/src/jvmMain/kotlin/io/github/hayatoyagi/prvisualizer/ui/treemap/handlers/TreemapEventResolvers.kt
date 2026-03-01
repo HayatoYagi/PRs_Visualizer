@@ -34,6 +34,20 @@ internal fun resolveZoomEvent(
     pan: Offset,
 ): ZoomEventResult {
     val factor = if (scrollY > 0f) ZOOM_OUT_FACTOR else ZOOM_IN_FACTOR
+    return resolveZoomByFactor(
+        factor = factor,
+        pointerPos = pointerPos,
+        zoom = zoom,
+        pan = pan,
+    )
+}
+
+internal fun resolveZoomByFactor(
+    factor: Float,
+    pointerPos: Offset,
+    zoom: Float,
+    pan: Offset,
+): ZoomEventResult {
     val newZoom = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
     val world = (pointerPos - pan) / zoom
     val newPan = pointerPos - world * newZoom

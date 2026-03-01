@@ -21,10 +21,15 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.treemap.components.TreemapPaneHeader
 import io.github.hayatoyagi.prvisualizer.ui.treemap.components.TreemapViewport
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.INITIAL_ZOOM
+import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.MAX_ZOOM
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.MIN_CANVAS_SIZE_PX
+import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.MIN_ZOOM
+import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.ZOOM_IN_FACTOR
+import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.ZOOM_OUT_FACTOR
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.centeredPan
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.resolveMoveEvent
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.resolveReleaseEvent
+import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.resolveZoomByFactor
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.resolveZoomEvent
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportCallbacks
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportModel
@@ -79,12 +84,35 @@ fun TreemapPane(
 
     val hoveredOverlay = hoveredNode?.takeIf { !it.isDirectory }?.let { fileOverlayByPath[it.path] }
     val hoveredDirOverlay = hoveredNode?.takeIf { it.isDirectory }?.let { directoryOverlayByPath[it.path] }
+    val viewportCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
 
     Column(modifier = modifier.fillMaxHeight()) {
         TreemapPaneHeader(
             focusPath = focusPath,
             visiblePrCount = visiblePrs.size,
+            canZoomOut = zoom > MIN_ZOOM,
+            canZoomIn = zoom < MAX_ZOOM,
             onFocusPathChange = onFocusPathChange,
+            onZoomOut = {
+                val result = resolveZoomByFactor(
+                    factor = ZOOM_OUT_FACTOR,
+                    pointerPos = viewportCenter,
+                    zoom = zoom,
+                    pan = pan,
+                )
+                zoom = result.zoom
+                pan = result.pan
+            },
+            onZoomIn = {
+                val result = resolveZoomByFactor(
+                    factor = ZOOM_IN_FACTOR,
+                    pointerPos = viewportCenter,
+                    zoom = zoom,
+                    pan = pan,
+                )
+                zoom = result.zoom
+                pan = result.pan
+            },
         )
         TreemapViewport(
             model = TreemapViewportModel(

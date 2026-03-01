@@ -20,7 +20,11 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 internal fun TreemapPaneHeader(
     focusPath: String,
     visiblePrCount: Int,
+    canZoomOut: Boolean,
+    canZoomIn: Boolean,
     onFocusPathChange: (String) -> Unit,
+    onZoomOut: () -> Unit,
+    onZoomIn: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -48,6 +52,12 @@ internal fun TreemapPaneHeader(
         )
         Button(onClick = { copyToClipboard("/${focusPath.ifBlank { "" }}") }) {
             Text("Copy")
+        }
+        Button(onClick = onZoomOut, enabled = canZoomOut) {
+            Text("-")
+        }
+        Button(onClick = onZoomIn, enabled = canZoomIn) {
+            Text("+")
         }
         Text(
             text = "Visible PRs: $visiblePrCount",
