@@ -37,6 +37,7 @@ fun ToolbarRow(
     snapshotFetchState: SnapshotFetchState,
     currentUser: String,
     onLogin: () -> Unit,
+    onLogout: () -> Unit,
     onRefresh: () -> Unit,
     onOpenRepoDialog: () -> Unit,
     modifier: Modifier = Modifier,
@@ -57,6 +58,7 @@ fun ToolbarRow(
             isLoggedIn = model.isLoggedIn,
             isAuthorizing = model.isAuthorizing,
             onLogin = onLogin,
+            onLogout = onLogout,
         )
         DevicePromptSection(
             devicePrompt = model.devicePrompt,
