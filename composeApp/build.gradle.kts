@@ -8,8 +8,9 @@ if (!versionFile.exists()) {
 }
 val versionProps = Properties()
 versionFile.inputStream().use { versionProps.load(it) }
-val appVersion = versionProps.getProperty("version")
-    ?: throw GradleException("'version' property not found in version.properties")
+val appVersion =
+    versionProps.getProperty("version")
+        ?: throw GradleException("'version' property not found in version.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
