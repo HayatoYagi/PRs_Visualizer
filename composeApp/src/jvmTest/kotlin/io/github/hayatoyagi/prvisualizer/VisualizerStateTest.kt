@@ -61,7 +61,7 @@ class VisualizerStateTest {
     @Test
     fun `VisualizerState resetForRepositoryChange should preserve toggles and clear selection state`() {
         val state = VisualizerState(
-            dialogState = DialogState.FileDetails(filePath = "test.kt"),
+            dialogState = DialogState.FileDetails(filePath = "test.kt", defaultBranch = "main"),
             filterState = FilterState(
                 showDrafts = false,
                 onlyMine = true,

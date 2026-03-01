@@ -67,6 +67,7 @@ sealed interface DialogState {
 
     data class FileDetails(
         val filePath: String,
+        val defaultBranch: String,
         val commitsState: CommitsState = CommitsState.Loading,
     ) : DialogState {
         sealed interface CommitsState {
