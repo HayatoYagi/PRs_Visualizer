@@ -40,7 +40,6 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-import io.github.hayatoyagi.prvisualizer.ui.toolbar.AuthRow
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
@@ -129,17 +128,14 @@ fun App() {
             ToolbarRow(
                 owner = selectedRepo?.owner.orEmpty(),
                 repo = selectedRepo?.repo.orEmpty(),
-                isLoggedIn = isLoggedIn,
-                onOpenRepoDialog = { vm.openRepoDialog() },
-                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-            )
-            AuthRow(
                 oauthClientId = oauthClientId,
                 authState = authState,
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
                 onLogin = { vm.loginAndConnect(oauthClientId) },
                 onRefresh = { vm.refresh() },
+                onOpenRepoDialog = { vm.openRepoDialog() },
+                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
             )
             AppDialogHost(
                 vm = vm,
