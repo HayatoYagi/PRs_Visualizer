@@ -55,7 +55,7 @@ class VisualizerViewModel(
                         state = state.copy(dialogState = DialogState.SnapshotFetchError(snapshotFetchState.error))
                     }
                 }
-                SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Ready -> Unit
+                SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Ready -> {}
             }
         },
         getRepoState = { selectedRepositoryStore.repoState.value },

@@ -81,16 +81,14 @@ fun ToolbarRow(
 private fun toolbarModel(
     authState: AuthState,
     snapshotFetchState: SnapshotFetchState,
-): ToolbarModel {
-    return ToolbarModel(
-        isAuthorizing = authState is AuthState.Authorizing,
-        isConnecting = snapshotFetchState is SnapshotFetchState.Fetching,
-        isLoggedIn = authState is AuthState.Authenticated,
-        hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready,
-        devicePrompt = (authState as? AuthState.Authorizing)
-            ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() },
-    )
-}
+): ToolbarModel = ToolbarModel(
+    isAuthorizing = authState is AuthState.Authorizing,
+    isConnecting = snapshotFetchState is SnapshotFetchState.Fetching,
+    isLoggedIn = authState is AuthState.Authenticated,
+    hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready,
+    devicePrompt = (authState as? AuthState.Authorizing)
+        ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() },
+)
 
 private fun statusText(
     model: ToolbarModel,
