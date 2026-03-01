@@ -86,7 +86,7 @@ class GitHubApi(
         repo: String,
     ): String {
         val response = request<GitHubRepository>("https://api.github.com/repos/${enc(owner)}/${enc(repo)}")
-        return response.defaultBranch.ifBlank { "main" }
+        return response.defaultBranch?.ifBlank { null } ?: "main"
     }
 
     private fun fetchOpenPullRequests(

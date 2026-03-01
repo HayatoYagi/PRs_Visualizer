@@ -14,7 +14,7 @@ internal data class GitHubRepository(
     @SerialName("full_name")
     val fullName: String = "",
     @SerialName("default_branch")
-    val defaultBranch: String = "",
+    val defaultBranch: String? = null,
 )
 
 @Serializable
