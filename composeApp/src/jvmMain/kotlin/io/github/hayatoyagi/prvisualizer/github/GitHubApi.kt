@@ -119,11 +119,12 @@ class GitHubApi(
 
         while (nextUrl != null) {
             val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
-            
             // Fetch files for all PRs in this page concurrently
             val prFilesDeferred = response.data.map { pr ->
                 async {
-                    val files = fetchPullRequestFiles(owner, repo, pr.number)
+                    val files = apiSemaphore.withPermit {
+                        fetchPullRequestFiles(owner, repo, pr.number)
+                    }
                     PullRequest(
                         id = pr.nodeId.ifBlank { "pr-${pr.number}" },
                         number = pr.number,
@@ -135,7 +136,6 @@ class GitHubApi(
                     )
                 }
             }
-            
             pulls.addAll(prFilesDeferred.awaitAll())
             nextUrl = extractNextPageUrl(response.headers)
         }
@@ -147,7 +147,7 @@ class GitHubApi(
         owner: String,
         repo: String,
         number: Int,
-    ): List<PrFileChange> = apiSemaphore.withPermit {
+    ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE"
 
@@ -168,7 +168,7 @@ class GitHubApi(
             nextUrl = extractNextPageUrl(response.headers)
         }
 
-        return@withPermit files
+        return files
     }
 
     suspend fun fetchFileCommits(
