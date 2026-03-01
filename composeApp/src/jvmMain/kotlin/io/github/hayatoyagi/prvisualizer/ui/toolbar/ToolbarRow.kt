@@ -3,26 +3,33 @@ package io.github.hayatoyagi.prvisualizer.ui.toolbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
-import io.github.hayatoyagi.prvisualizer.ui.icons.CustomIcons
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private data class ToolbarModel(
@@ -45,27 +52,30 @@ fun ToolbarRow(
     onLogin: () -> Unit,
     onRefresh: () -> Unit,
     onOpenRepoDialog: () -> Unit,
-    onShuffleColors: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val model = toolbarModel(authState = authState, snapshotFetchState = snapshotFetchState)
+    val repoFullName = "${owner.trim()}/${repo.trim()}".trim('/').ifBlank { "Repository not selected" }
+    val toolbarTextStyle = MaterialTheme.typography.bodySmall
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(AppColors.backgroundHeader)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(AppColors.backgroundHeader)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         // Auth action buttons (login/refresh)
         if (!model.isLoggedIn) {
-            IconButton(
+            TooltipIconButton(
+                tooltip = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub",
                 enabled = !model.isAuthorizing && oauthClientId.isNotBlank(),
                 onClick = onLogin,
             ) {
                 Icon(
-                    imageVector = CustomIcons.Login,
+                    imageVector = Icons.AutoMirrored.Filled.Login,
                     contentDescription = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub",
                     tint = if (!model.isAuthorizing && oauthClientId.isNotBlank()) {
                         AppColors.textPrimary
@@ -76,27 +86,12 @@ fun ToolbarRow(
                 )
             }
         }
-        IconButton(
-            enabled = !model.isConnecting && model.isLoggedIn,
-            onClick = onRefresh,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = if (model.isConnecting) "Refreshing..." else "Refresh",
-                tint = if (!model.isConnecting && model.isLoggedIn) {
-                    AppColors.textPrimary
-                } else {
-                    AppColors.textSecondary
-                },
-                modifier = Modifier.size(20.dp),
-            )
-        }
-
         // Missing client ID notice
         if (oauthClientId.isBlank()) {
             Text(
                 text = "Missing GITHUB_CLIENT_ID in .env",
                 color = AppColors.textWarning,
+                style = toolbarTextStyle,
             )
         }
 
@@ -106,19 +101,26 @@ fun ToolbarRow(
                 Text(
                     text = "Code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
                     color = AppColors.textDeviceCode,
+                    style = toolbarTextStyle,
                 )
             }
-            IconButton(onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) }) {
+            TooltipIconButton(
+                tooltip = "Copy Code",
+                onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) },
+            ) {
                 Icon(
-                    imageVector = CustomIcons.ContentCopy,
+                    imageVector = Icons.Filled.ContentCopy,
                     contentDescription = "Copy Code",
                     tint = AppColors.textPrimary,
                     modifier = Modifier.size(20.dp),
                 )
             }
-            IconButton(onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) }) {
+            TooltipIconButton(
+                tooltip = "Open Verify Page",
+                onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) },
+            ) {
                 Icon(
-                    imageVector = CustomIcons.OpenInBrowser,
+                    imageVector = Icons.Filled.OpenInBrowser,
                     contentDescription = "Open Verify Page",
                     tint = AppColors.textPrimary,
                     modifier = Modifier.size(20.dp),
@@ -133,44 +135,61 @@ fun ToolbarRow(
                 Text(
                     text = text,
                     color = color,
+                    style = toolbarTextStyle,
                 )
             }
         } ?: run {
             Text(
                 text = statusText(model = model, currentUser = currentUser),
                 color = AppColors.textSecondary,
+                style = toolbarTextStyle,
             )
         }
 
-        // Repository info
-        Text(
-            text = "${owner.trim()}/${repo.trim()}",
-            color = AppColors.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
+        Spacer(modifier = Modifier.weight(1f))
 
-        // Repository action buttons (shuffle/select)
-        IconButton(
-            enabled = model.isLoggedIn,
-            onClick = onShuffleColors,
+        // Repository action buttons
+        TooltipIconButton(
+            tooltip = if (model.isConnecting) "Refreshing..." else "Refresh Repository",
+            enabled = !model.isConnecting && model.isLoggedIn,
+            onClick = onRefresh,
         ) {
             Icon(
-                imageVector = CustomIcons.Shuffle,
-                contentDescription = "Shuffle Colors",
-                tint = if (model.isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
+                imageVector = Icons.Filled.Refresh,
+                contentDescription = if (model.isConnecting) "Refreshing..." else "Refresh",
+                tint = if (!model.isConnecting && model.isLoggedIn) {
+                    AppColors.textPrimary
+                } else {
+                    AppColors.textSecondary
+                },
                 modifier = Modifier.size(20.dp),
             )
         }
-        IconButton(
-            enabled = model.isLoggedIn,
-            onClick = onOpenRepoDialog,
+        // Keep repository label and picker trigger adjacent for discoverability.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Filled.Folder,
-                contentDescription = "Select Repo",
-                tint = if (model.isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
-                modifier = Modifier.size(20.dp),
+            Text(
+                text = repoFullName,
+                color = AppColors.textPrimary,
+                style = toolbarTextStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            TooltipIconButton(
+                tooltip = "Select Repository",
+                enabled = model.isLoggedIn,
+                onClick = onOpenRepoDialog,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Folder,
+                    contentDescription = "Select Repo",
+                    tint = if (model.isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         }
     }
 }

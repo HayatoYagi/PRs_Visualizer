@@ -135,7 +135,6 @@ fun App() {
                 onLogin = { vm.loginAndConnect(oauthClientId) },
                 onRefresh = { vm.refresh() },
                 onOpenRepoDialog = { vm.openRepoDialog() },
-                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
             )
             AppDialogHost(
                 vm = vm,
@@ -325,6 +324,7 @@ private fun AppMainRow(
             },
             onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
             onCyclePrColor = { vm.cyclePrColor(it) },
+            onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
             isLoading = isConnecting,
         )
     }
