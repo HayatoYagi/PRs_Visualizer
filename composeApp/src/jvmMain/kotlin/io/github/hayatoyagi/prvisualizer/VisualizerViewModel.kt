@@ -77,13 +77,15 @@ class VisualizerViewModel(
 
     fun initializeSession() = sessionManager.initializeSession()
 
-    fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
+    fun loginAndConnect() = sessionManager.loginAndConnect()
 
     fun refresh() = sessionManager.refresh()
 
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    fun logout() = sessionManager.logout()
 
     // region: ダイアログ管理
     fun openRepoDialog() {

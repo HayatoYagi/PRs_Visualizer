@@ -1,4 +1,16 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
+
+// Read version from version.properties
+val versionFile = file("${rootProject.projectDir}/version.properties")
+if (!versionFile.exists()) {
+    throw GradleException("version.properties file not found at ${versionFile.absolutePath}")
+}
+val versionProps = Properties()
+versionFile.inputStream().use { versionProps.load(it) }
+val appVersion =
+    versionProps.getProperty("version")
+        ?: throw GradleException("'version' property not found in version.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -27,6 +39,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("org.json:json:20250107")
         }
@@ -36,14 +49,34 @@ kotlin {
     }
 }
 
+compose.resources {
+    packageOfResClass = "io.github.hayatoyagi.prvisualizer.generated.resources"
+    publicResClass = true
+}
+
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
+        jvmArgs(
+            "-Xdock:name=GitHubPRsVisualizer",
+            "-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png",
+        )
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "io.github.hayatoyagi.prvisualizer"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
+
+            // Application icon configuration
+            macOS {
+                iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon.png"))
+            }
         }
     }
 }
