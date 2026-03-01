@@ -1,4 +1,10 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
+
+// Read version from version.properties
+val versionProps = Properties()
+file("${rootProject.projectDir}/version.properties").inputStream().use { versionProps.load(it) }
+val appVersion = versionProps.getProperty("version")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -43,7 +49,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "io.github.hayatoyagi.prvisualizer"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
         }
     }
 }
