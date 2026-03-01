@@ -5,6 +5,7 @@ import androidx.compose.ui.window.application
 import io.github.hayatoyagi.prvisualizer.generated.resources.Res
 import io.github.hayatoyagi.prvisualizer.generated.resources.icon
 import java.awt.Taskbar
+import java.net.URI
 import javax.imageio.ImageIO
 import org.jetbrains.compose.resources.painterResource
 
@@ -24,10 +25,9 @@ private fun setDockAndTaskbarIcon() {
     if (!Taskbar.isTaskbarSupported()) return
 
     runCatching {
-        Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")?.use { iconStream ->
-            ImageIO.read(iconStream)?.let { image ->
-                Taskbar.getTaskbar().iconImage = image
-            }
+        val iconUri = URI.create(Res.getUri("drawable/icon.png")).toURL()
+        ImageIO.read(iconUri)?.let { image ->
+            Taskbar.getTaskbar().iconImage = image
         }
     }
 }
