@@ -234,9 +234,7 @@ class GitHubApiHttpErrorTest {
     
     @Test
     fun `fetchSnapshot handles repository with zero open pull requests`() = runTest {
-        var requestCount = 0
         val server = startTestServer { exchange ->
-            requestCount++
             val path = exchange.requestURI.path
             val response = when {
                 path.contains("/user") -> """{"login":"testuser"}"""
@@ -264,9 +262,7 @@ class GitHubApiHttpErrorTest {
     
     @Test
     fun `fetchSnapshot handles repository with zero files`() = runTest {
-        var requestCount = 0
         val server = startTestServer { exchange ->
-            requestCount++
             val path = exchange.requestURI.path
             val response = when {
                 path.contains("/user") -> """{"login":"testuser"}"""
@@ -373,9 +369,7 @@ class GitHubApiHttpErrorTest {
     
     @Test
     fun `fetchSnapshot handles unexpected JSON structure in user response`() = runTest {
-        var requestCount = 0
         val server = startTestServer { exchange ->
-            requestCount++
             val path = exchange.requestURI.path
             val response = when {
                 path.contains("/user") -> """{"unexpected":"field"}"""
@@ -403,9 +397,7 @@ class GitHubApiHttpErrorTest {
     
     @Test
     fun `fetchSnapshot handles unexpected JSON structure in repository response`() = runTest {
-        var requestCount = 0
         val server = startTestServer { exchange ->
-            requestCount++
             val path = exchange.requestURI.path
             val response = when {
                 path.contains("/user") -> """{"login":"testuser"}"""
