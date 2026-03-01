@@ -3,7 +3,7 @@ package io.github.hayatoyagi.prvisualizer.github
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
 import java.awt.Desktop
 import java.net.HttpURLConnection
 import java.net.URI
@@ -18,6 +18,7 @@ import kotlin.time.TimeSource
 
 class GitHubOAuthDesktopAuthenticator {
     private val client = HttpClient.newHttpClient()
+    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun authenticate(
         clientId: String,
@@ -52,11 +53,11 @@ class GitHubOAuthDesktopAuthenticator {
         while (deadline.hasNotPassedNow()) {
             delay(pollInterval)
             val body = exchangeDeviceCode(clientId = clientId, deviceCode = start.deviceCode)
-            val json = JSONObject(body)
-            val token = json.optString("access_token")
+            val response = json.decodeFromString<GitHubTokenResponse>(body)
+            val token = response.accessToken
             if (token.isNotBlank()) return token
 
-            val errorType = json.optString("error")
+            val errorType = response.error
             when (errorType) {
                 "authorization_pending" -> {}
                 "slow_down" -> {
@@ -78,7 +79,7 @@ class GitHubOAuthDesktopAuthenticator {
                     error("OAuth response missing access_token: $body")
                 }
                 else -> {
-                    val desc = json.optString("error_description")
+                    val desc = response.errorDescription
                     if (desc.isNotBlank()) error("$errorType: $desc") else error("$errorType: $body")
                 }
             }
@@ -107,20 +108,28 @@ class GitHubOAuthDesktopAuthenticator {
         if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             error("Failed to start Device Flow: ${response.statusCode()} ${response.body()}")
         }
-        val json = JSONObject(response.body())
+        val deviceCodeResponse = json.decodeFromString<GitHubDeviceCodeResponse>(response.body())
         return DeviceFlowStart(
-            deviceCode = json.optString("device_code").ifBlank {
+            deviceCode = deviceCodeResponse.deviceCode.ifBlank {
                 error("Device Flow response missing device_code: ${response.body()}")
             },
-            userCode = json.optString("user_code").ifBlank {
+            userCode = deviceCodeResponse.userCode.ifBlank {
                 error("Device Flow response missing user_code: ${response.body()}")
             },
-            verificationUri = json.optString("verification_uri").ifBlank {
+            verificationUri = deviceCodeResponse.verificationUri.ifBlank {
                 error("Device Flow response missing verification_uri: ${response.body()}")
             },
-            verificationUriComplete = json.optString("verification_uri_complete").ifBlank { null },
-            expiresInSeconds = json.optInt("expires_in", DEFAULT_EXPIRES_IN.inWholeSeconds.toInt()),
-            intervalSeconds = json.optInt("interval", MIN_POLL_INTERVAL.inWholeSeconds.toInt()),
+            verificationUriComplete = deviceCodeResponse.verificationUriComplete?.ifBlank { null },
+            expiresInSeconds = if (deviceCodeResponse.expiresIn > 0) {
+                deviceCodeResponse.expiresIn
+            } else {
+                DEFAULT_EXPIRES_IN.inWholeSeconds.toInt()
+            },
+            intervalSeconds = if (deviceCodeResponse.interval > 0) {
+                deviceCodeResponse.interval
+            } else {
+                MIN_POLL_INTERVAL.inWholeSeconds.toInt()
+            },
         )
     }
 

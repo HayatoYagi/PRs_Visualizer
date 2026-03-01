@@ -3,17 +3,15 @@ package io.github.hayatoyagi.prvisualizer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
+import io.github.hayatoyagi.prvisualizer.color.ColorManager
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
+import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
-import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
-import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -31,18 +29,49 @@ class VisualizerViewModel(
     var state by mutableStateOf(VisualizerState())
         private set
 
-    // Navigation history for back/forward buttons
-    private val navigationHistory = NavigationHistory()
-
     private var fileDetailsJob: Job? = null
+
+    // Delegate color management to ColorManager
+    private val colorManager = ColorManager(
+        colorState = state.colorState,
+        onStateChanged = { newColorState ->
+            state = state.copy(colorState = newColorState)
+        },
+    )
+
+    // Delegate navigation management to NavigationManager
+    private val navigationManager = NavigationManager(
+        navigationState = state.navigationState,
+        onStateChanged = { newNavigationState ->
+            state = state.copy(navigationState = newNavigationState)
+        },
+    )
 
     // region: セッション管理
     private val sessionManager = GitHubSessionManager(
         scope = viewModelScope,
         getAuthState = { state.authState },
-        setAuthState = { state = state.copy(authState = it) },
+        setAuthState = { authState ->
+            state = state.copy(
+                authState = authState,
+                dialogState = if (authState is AuthState.Failed) {
+                    DialogState.AuthError(authState.error)
+                } else {
+                    state.dialogState
+                },
+            )
+        },
         getSnapshotFetchState = { state.snapshotFetchState },
-        setSnapshotFetchState = { state = state.copy(snapshotFetchState = it) },
+        setSnapshotFetchState = { snapshotFetchState ->
+            state = state.copy(
+                snapshotFetchState = snapshotFetchState,
+                dialogState = if (snapshotFetchState is SnapshotFetchState.Failed) {
+                    DialogState.SnapshotFetchError(snapshotFetchState.error)
+                } else {
+                    state.dialogState
+                },
+            )
+        },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
@@ -64,6 +93,9 @@ class VisualizerViewModel(
         when (repoState) {
             is RepoState.Selected -> {
                 state = state.resetForRepositoryChange()
+                // Sync managers with the reset state
+                colorManager.updateState(state.colorState)
+                navigationManager.updateState(state.navigationState)
             }
             RepoState.Unselected -> {
                 state = state.copy(
@@ -71,8 +103,7 @@ class VisualizerViewModel(
                 )
             }
         }
-        navigationHistory.clear()
-        navigationHistory.recordFocusPath(state.navigationState.focusPath)
+        navigationManager.clearHistory()
     }
 
     fun initializeSession() = sessionManager.initializeSession()
@@ -84,6 +115,12 @@ class VisualizerViewModel(
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    fun dismissErrorDialog() {
+        if (state.dialogState is DialogState.SnapshotFetchError || state.dialogState is DialogState.AuthError) {
+            state = state.copy(dialogState = DialogState.None)
+        }
+    }
 
     fun logout() = sessionManager.logout()
 
@@ -221,181 +258,34 @@ class VisualizerViewModel(
     }
 
     // region: ナビゲーション
-    fun selectDirectory(path: String) {
-        navigationHistory.recordFocusPath(path)
-        // Auto-expand the selected directory and its ancestor chain.
-        val explorerState = state.navigationState.explorerState
-        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, path)
-        state = state.copy(
-            navigationState = state.navigationState.copy(
-                focusPath = path,
-                viewportResetToken = state.navigationState.viewportResetToken + 1,
-                explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            ),
-        )
-    }
+    fun selectDirectory(path: String) = navigationManager.selectDirectory(path)
 
-    fun selectFile(path: String) {
-        val parentPath = parentPathOf(path)
-        navigationHistory.recordFocusPath(parentPath)
-        // Auto-expand parent directories so the file is visible
-        val explorerState = state.navigationState.explorerState
-        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, parentPath)
-        state = state.copy(
-            navigationState = state.navigationState.copy(
-                selectedPath = path,
-                focusPath = parentPath,
-                viewportResetToken = state.navigationState.viewportResetToken + 1,
-                explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            ),
-        )
-    }
+    fun selectFile(path: String) = navigationManager.selectFile(path)
 
-    fun changeFocusPath(path: String) {
-        navigationHistory.recordFocusPath(path)
-        // Auto-expand the focused directory and its ancestor chain.
-        val explorerState = state.navigationState.explorerState
-        val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, path)
-        state = state.copy(
-            navigationState = state.navigationState.copy(
-                focusPath = path,
-                viewportResetToken = state.navigationState.viewportResetToken + 1,
-                explorerState = explorerState.copy(expandedPaths = expandedPaths),
-            ),
-        )
-    }
+    fun changeFocusPath(path: String) = navigationManager.changeFocusPath(path)
 
-    fun updateSelectedPath(path: String?) {
-        state = state.copy(
-            navigationState = state.navigationState.copy(selectedPath = path),
-        )
-    }
+    fun updateSelectedPath(path: String?) = navigationManager.updateSelectedPath(path)
 
-    fun resetNavigation() {
-        state = state.copy(
-            navigationState = state.navigationState.resetNavigation(),
-        )
-        navigationHistory.clear()
-        navigationHistory.recordFocusPath(state.navigationState.focusPath)
-    }
+    fun resetNavigation() = navigationManager.resetNavigation()
 
-    fun resetViewport() {
-        state = state.copy(
-            navigationState = state.navigationState.resetViewport(),
-        )
-    }
+    fun resetViewport() = navigationManager.resetViewport()
 
-    fun toggleDirectoryExpanded(path: String) {
-        val explorerState = state.navigationState.explorerState
-        val expandedPaths = explorerState.expandedPaths
-        val newExpandedPaths = if (expandedPaths.contains(path)) {
-            expandedPaths - path
-        } else {
-            expandedPaths + path
-        }
-        state = state.copy(
-            navigationState = state.navigationState.copy(
-                explorerState = explorerState.copy(expandedPaths = newExpandedPaths),
-            ),
-        )
-    }
+    fun toggleDirectoryExpanded(path: String) = navigationManager.toggleDirectoryExpanded(path)
 
     /**
      * Navigates back in history. Returns true if navigation occurred.
      */
-    fun navigateBack(): Boolean {
-        val previousPath = navigationHistory.navigateBack()
-        return if (previousPath != null) {
-            val explorerState = state.navigationState.explorerState
-            val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, previousPath)
-            state = state.copy(
-                navigationState = state.navigationState.copy(
-                    focusPath = previousPath,
-                    viewportResetToken = state.navigationState.viewportResetToken + 1,
-                    explorerState = explorerState.copy(expandedPaths = expandedPaths),
-                ),
-            )
-            true
-        } else {
-            false
-        }
-    }
-
-    private fun expandPathAndAncestors(
-        expandedPaths: Set<String>,
-        path: String,
-    ): Set<String> {
-        if (path.isBlank()) return expandedPaths
-
-        var currentPath = ""
-        var newExpandedPaths = expandedPaths
-        for (segment in path.split('/')) {
-            if (segment.isBlank()) continue
-            currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
-            if (!newExpandedPaths.contains(currentPath)) {
-                newExpandedPaths = newExpandedPaths + currentPath
-            }
-        }
-        return newExpandedPaths
-    }
+    fun navigateBack(): Boolean = navigationManager.navigateBack()
 
     /**
      * Navigates forward in history. Returns true if navigation occurred.
      */
-    fun navigateForward(): Boolean {
-        val nextPath = navigationHistory.navigateForward()
-        return if (nextPath != null) {
-            val explorerState = state.navigationState.explorerState
-            val expandedPaths = expandPathAndAncestors(explorerState.expandedPaths, nextPath)
-            state = state.copy(
-                navigationState = state.navigationState.copy(
-                    focusPath = nextPath,
-                    viewportResetToken = state.navigationState.viewportResetToken + 1,
-                    explorerState = explorerState.copy(expandedPaths = expandedPaths),
-                ),
-            )
-            true
-        } else {
-            false
-        }
-    }
+    fun navigateForward(): Boolean = navigationManager.navigateForward()
 
     // region: 色管理
-    fun ensurePrColors(prs: List<PullRequest>) {
-        val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
-        if (prsNeedingColors.isNotEmpty()) {
-            val newMap = LinkedHashMap(state.colorState.prColorMap)
-            prsNeedingColors.forEach { pr ->
-                newMap[pr.id] = PrColorAssigner.nextColor(newMap)
-            }
-            state = state.copy(
-                colorState = state.colorState.copy(prColorMap = newMap),
-            )
-        }
-    }
+    fun ensurePrColors(prs: List<PullRequest>) = colorManager.ensurePrColors(prs)
 
-    fun shufflePrColors(prs: List<PullRequest>) {
-        val newMap = LinkedHashMap<String, Color>()
-        prs.forEach { pr ->
-            newMap[pr.id] = PrColorAssigner.nextColor(newMap)
-        }
-        state = state.copy(
-            colorState = state.colorState.copy(prColorMap = newMap),
-        )
-    }
+    fun shufflePrColors(prs: List<PullRequest>) = colorManager.shufflePrColors(prs)
 
-    fun cyclePrColor(prId: String) {
-        val currentColor = state.colorState.prColorMap[prId]
-        val currentIndex = if (currentColor != null) {
-            AppColors.authorPalette.indexOf(currentColor)
-        } else {
-            -1
-        }
-        val nextIndex = (currentIndex + 1) % AppColors.authorPalette.size
-        state = state.copy(
-            colorState = state.colorState.copy(
-                prColorMap = state.colorState.prColorMap + (prId to AppColors.authorPalette[nextIndex]),
-            ),
-        )
-    }
+    fun cyclePrColor(prId: String) = colorManager.cyclePrColor(prId)
 }

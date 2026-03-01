@@ -4,6 +4,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -28,7 +29,7 @@ fun TooltipIconButton(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val defaultProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
+    val defaultProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above)
     val density = LocalDensity.current
     val edgePaddingPx = with(density) { 8.dp.roundToPx() }
     val positionProvider = remember(defaultProvider, edgePaddingPx) {

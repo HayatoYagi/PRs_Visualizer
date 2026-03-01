@@ -1,4 +1,4 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.navigation
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -154,7 +154,7 @@ class GitHubSessionManager(
                 setRepoSelectionState(
                     RepoSelectionState.Error(
                         options = previousOptions,
-                        error = AppError.Network(error.message ?: "Failed to load repositories"),
+                        error = AppError.from(error),
                     ),
                 )
             }

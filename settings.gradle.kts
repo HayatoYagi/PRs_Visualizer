@@ -1,4 +1,4 @@
-rootProject.name = "GitHubPRsVisualizer"
+rootProject.name = "PRsVisualizerForGitHub"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

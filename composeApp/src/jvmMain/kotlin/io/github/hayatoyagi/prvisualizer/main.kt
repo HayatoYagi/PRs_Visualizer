@@ -10,7 +10,7 @@ import java.net.URI
 import javax.imageio.ImageIO
 
 fun main() {
-    val appDisplayName = System.getProperty("app.display.name", "GitHub PRs Visualizer")
+    val appDisplayName = System.getProperty("app.display.name", "PRs Visualizer for GitHub")
     // Ensure macOS menu/About uses the configured display name even when JVM args are not applied.
     System.setProperty("apple.awt.application.name", appDisplayName)
     System.setProperty("com.apple.mrj.application.apple.menu.about.name", appDisplayName)
