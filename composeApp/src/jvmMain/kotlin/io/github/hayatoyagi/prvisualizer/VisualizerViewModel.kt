@@ -85,12 +85,6 @@ class VisualizerViewModel(
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
 
-    fun dismissSnapshotError() {
-        if (state.snapshotFetchState is SnapshotFetchState.Failed) {
-            state = state.copy(snapshotFetchState = SnapshotFetchState.Idle)
-        }
-    }
-
     fun logout() = sessionManager.logout()
 
     // region: ダイアログ管理
