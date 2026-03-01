@@ -41,6 +41,7 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
+import kotlin.math.abs
 
 private const val INITIAL_ZOOM = 0.8f
 private const val MIN_CANVAS_SIZE_PX = 1
@@ -330,7 +331,16 @@ private fun Modifier.treemapScrollHandler(
     onScrollEvent: (scrollY: Float) -> Unit,
 ): Modifier = onPointerEvent(PointerEventType.Scroll) { event ->
     if (isLoading) return@onPointerEvent
-    val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
+    val change = event.changes.firstOrNull() ?: return@onPointerEvent
+    val scrollDelta = change.scrollDelta
+    // Support both vertical scroll (mouse wheel) and horizontal scroll (trackpad pinch)
+    // Use the component with the larger absolute value for zoom
+    val scrollY = if (abs(scrollDelta.x) > abs(scrollDelta.y)) {
+        scrollDelta.x
+    } else {
+        scrollDelta.y
+    }
+    if (scrollY == 0f) return@onPointerEvent
     onScrollEvent(scrollY)
 }
 
