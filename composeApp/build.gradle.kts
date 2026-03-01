@@ -20,6 +20,8 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+val appDisplayName = "GitHub PRs Visualizer"
+
 kotlin {
     jvm()
 
@@ -58,7 +60,10 @@ compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
         jvmArgs(
-            "-Xdock:name=GitHubPRsVisualizer",
+            "-Dapp.display.name=$appDisplayName",
+            "-Xdock:name=$appDisplayName",
+            "-Dapple.awt.application.name=$appDisplayName",
+            "-Dcom.apple.mrj.application.apple.menu.about.name=$appDisplayName",
             "-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png",
         )
 
