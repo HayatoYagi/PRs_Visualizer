@@ -4,10 +4,10 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import io.github.hayatoyagi.prvisualizer.generated.resources.Res
 import io.github.hayatoyagi.prvisualizer.generated.resources.icon
+import org.jetbrains.compose.resources.painterResource
 import java.awt.Taskbar
 import java.net.URI
 import javax.imageio.ImageIO
-import org.jetbrains.compose.resources.painterResource
 
 fun main() = application {
     setDockAndTaskbarIcon()
