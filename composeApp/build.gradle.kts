@@ -24,6 +24,12 @@ plugins {
 val appDisplayName = "PRs Visualizer for GitHub"
 
 kotlin {
+    compilerOptions {
+        extraWarnings.set(true)
+        allWarningsAsErrors.set(false)
+        freeCompilerArgs.add("-Xwarning-level=UNUSED_VARIABLE:error")
+    }
+
     jvm()
 
     sourceSets {

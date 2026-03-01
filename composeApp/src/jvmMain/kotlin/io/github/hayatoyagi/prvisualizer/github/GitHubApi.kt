@@ -12,6 +12,7 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
+import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
@@ -23,6 +24,11 @@ data class GitHubSnapshot(
     val defaultBranch: String,
 )
 
+private data class RawResponseWithHeaders(
+    val body: String,
+    val headers: HttpHeaders,
+)
+
 class GitHubApi(
     private val token: String,
     private val baseUrl: String = "https://api.github.com",
@@ -32,9 +38,18 @@ class GitHubApi(
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
-        val repos = loadRepositoryNamesByPage { page ->
-            requestList<GitHubRepository>("$baseUrl/user/repos?per_page=100&page=$page&sort=updated")
+        val repos = mutableListOf<String>()
+        var nextUrl: String? = "$baseUrl/user/repos?per_page=100&sort=updated"
+
+        while (nextUrl != null) {
+            val response = requestWithHeaders<List<GitHubRepository>>(nextUrl)
+            response.data.forEach { repo ->
+                val repoName = repo.fullName
+                if (repoName.isNotBlank()) repos += repoName
+            }
+            nextUrl = extractNextPageUrl(response.headers)
         }
+
         repos.distinct().sortedBy { it.lowercase() }
     }
 
@@ -95,16 +110,11 @@ class GitHubApi(
         repo: String,
     ): List<PullRequest> {
         val pulls = mutableListOf<PullRequest>()
-        var page = 1
-        var hasNextPage: Boolean
-        do {
-            val response = requestList<GitHubPullRequest>(
-                "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
-            )
-            val responseSize = response.size
-            hasNextPage = responseSize == GITHUB_PAGE_SIZE
+        var nextUrl: String? = "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE"
 
-            response.forEach { pr ->
+        while (nextUrl != null) {
+            val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
+            response.data.forEach { pr ->
                 val number = pr.number
                 val files = fetchPullRequestFiles(owner, repo, number)
                 pulls += PullRequest(
@@ -117,8 +127,9 @@ class GitHubApi(
                     files = files,
                 )
             }
-            page += 1
-        } while (hasNextPage)
+            nextUrl = extractNextPageUrl(response.headers)
+        }
+
         return pulls
     }
 
@@ -128,16 +139,11 @@ class GitHubApi(
         number: Int,
     ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
-        var page = 1
-        var hasNextPage: Boolean
-        do {
-            val response = requestList<GitHubPullRequestFile>(
-                "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
-            )
-            val responseSize = response.size
-            hasNextPage = responseSize == GITHUB_PAGE_SIZE
+        var nextUrl: String? = "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE"
 
-            response.forEach { file ->
+        while (nextUrl != null) {
+            val response = requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
+            response.data.forEach { file ->
                 val path = file.filename
                 if (isBinaryFile(path)) return@forEach
                 val additions = file.additions
@@ -149,8 +155,9 @@ class GitHubApi(
                     deletions = deletions,
                 )
             }
-            page += 1
-        } while (hasNextPage)
+            nextUrl = extractNextPageUrl(response.headers)
+        }
+
         return files
     }
 
@@ -225,24 +232,53 @@ class GitHubApi(
         return json.decodeFromString<List<T>>(body)
     }
 
-    private fun loadRepositoryNamesByPage(requestPage: (Int) -> List<GitHubRepository>): List<String> {
-        val repos = mutableListOf<String>()
-        var page = 1
-        var hasNextPage: Boolean
-        do {
-            val response = requestPage(page)
-            val responseSize = response.size
-            hasNextPage = responseSize == GITHUB_PAGE_SIZE
-            response.forEach { repo ->
-                val repoName = repo.fullName
-                if (repoName.isNotBlank()) repos += repoName
-            }
-            page += 1
-        } while (hasNextPage)
-        return repos
+    private data class TypedResponseWithHeaders<T>(
+        val data: T,
+        val headers: HttpHeaders,
+    )
+
+    private inline fun <reified T> requestWithHeaders(url: String): TypedResponseWithHeaders<T> {
+        val response = requestBodyWithHeaders(url)
+        val data = json.decodeFromString<T>(response.body)
+        return TypedResponseWithHeaders(data, response.headers)
     }
 
-    private fun requestBody(url: String): String {
+    private inline fun <reified T> requestListWithHeaders(url: String): TypedResponseWithHeaders<List<T>> {
+        val response = requestBodyWithHeaders(url)
+        val data = json.decodeFromString<List<T>>(response.body)
+        return TypedResponseWithHeaders(data, response.headers)
+    }
+
+    /**
+     * Extracts the next page URL from GitHub Link header.
+     * GitHub Link header format: <url>; rel="next", <url>; rel="last"
+     * Returns null if there is no next page.
+     */
+    internal fun extractNextPageUrl(headers: HttpHeaders): String? {
+        val linkHeader = headers.firstValue("Link").orElse(null) ?: return null
+
+        // Parse Link header to find rel="next"
+        // Example: <https://api.github.com/user/repos?page=2>; rel="next"
+        // Uses regex to handle variations in whitespace and quoting
+        val links = linkHeader.split(",")
+        for (link in links) {
+            val parts = link.trim().split(";")
+            if (parts.size >= 2) {
+                val url = parts[0].trim().removeSurrounding("<", ">")
+                // Match rel="next" or rel='next' with optional whitespace around the =
+                val relPart = parts[1].trim()
+                val relPattern = """rel\s*=\s*['"](next)['"]""".toRegex(RegexOption.IGNORE_CASE)
+                if (relPattern.containsMatchIn(relPart)) {
+                    return url
+                }
+            }
+        }
+        return null
+    }
+
+    private fun requestBody(url: String): String = requestBodyWithHeaders(url).body
+
+    private fun requestBodyWithHeaders(url: String): RawResponseWithHeaders {
         val request = HttpRequest
             .newBuilder(URI(url))
             .header("Accept", "application/vnd.github+json")
@@ -257,7 +293,7 @@ class GitHubApi(
         if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
-        return response.body()
+        return RawResponseWithHeaders(response.body(), response.headers())
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
