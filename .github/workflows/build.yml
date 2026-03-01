@@ -36,3 +36,6 @@ jobs:
         
     - name: Build with Gradle
       run: ./gradlew :composeApp:build --stacktrace
+    
+    - name: Run tests
+      run: ./gradlew :composeApp:jvmTest --stacktrace
