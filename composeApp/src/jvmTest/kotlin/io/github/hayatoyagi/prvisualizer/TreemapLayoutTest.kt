@@ -126,6 +126,53 @@ class TreemapLayoutTest {
     }
 
     @Test
+    fun `computeTreemap should aggregate directory lines and active pr from descendants`() {
+        val activeLeaf = FileNode.File(
+            path = "dirA/dirB/active.kt",
+            name = "active.kt",
+            extension = "kt",
+            totalLines = 30,
+            hasActivePr = true,
+            weight = 30.0,
+        )
+        val inactiveLeaf = FileNode.File(
+            path = "dirA/inactive.kt",
+            name = "inactive.kt",
+            extension = "kt",
+            totalLines = 70,
+            hasActivePr = false,
+            weight = 70.0,
+        )
+        val dirB = FileNode.Directory(
+            path = "dirA/dirB",
+            name = "dirB",
+            children = listOf(activeLeaf),
+            weight = 30.0,
+        )
+        val dirA = FileNode.Directory(
+            path = "dirA",
+            name = "dirA",
+            children = listOf(dirB, inactiveLeaf),
+            weight = 100.0,
+        )
+        val root = FileNode.Directory(
+            path = "",
+            name = "root",
+            children = listOf(dirA),
+            weight = 100.0,
+        )
+
+        val nodesByPath = computeTreemap(root, Rect(0f, 0f, 100f, 100f)).associateBy { it.path }
+
+        assertEquals(100, nodesByPath.getValue("").totalLines)
+        assertTrue(nodesByPath.getValue("").hasActivePr)
+        assertEquals(100, nodesByPath.getValue("dirA").totalLines)
+        assertTrue(nodesByPath.getValue("dirA").hasActivePr)
+        assertEquals(30, nodesByPath.getValue("dirA/dirB").totalLines)
+        assertTrue(nodesByPath.getValue("dirA/dirB").hasActivePr)
+    }
+
+    @Test
     fun `computeTreemap should handle varying file sizes`() {
         // Create files with different weights (10, 20, 30, 40)
         val files = listOf(
