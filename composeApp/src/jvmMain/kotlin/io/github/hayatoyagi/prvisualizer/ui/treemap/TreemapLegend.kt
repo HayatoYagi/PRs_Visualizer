@@ -32,8 +32,9 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val LEGEND_MIN_ALPHA = 0.18f
 private const val LEGEND_MAX_ALPHA = 0.96f
-private const val LEGEND_STRIPE_WIDTH = 2f
-private const val LEGEND_STRIPE_SPACING = 6f
+private const val LEGEND_BORDER_ALPHA = 0.5f
+private const val LEGEND_STRIPE_WIDTH = 3f
+private const val LEGEND_STRIPE_SPACING = 12f
 
 @Composable
 fun TreemapLegend(modifier: Modifier = Modifier) {
@@ -111,7 +112,7 @@ private fun LegendItem(
                 )
                 .border(
                     width = 1.dp,
-                    color = color.copy(alpha = 0.5f),
+                    color = color.copy(alpha = LEGEND_BORDER_ALPHA),
                     shape = RoundedCornerShape(2.dp),
                 ),
         )
@@ -135,7 +136,7 @@ private fun ConflictLegendItem() {
                 .height(12.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(Color.Transparent, shape = RoundedCornerShape(2.dp))
-                .border(1.dp, AppColors.treemapConflictStripe.copy(alpha = 0.5f), RoundedCornerShape(2.dp)),
+                .border(1.dp, AppColors.treemapConflictStripe.copy(alpha = LEGEND_BORDER_ALPHA), RoundedCornerShape(2.dp)),
         ) {
             Canvas(modifier = Modifier.fillMaxWidth().height(12.dp)) {
                 var x = -size.height
