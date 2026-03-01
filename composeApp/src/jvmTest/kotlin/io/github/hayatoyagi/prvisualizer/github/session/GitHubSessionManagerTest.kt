@@ -97,7 +97,7 @@ class GitHubSessionManagerTest {
                 snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
             )
 
-            manager.loginAndConnect("client-id")
+            manager.loginAndConnect()
 
             val failed = assertIs<AuthState.Failed>(authState)
             val error = assertIs<AppError.OAuthFailed>(failed.error)

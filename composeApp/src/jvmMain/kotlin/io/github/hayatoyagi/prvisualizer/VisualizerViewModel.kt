@@ -77,7 +77,7 @@ class VisualizerViewModel(
 
     fun initializeSession() = sessionManager.initializeSession()
 
-    fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
+    fun loginAndConnect() = sessionManager.loginAndConnect()
 
     fun refresh() = sessionManager.refresh()
 
