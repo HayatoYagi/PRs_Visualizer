@@ -6,6 +6,11 @@ import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
@@ -35,6 +40,7 @@ class GitHubApi(
 ) {
     private val client = HttpClient.newHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
+    private val apiSemaphore = Semaphore(MAX_CONCURRENT_REQUESTS)
 
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
@@ -105,35 +111,38 @@ class GitHubApi(
         return response.defaultBranch?.ifBlank { null } ?: "main"
     }
 
-    private fun fetchOpenPullRequests(
+    private suspend fun fetchOpenPullRequests(
         owner: String,
         repo: String,
-    ): List<PullRequest> {
+    ): List<PullRequest> = coroutineScope {
         val pulls = mutableListOf<PullRequest>()
         var nextUrl: String? = "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE"
 
         while (nextUrl != null) {
             val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
-            response.data.forEach { pr ->
-                val number = pr.number
-                val files = fetchPullRequestFiles(owner, repo, number)
-                pulls += PullRequest(
-                    id = pr.nodeId.ifBlank { "pr-$number" },
-                    number = number,
-                    title = pr.title,
-                    author = pr.user?.login.orEmpty(),
-                    isDraft = pr.draft,
-                    url = pr.htmlUrl,
-                    files = files,
-                )
+            // Fetch files for all PRs in this page concurrently
+            val prFilesDeferred = response.data.map { pr ->
+                async {
+                    val files = fetchPullRequestFiles(owner, repo, pr.number)
+                    PullRequest(
+                        id = pr.nodeId.ifBlank { "pr-${pr.number}" },
+                        number = pr.number,
+                        title = pr.title,
+                        author = pr.user?.login.orEmpty(),
+                        isDraft = pr.draft,
+                        url = pr.htmlUrl,
+                        files = files,
+                    )
+                }
             }
+            pulls.addAll(prFilesDeferred.awaitAll())
             nextUrl = extractNextPageUrl(response.headers)
         }
 
-        return pulls
+        return@coroutineScope pulls
     }
 
-    private fun fetchPullRequestFiles(
+    private suspend fun fetchPullRequestFiles(
         owner: String,
         repo: String,
         number: Int,
@@ -142,7 +151,9 @@ class GitHubApi(
         var nextUrl: String? = "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE"
 
         while (nextUrl != null) {
-            val response = requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
+            val response = apiSemaphore.withPermit {
+                requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
+            }
             response.data.forEach { file ->
                 val path = file.filename
                 if (isBinaryFile(path)) return@forEach
@@ -304,5 +315,6 @@ class GitHubApi(
         const val SHORT_SHA_LENGTH = 7
         const val MIN_ESTIMATED_LINES = 1
         const val ESTIMATED_LINES_DIVISOR = 40
+        const val MAX_CONCURRENT_REQUESTS = 10
     }
 }
