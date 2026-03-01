@@ -39,14 +39,16 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
+        jvmArgs += "-Dapple.awt.application.name=GitHub PRs Visualizer"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "GitHub PRs Visualizer"
+            packageName = "io.github.hayatoyagi.prvisualizer"
             packageVersion = "1.0.0"
             
             macOS {
                 bundleID = "io.github.hayatoyagi.prvisualizer"
+                dockName = "GitHub PRs Visualizer"
             }
         }
     }
