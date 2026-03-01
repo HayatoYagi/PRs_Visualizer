@@ -17,7 +17,7 @@ class NavigationManagerTest {
             onStateChanged = { capturedState = it },
         )
 
-        val initialToken = capturedState?.viewportResetToken ?: 0
+        val initialToken = NavigationState().viewportResetToken
 
         manager.selectDirectory("src/main")
 
@@ -49,7 +49,7 @@ class NavigationManagerTest {
             onStateChanged = { capturedState = it },
         )
 
-        val initialToken = capturedState?.viewportResetToken ?: 0
+        val initialToken = NavigationState().viewportResetToken
 
         manager.selectFile("src/main/App.kt")
 
@@ -66,7 +66,7 @@ class NavigationManagerTest {
             onStateChanged = { capturedState = it },
         )
 
-        val initialToken = capturedState?.viewportResetToken ?: 0
+        val initialToken = NavigationState().viewportResetToken
 
         manager.changeFocusPath("new/path")
 
@@ -110,7 +110,7 @@ class NavigationManagerTest {
             onStateChanged = { capturedState = it },
         )
 
-        val initialToken = capturedState?.viewportResetToken ?: 0
+        val initialToken = NavigationState().viewportResetToken
 
         manager.resetViewport()
 

@@ -186,6 +186,10 @@ class NavigationManager(
      * Updates the internal navigation state. Called by ViewModel when state changes externally.
      */
     fun updateState(newNavigationState: NavigationState) {
+        val focusChanged = newNavigationState.focusPath != navigationState.focusPath
         navigationState = newNavigationState
+        if (focusChanged) {
+            clearHistory()
+        }
     }
 }

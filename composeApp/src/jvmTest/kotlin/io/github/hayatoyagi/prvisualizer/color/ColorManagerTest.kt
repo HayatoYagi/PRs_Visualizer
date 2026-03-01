@@ -24,10 +24,10 @@ class ColorManagerTest {
 
         manager.ensurePrColors(prs)
 
-        assertNotNull(capturedState)
-        assertEquals(2, capturedState?.prColorMap?.size)
-        assertNotNull(capturedState?.prColorMap?.get("pr1"))
-        assertNotNull(capturedState?.prColorMap?.get("pr2"))
+        val state = assertNotNull(capturedState)
+        assertEquals(2, state.prColorMap.size)
+        assertNotNull(state.prColorMap["pr1"])
+        assertNotNull(state.prColorMap["pr2"])
     }
 
     @Test
@@ -69,10 +69,10 @@ class ColorManagerTest {
 
         manager.shufflePrColors(prs)
 
-        assertNotNull(capturedState)
-        assertEquals(2, capturedState?.prColorMap?.size)
-        assertNotNull(capturedState?.prColorMap?.get("pr1"))
-        assertNotNull(capturedState?.prColorMap?.get("pr2"))
+        val state = assertNotNull(capturedState)
+        assertEquals(2, state.prColorMap.size)
+        assertNotNull(state.prColorMap["pr1"])
+        assertNotNull(state.prColorMap["pr2"])
     }
 
     @Test
@@ -134,8 +134,8 @@ class ColorManagerTest {
         val pr2 = PullRequest("pr2", 2, "Title 2", "author2", false, "url2", emptyList())
         manager.ensurePrColors(listOf(pr1, pr2))
 
-        assertNotNull(capturedState)
-        assertEquals(2, capturedState?.prColorMap?.size)
-        assertEquals(AppColors.authorPalette[0], capturedState?.prColorMap?.get("pr1"))
+        val state = assertNotNull(capturedState)
+        assertEquals(2, state.prColorMap.size)
+        assertEquals(AppColors.authorPalette[0], state.prColorMap["pr1"])
     }
 }
