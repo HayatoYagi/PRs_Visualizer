@@ -118,9 +118,7 @@ class GitHubApi(
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE"
 
         while (nextUrl != null) {
-            val response = apiSemaphore.withPermit {
-                requestListWithHeaders<GitHubPullRequest>(nextUrl)
-            }
+            val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
             // Fetch files for all PRs in this page concurrently
             val prFilesDeferred = response.data.map { pr ->
                 async {
