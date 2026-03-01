@@ -235,35 +235,31 @@ private fun AppDialogHost(
                 vm.closeDialog()
             },
         )
-        is DialogState.SnapshotFetchError -> SnapshotFetchErrorDialog(
+        is DialogState.AuthError -> ErrorDialog(
+            title = "Authentication error",
             error = dialogState.error,
-            onSelectRepository = {
-                vm.openRepoDialog()
-            },
-            onDismiss = { vm.dismissSnapshotError() },
+            onDismiss = { vm.dismissErrorDialog() },
+        )
+        is DialogState.SnapshotFetchError -> ErrorDialog(
+            title = "Failed to load repository",
+            error = dialogState.error,
+            onDismiss = { vm.dismissErrorDialog() },
         )
         is DialogState.None -> Unit
     }
 }
 
 @Composable
-private fun SnapshotFetchErrorDialog(
+private fun ErrorDialog(
+    title: String,
     error: AppError,
-    onSelectRepository: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Failed to load repository") },
+        title = { Text(title) },
         text = { Text(error.message) },
         confirmButton = {
-            TextButton(
-                onClick = onSelectRepository,
-            ) {
-                Text("Select Repository")
-            }
-        },
-        dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }

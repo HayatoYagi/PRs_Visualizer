@@ -57,6 +57,10 @@ sealed interface DialogState {
 
     data object RepoPicker : DialogState
 
+    data class AuthError(
+        val error: AppError,
+    ) : DialogState
+
     data class SnapshotFetchError(
         val error: AppError,
     ) : DialogState
