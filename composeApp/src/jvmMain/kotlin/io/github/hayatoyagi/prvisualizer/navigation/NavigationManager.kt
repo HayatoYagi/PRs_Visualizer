@@ -1,5 +1,8 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.navigation
 
+import io.github.hayatoyagi.prvisualizer.NavigationState
+import io.github.hayatoyagi.prvisualizer.resetNavigation
+import io.github.hayatoyagi.prvisualizer.resetViewport
 import io.github.hayatoyagi.prvisualizer.ui.shared.parentPathOf
 
 /**

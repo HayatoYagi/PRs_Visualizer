@@ -1,5 +1,6 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.navigation
 
+import io.github.hayatoyagi.prvisualizer.NavigationState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

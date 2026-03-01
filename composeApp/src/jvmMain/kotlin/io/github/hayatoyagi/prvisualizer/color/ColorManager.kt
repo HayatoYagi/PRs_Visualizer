@@ -1,7 +1,8 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.color
 
 import androidx.compose.ui.graphics.Color
-import io.github.hayatoyagi.prvisualizer.color.PrColorAssigner
+import io.github.hayatoyagi.prvisualizer.ColorState
+import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 /**

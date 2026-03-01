@@ -5,9 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hayatoyagi.prvisualizer.color.ColorManager
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsService
 import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
+import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
 import kotlinx.coroutines.Job

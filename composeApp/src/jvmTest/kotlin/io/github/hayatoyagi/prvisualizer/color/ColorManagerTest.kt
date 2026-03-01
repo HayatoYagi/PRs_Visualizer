@@ -1,10 +1,12 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.color
 
+import io.github.hayatoyagi.prvisualizer.ColorState
+import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class ColorManagerTest {
     @Test
@@ -125,8 +127,15 @@ class ColorManagerTest {
         val pr1 = PullRequest("pr1", 1, "Title", "author", false, "url", emptyList())
         manager.ensurePrColors(listOf(pr1))
 
-        // Should not reassign color since pr1 already has one in the updated state
-        assertEquals(1, capturedState?.prColorMap?.size)
+        // No-op path should not trigger callback because state is already populated.
+        assertNull(capturedState)
+
+        // Verifies internal state was updated by requiring the next color for a new PR.
+        val pr2 = PullRequest("pr2", 2, "Title 2", "author2", false, "url2", emptyList())
+        manager.ensurePrColors(listOf(pr1, pr2))
+
+        assertNotNull(capturedState)
+        assertEquals(2, capturedState?.prColorMap?.size)
         assertEquals(AppColors.authorPalette[0], capturedState?.prColorMap?.get("pr1"))
     }
 }
