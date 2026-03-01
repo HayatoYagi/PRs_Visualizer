@@ -76,12 +76,8 @@ fun PrListPane(
             canShuffleColors = prColorMap.isNotEmpty(),
             onShuffleColors = onShuffleColors,
             selectAllState = selectAllState,
-            onSelectAllChange = { state ->
-                when (state) {
-                    ToggleableState.On -> onSelectAllPrs()
-                    ToggleableState.Off, ToggleableState.Indeterminate -> onDeselectAllPrs()
-                }
-            },
+            onSelectAll = onSelectAllPrs,
+            onDeselectAll = onDeselectAllPrs,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
@@ -113,7 +109,8 @@ private fun PrListHeader(
     canShuffleColors: Boolean,
     onShuffleColors: () -> Unit,
     selectAllState: ToggleableState,
-    onSelectAllChange: (ToggleableState) -> Unit,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -148,11 +145,10 @@ private fun PrListHeader(
         TriStateCheckbox(
             state = selectAllState,
             onClick = {
-                val newState = when (selectAllState) {
-                    ToggleableState.Off, ToggleableState.Indeterminate -> ToggleableState.On
-                    ToggleableState.On -> ToggleableState.Off
+                when (selectAllState) {
+                    ToggleableState.Off, ToggleableState.Indeterminate -> onSelectAll()
+                    ToggleableState.On -> onDeselectAll()
                 }
-                onSelectAllChange(newState)
             },
         )
         Text(
