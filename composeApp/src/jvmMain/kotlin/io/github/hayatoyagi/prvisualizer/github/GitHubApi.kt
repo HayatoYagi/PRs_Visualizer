@@ -39,7 +39,7 @@ class GitHubApi(
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
         val repos = mutableListOf<String>()
         var nextUrl: String? = "https://api.github.com/user/repos?per_page=100&sort=updated"
-        
+
         while (nextUrl != null) {
             val response = requestWithHeaders<List<GitHubRepository>>(nextUrl)
             response.data.forEach { repo ->
@@ -48,7 +48,7 @@ class GitHubApi(
             }
             nextUrl = extractNextPageUrl(response.headers)
         }
-        
+
         repos.distinct().sortedBy { it.lowercase() }
     }
 
@@ -110,7 +110,7 @@ class GitHubApi(
     ): List<PullRequest> {
         val pulls = mutableListOf<PullRequest>()
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE"
-        
+
         while (nextUrl != null) {
             val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
             response.data.forEach { pr ->
@@ -128,7 +128,7 @@ class GitHubApi(
             }
             nextUrl = extractNextPageUrl(response.headers)
         }
-        
+
         return pulls
     }
 
@@ -139,7 +139,7 @@ class GitHubApi(
     ): List<PrFileChange> {
         val files = mutableListOf<PrFileChange>()
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE"
-        
+
         while (nextUrl != null) {
             val response = requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
             response.data.forEach { file ->
@@ -156,7 +156,7 @@ class GitHubApi(
             }
             nextUrl = extractNextPageUrl(response.headers)
         }
-        
+
         return files
     }
 
@@ -255,7 +255,7 @@ class GitHubApi(
      */
     internal fun extractNextPageUrl(headers: HttpHeaders): String? {
         val linkHeader = headers.firstValue("Link").orElse(null) ?: return null
-        
+
         // Parse Link header to find rel="next"
         // Example: <https://api.github.com/user/repos?page=2>; rel="next"
         val links = linkHeader.split(",")
