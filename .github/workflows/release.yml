@@ -1,11 +1,13 @@
 name: Release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [ main, master ]
 
 jobs:
   release:
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -28,6 +30,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
         fetch-depth: 0
       
     - name: Set up JDK 17
@@ -66,6 +69,7 @@ jobs:
   
   create-release:
     needs: release
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,6 +77,10 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: 0
+        fetch-tags: true
       
     - name: Read version
       id: version
