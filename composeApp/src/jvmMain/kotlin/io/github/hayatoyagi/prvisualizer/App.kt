@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // File contains multiple related declarations with App() being the primary API
+
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.foundation.background
@@ -25,24 +27,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.ui.dialog.DialogHost
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
-import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
-import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
-import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
-import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
-
-private const val DEFAULT_BRANCH = "main"
 
 data class VisualizerUiState(
     val allPrs: List<PullRequest>,
@@ -133,11 +130,27 @@ fun App() {
                 onRefresh = { vm.refresh() },
                 onOpenRepoDialog = { vm.openRepoDialog() },
             )
-            AppDialogHost(
-                vm = vm,
+            DialogHost(
+                dialogState = vm.state.dialogState,
                 selectedRepo = selectedRepo,
                 uiState = uiState,
                 snapshotFetchState = snapshotFetchState,
+                prColorMap = vm.state.colorState.prColorMap,
+                repoSelectionState = vm.state.repoSelectionState,
+                onReloadRepoOptions = { vm.loadRepositoryOptions() },
+                onDismissRepoDialog = { vm.closeRepoDialog() },
+                onSelectRepo = { vm.selectRepo(it) },
+                onRefresh = { vm.refresh() },
+                onRetryLoadCommits = { vm.reloadFileDetailsCommits() },
+                onDismissDialog = { vm.closeDialog() },
+                onOpenPrInBrowser = { url ->
+                    openUrl(url)
+                    vm.closeDialog()
+                },
+                onSelectFile = { filePath ->
+                    vm.selectFile(filePath)
+                    vm.closeDialog()
+                },
             )
             AppMainRow(
                 vm = vm,
@@ -192,75 +205,6 @@ private fun appRootModifier(vm: VisualizerViewModel): Modifier = Modifier
         vm.resetViewport()
         true
     }
-
-@Composable
-private fun AppDialogHost(
-    vm: VisualizerViewModel,
-    selectedRepo: RepoState.Selected?,
-    uiState: VisualizerUiState,
-    snapshotFetchState: SnapshotFetchState,
-) {
-    when (val dialogState = vm.state.dialogState) {
-        is DialogState.RepoPicker -> RepoPickerDialog(
-            initialQuery = "${selectedRepo?.owner.orEmpty()}/${selectedRepo?.repo.orEmpty()}".trim().trim('/'),
-            repoSelectionState = vm.state.repoSelectionState,
-            onReload = { vm.loadRepositoryOptions() },
-            onDismiss = { vm.closeRepoDialog() },
-            onSelect = { fullName ->
-                vm.selectRepo(fullName)
-                vm.refresh()
-            },
-        )
-        is DialogState.FileDetails -> FileDetailsDialogHost(
-            dialogState = dialogState,
-            uiState = uiState,
-            selectedRepo = selectedRepo,
-            snapshotFetchState = snapshotFetchState,
-            prColorMap = vm.state.colorState.prColorMap,
-            onRetryLoadCommits = { vm.reloadFileDetailsCommits() },
-            onDismiss = { vm.closeDialog() },
-        )
-        is DialogState.PrDetails -> PrDetailsDialog(
-            pr = dialogState.pr,
-            onDismiss = { vm.closeDialog() },
-            onOpenInBrowser = { url ->
-                openUrl(url)
-                vm.closeDialog()
-            },
-            onSelectFile = { filePath ->
-                vm.selectFile(filePath)
-                vm.closeDialog()
-            },
-        )
-        is DialogState.None -> Unit
-    }
-}
-
-@Composable
-private fun FileDetailsDialogHost(
-    dialogState: DialogState.FileDetails,
-    uiState: VisualizerUiState,
-    selectedRepo: RepoState.Selected?,
-    snapshotFetchState: SnapshotFetchState,
-    prColorMap: Map<String, androidx.compose.ui.graphics.Color>,
-    onRetryLoadCommits: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val filePath = dialogState.filePath
-    val fileNode = remember(uiState.focusRoot, filePath) { findFileNode(uiState.focusRoot, filePath) } ?: return
-    FileDetailsDialog(
-        filePath = filePath,
-        fileName = filePath.substringAfterLast('/'),
-        totalLines = fileNode.totalLines,
-        fileOverlay = uiState.fileOverlayByPath[filePath],
-        repoFullName = "${selectedRepo?.owner.orEmpty().trim()}/${selectedRepo?.repo.orEmpty().trim()}",
-        defaultBranch = defaultBranch(snapshotFetchState),
-        prColorMap = prColorMap,
-        commitsState = dialogState.commitsState,
-        onRetryLoadCommits = onRetryLoadCommits,
-        onDismiss = onDismiss,
-    )
-}
 
 @Composable
 private fun AppMainRow(
@@ -368,9 +312,4 @@ private fun collectAllDirectories(root: FileNode.Directory): List<FileNode.Direc
         }
     }
     collectDirectories(root)
-}
-
-private fun defaultBranch(snapshotFetchState: SnapshotFetchState): String = when (snapshotFetchState) {
-    is SnapshotFetchState.Ready -> snapshotFetchState.snapshot.defaultBranch
-    SnapshotFetchState.Idle, SnapshotFetchState.Fetching, is SnapshotFetchState.Failed -> DEFAULT_BRANCH
 }
