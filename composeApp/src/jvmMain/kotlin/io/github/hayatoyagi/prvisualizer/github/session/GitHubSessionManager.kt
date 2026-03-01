@@ -25,6 +25,7 @@ class GitHubSessionManager(
     private val setRepoSelectionState: (RepoSelectionState) -> Unit,
     private val onSnapshotLoaded: () -> Unit,
     private val selectRepo: (String) -> Unit,
+    private val unselectRepo: () -> Unit,
     private val authService: AuthService = AuthServiceImpl(),
     private val repoSelectionService: RepoSelectionService = RepoSelectionServiceImpl(),
     private val snapshotFetchService: SnapshotFetchService = SnapshotFetchServiceImpl(),
@@ -66,6 +67,7 @@ class GitHubSessionManager(
             setAuthState(AuthState.Unauthenticated)
             setSnapshotFetchState(SnapshotFetchState.Idle)
             setRepoSelectionState(RepoSelectionState.Idle)
+            unselectRepo()
         }
     }
 
