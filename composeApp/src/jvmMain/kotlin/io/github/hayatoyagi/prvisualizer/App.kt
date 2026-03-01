@@ -264,6 +264,11 @@ private fun AppMainRow(
             onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
             onCyclePrColor = { vm.cyclePrColor(it) },
             onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
+            onSelectAllPrs = {
+                val allFilteredIds = uiState.filteredPrs.map { it.id }.toSet()
+                vm.selectAllPrs(allFilteredIds)
+            },
+            onDeselectAllPrs = { vm.deselectAllPrs() },
             isLoading = isConnecting,
         )
     }

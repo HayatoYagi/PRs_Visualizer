@@ -253,6 +253,12 @@ class VisualizerViewModel(
         )
     }
 
+    fun deselectAllPrs() {
+        state = state.copy(
+            filterState = state.filterState.copy(selectedPrIds = emptySet()),
+        )
+    }
+
     // region: ナビゲーション
     fun selectDirectory(path: String) = navigationManager.selectDirectory(path)
 
