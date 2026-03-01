@@ -77,7 +77,7 @@ Kotlin と [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatfo
 ## 📦 ビルド済みアプリの配布
 
 GitHubのリリースページから、ビルド済みのアプリケーションをダウンロードできます：
-- [Releases](https://github.com/HayatoYagi/GitHub_PRs_Visualizer/releases)
+- [Releases](https://github.com/HayatoYagi/PRs_Visualizer/releases)
 
 各プラットフォーム用のインストーラーが利用可能です：
 - macOS: `.dmg` ファイル

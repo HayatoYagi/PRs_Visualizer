@@ -134,7 +134,7 @@ object GitHubTokenStore {
         } else {
             Path.of(appData)
         }
-        return base.resolve("GitHubPRsVisualizer").resolve("oauth_token.dpapi")
+        return base.resolve("PRsVisualizerForGitHub").resolve("oauth_token.dpapi")
     }
 
     private fun runCommand(

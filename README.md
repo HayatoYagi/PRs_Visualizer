@@ -77,7 +77,7 @@ To run static code analysis:
 ## 📦 Pre-built Application Distribution
 
 You can download pre-built applications from the GitHub Releases page:
-- [Releases](https://github.com/HayatoYagi/GitHub_PRs_Visualizer/releases)
+- [Releases](https://github.com/HayatoYagi/PRs_Visualizer/releases)
 
 Installers are available for each platform:
 - macOS: `.dmg` file
