@@ -86,7 +86,9 @@ private class TreemapLayoutEngine {
 
     private fun computeAggregate(node: FileNode): Aggregate {
         val aggregate = when (node) {
-            is FileNode.File -> Aggregate(totalLines = node.totalLines, hasActivePr = node.hasActivePr)
+            is FileNode.File -> {
+                Aggregate(totalLines = node.totalLines, hasActivePr = node.hasActivePr)
+            }
             is FileNode.Directory -> {
                 val childAggregates = node.children.map { computeAggregate(it) }
                 Aggregate(
