@@ -120,8 +120,16 @@ class GitHubOAuthDesktopAuthenticator {
                 error("Device Flow response missing verification_uri: ${response.body()}")
             },
             verificationUriComplete = deviceCodeResponse.verificationUriComplete?.ifBlank { null },
-            expiresInSeconds = deviceCodeResponse.expiresIn.takeIf { it > 0 } ?: DEFAULT_EXPIRES_IN.inWholeSeconds.toInt(),
-            intervalSeconds = deviceCodeResponse.interval.takeIf { it > 0 } ?: MIN_POLL_INTERVAL.inWholeSeconds.toInt(),
+            expiresInSeconds = if (deviceCodeResponse.expiresIn > 0) {
+                deviceCodeResponse.expiresIn
+            } else {
+                DEFAULT_EXPIRES_IN.inWholeSeconds.toInt()
+            },
+            intervalSeconds = if (deviceCodeResponse.interval > 0) {
+                deviceCodeResponse.interval
+            } else {
+                MIN_POLL_INTERVAL.inWholeSeconds.toInt()
+            },
         )
     }
 
