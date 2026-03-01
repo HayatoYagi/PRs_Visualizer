@@ -71,7 +71,9 @@ fun TreemapPane(
         }
     }
 
-    val allLayoutNodes = remember(focusRoot, canvasSize) {
+    // Memoize layout computation to avoid recomputation on UI state changes (hover, scroll, etc.)
+    // Keys: focusPath (navigation), focusRoot (data), canvasSize (viewport dimensions)
+    val allLayoutNodes = remember(focusPath, focusRoot, canvasSize) {
         computeTreemap(
             root = focusRoot,
             bounds = Rect(0f, 0f, canvasSize.width.toFloat(), canvasSize.height.toFloat()),
