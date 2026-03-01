@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -232,8 +235,47 @@ private fun AppDialogHost(
                 vm.closeDialog()
             },
         )
-        is DialogState.None -> Unit
+        is DialogState.None -> {
+            val fetchFailed = snapshotFetchState as? SnapshotFetchState.Failed
+            if (fetchFailed != null) {
+                SnapshotFetchErrorDialog(
+                    error = fetchFailed.error,
+                    onSelectRepository = {
+                        vm.openRepoDialog()
+                    },
+                    onDismiss = { vm.dismissSnapshotError() },
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun SnapshotFetchErrorDialog(
+    error: AppError,
+    onSelectRepository: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Failed to load repository") },
+        text = { Text(error.message) },
+        confirmButton = {
+            TextButton(
+                onClick = onSelectRepository,
+            ) {
+                Text("Select Repository")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
+    )
 }
 
 @Composable

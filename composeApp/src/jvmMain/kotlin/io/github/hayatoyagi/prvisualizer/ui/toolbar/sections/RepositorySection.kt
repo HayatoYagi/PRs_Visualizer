@@ -20,13 +20,13 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 @Composable
 fun RepositorySection(
     isConnecting: Boolean,
-    isLoggedIn: Boolean,
+    canOpenRepoDialog: Boolean,
     repoFullName: String,
     toolbarTextStyle: TextStyle,
     onRefresh: () -> Unit,
     onOpenRepoDialog: () -> Unit,
 ) {
-    val isRefreshEnabled = !isConnecting && isLoggedIn
+    val isRefreshEnabled = !isConnecting && canOpenRepoDialog
     val refreshLabel = if (isConnecting) "Refreshing..." else "Refresh Repository"
 
     TooltipIconButton(
@@ -54,13 +54,13 @@ fun RepositorySection(
         )
         TooltipIconButton(
             tooltip = "Select Repository",
-            enabled = isLoggedIn,
+            enabled = canOpenRepoDialog,
             onClick = onOpenRepoDialog,
         ) {
             Icon(
                 imageVector = Icons.Filled.Folder,
                 contentDescription = "Select Repo",
-                tint = if (isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
+                tint = if (canOpenRepoDialog) AppColors.textPrimary else AppColors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }
