@@ -41,17 +41,25 @@ class VisualizerViewModel(
         scope = viewModelScope,
         getAuthState = { state.authState },
         setAuthState = { authState ->
-            state = state.copy(authState = authState)
-            if (authState is AuthState.Failed) {
-                state = state.copy(dialogState = DialogState.AuthError(authState.error))
-            }
+            state = state.copy(
+                authState = authState,
+                dialogState = if (authState is AuthState.Failed) {
+                    DialogState.AuthError(authState.error)
+                } else {
+                    state.dialogState
+                },
+            )
         },
         getSnapshotFetchState = { state.snapshotFetchState },
         setSnapshotFetchState = { snapshotFetchState ->
-            state = state.copy(snapshotFetchState = snapshotFetchState)
-            if (snapshotFetchState is SnapshotFetchState.Failed) {
-                state = state.copy(dialogState = DialogState.SnapshotFetchError(snapshotFetchState.error))
-            }
+            state = state.copy(
+                snapshotFetchState = snapshotFetchState,
+                dialogState = if (snapshotFetchState is SnapshotFetchState.Failed) {
+                    DialogState.SnapshotFetchError(snapshotFetchState.error)
+                } else {
+                    state.dialogState
+                },
+            )
         },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },

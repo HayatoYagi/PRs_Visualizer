@@ -258,7 +258,7 @@ private fun ErrorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(error.message) },
+        text = { Text(errorDialogMessage(error)) },
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
@@ -268,6 +268,14 @@ private fun ErrorDialog(
         titleContentColor = AppColors.textPaneTitle,
         textContentColor = AppColors.textBody,
     )
+}
+
+private fun errorDialogMessage(error: AppError): String = when (error) {
+    is AppError.Network -> "Network error: ${error.message}"
+    is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.AuthExpired -> error.message
+    is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+    is AppError.Unknown -> "Error: ${error.message}"
 }
 
 @Composable
