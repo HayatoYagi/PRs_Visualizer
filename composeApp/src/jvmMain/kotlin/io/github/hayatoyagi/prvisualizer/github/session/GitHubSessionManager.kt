@@ -5,6 +5,7 @@ import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
+import io.github.hayatoyagi.prvisualizer.github.GitHubConfig
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -34,8 +35,8 @@ class GitHubSessionManager(
         scope.launch { restoreTokenAndConnectIfNeeded() }
     }
 
-    fun loginAndConnect(clientId: String) {
-        scope.launch { loginAndConnectInternal(clientId) }
+    fun loginAndConnect() {
+        scope.launch { loginAndConnectInternal() }
     }
 
     fun refresh() {
@@ -59,6 +60,15 @@ class GitHubSessionManager(
         scope.launch { loadRepositoryOptionsInternal() }
     }
 
+    fun logout() {
+        scope.launch {
+            authService.clearToken()
+            setAuthState(AuthState.Unauthenticated)
+            setSnapshotFetchState(SnapshotFetchState.Idle)
+            setRepoSelectionState(RepoSelectionState.Idle)
+        }
+    }
+
     private suspend fun restoreTokenAndConnectIfNeeded() {
         if (restoreAttempted) return
         restoreAttempted = true
@@ -73,11 +83,11 @@ class GitHubSessionManager(
         }
     }
 
-    private suspend fun loginAndConnectInternal(clientId: String) {
+    private suspend fun loginAndConnectInternal() {
         setAuthState(AuthState.Authorizing())
 
         authService.login(
-            clientId = clientId.trim(),
+            clientId = GitHubConfig.CLIENT_ID,
             onDeviceFlowStart = { prompt ->
                 setAuthState(
                     AuthState.Authorizing(

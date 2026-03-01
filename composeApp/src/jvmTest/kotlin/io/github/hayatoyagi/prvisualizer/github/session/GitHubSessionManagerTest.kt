@@ -97,7 +97,7 @@ class GitHubSessionManagerTest {
                 snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
             )
 
-            manager.loginAndConnect("client-id")
+            manager.loginAndConnect()
 
             val failed = assertIs<AuthState.Failed>(authState)
             val error = assertIs<AppError.OAuthFailed>(failed.error)
@@ -176,6 +176,42 @@ class GitHubSessionManagerTest {
             assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
             assertTrue(authService.clearTokenCalled)
             assertEquals(RepoSelectionState.Idle, repoSelectionState)
+        }
+
+    @Test
+    fun `logout should clear token and reset all states`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Authenticated("token")
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Ready(snapshot())
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Ready(listOf("owner/repo"))
+
+            val authService = FakeAuthService(
+                restoredToken = "",
+                loginResult = Result.success("token"),
+            )
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                authService = authService,
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
+            )
+
+            manager.logout()
+
+            assertEquals(AuthState.Unauthenticated, authState)
+            assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
+            assertEquals(RepoSelectionState.Idle, repoSelectionState)
+            assertTrue(authService.clearTokenCalled)
         }
 
     private fun assertNotFetching(snapshotFetchState: SnapshotFetchState) {
