@@ -235,18 +235,14 @@ private fun AppDialogHost(
                 vm.closeDialog()
             },
         )
-        is DialogState.None -> {
-            val fetchFailed = snapshotFetchState as? SnapshotFetchState.Failed
-            if (fetchFailed != null) {
-                SnapshotFetchErrorDialog(
-                    error = fetchFailed.error,
-                    onSelectRepository = {
-                        vm.openRepoDialog()
-                    },
-                    onDismiss = { vm.dismissSnapshotError() },
-                )
-            }
-        }
+        is DialogState.SnapshotFetchError -> SnapshotFetchErrorDialog(
+            error = dialogState.error,
+            onSelectRepository = {
+                vm.openRepoDialog()
+            },
+            onDismiss = { vm.dismissSnapshotError() },
+        )
+        is DialogState.None -> Unit
     }
 }
 

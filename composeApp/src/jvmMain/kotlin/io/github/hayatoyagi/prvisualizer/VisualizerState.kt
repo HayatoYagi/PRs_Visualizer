@@ -57,6 +57,10 @@ sealed interface DialogState {
 
     data object RepoPicker : DialogState
 
+    data class SnapshotFetchError(
+        val error: AppError,
+    ) : DialogState
+
     data class FileDetails(
         val filePath: String,
         val commitsState: CommitsState = CommitsState.Loading,

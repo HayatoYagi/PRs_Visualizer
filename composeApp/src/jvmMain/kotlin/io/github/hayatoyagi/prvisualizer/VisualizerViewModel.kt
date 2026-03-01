@@ -42,7 +42,17 @@ class VisualizerViewModel(
         getAuthState = { state.authState },
         setAuthState = { state = state.copy(authState = it) },
         getSnapshotFetchState = { state.snapshotFetchState },
-        setSnapshotFetchState = { state = state.copy(snapshotFetchState = it) },
+        setSnapshotFetchState = { snapshotFetchState ->
+            state = state.copy(snapshotFetchState = snapshotFetchState)
+            when (snapshotFetchState) {
+                is SnapshotFetchState.Failed -> {
+                    if (state.dialogState is DialogState.None) {
+                        state = state.copy(dialogState = DialogState.SnapshotFetchError(snapshotFetchState.error))
+                    }
+                }
+                SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Ready -> Unit
+            }
+        },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
@@ -84,6 +94,12 @@ class VisualizerViewModel(
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    fun dismissSnapshotError() {
+        if (state.dialogState is DialogState.SnapshotFetchError) {
+            state = state.copy(dialogState = DialogState.None)
+        }
+    }
 
     fun logout() = sessionManager.logout()
 
