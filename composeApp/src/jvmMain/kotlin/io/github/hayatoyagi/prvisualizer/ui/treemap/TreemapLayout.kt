@@ -90,10 +90,18 @@ private class TreemapLayoutEngine {
                 Aggregate(totalLines = node.totalLines, hasActivePr = node.hasActivePr)
             }
             is FileNode.Directory -> {
-                val childAggregates = node.children.map { computeAggregate(it) }
+                var totalLines = 0
+                var hasActivePr = false
+                for (child in node.children) {
+                    val childAggregate = computeAggregate(child)
+                    totalLines += childAggregate.totalLines
+                    if (!hasActivePr && childAggregate.hasActivePr) {
+                        hasActivePr = true
+                    }
+                }
                 Aggregate(
-                    totalLines = childAggregates.sumOf { it.totalLines },
-                    hasActivePr = childAggregates.any { it.hasActivePr },
+                    totalLines = totalLines,
+                    hasActivePr = hasActivePr,
                 )
             }
         }
