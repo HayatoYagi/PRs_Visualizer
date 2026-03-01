@@ -5,15 +5,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.ui.icons.CustomIcons
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
@@ -43,8 +49,9 @@ fun AuthRow(
         modifier = modifier
             .fillMaxWidth()
             .background(AppColors.backgroundHeader)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         AuthActionButtons(model = model, oauthClientId = oauthClientId, onLogin = onLogin, onRefresh = onRefresh)
         MissingClientIdNotice(oauthClientId = oauthClientId)
@@ -62,18 +69,36 @@ private fun AuthActionButtons(
     onRefresh: () -> Unit,
 ) {
     if (!model.isLoggedIn) {
-        Button(
+        IconButton(
             enabled = !model.isAuthorizing && oauthClientId.isNotBlank(),
             onClick = onLogin,
         ) {
-            Text(if (model.isAuthorizing) "Authorizing..." else "Login with GitHub")
+            Icon(
+                imageVector = CustomIcons.Login,
+                contentDescription = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub",
+                tint = if (!model.isAuthorizing && oauthClientId.isNotBlank()) {
+                    AppColors.textPrimary
+                } else {
+                    AppColors.textSecondary
+                },
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
-    Button(
+    IconButton(
         enabled = !model.isConnecting && model.isLoggedIn,
         onClick = onRefresh,
     ) {
-        Text(if (model.isConnecting) "Refreshing..." else "Refresh")
+        Icon(
+            imageVector = Icons.Filled.Refresh,
+            contentDescription = if (model.isConnecting) "Refreshing..." else "Refresh",
+            tint = if (!model.isConnecting && model.isLoggedIn) {
+                AppColors.textPrimary
+            } else {
+                AppColors.textSecondary
+            },
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
@@ -83,7 +108,6 @@ private fun MissingClientIdNotice(oauthClientId: String) {
     Text(
         text = "Missing GITHUB_CLIENT_ID in .env",
         color = AppColors.textWarning,
-        modifier = Modifier.padding(top = 14.dp),
     )
 }
 
@@ -92,13 +116,26 @@ private fun DevicePromptSection(devicePrompt: AuthState.Authorizing?) {
     val prompt = devicePrompt ?: return
     SelectionContainer {
         Text(
-            text = "GitHub code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
+            text = "Code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
             color = AppColors.textDeviceCode,
-            modifier = Modifier.padding(top = 14.dp),
         )
     }
-    Button(onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) }) { Text("Copy Code") }
-    Button(onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) }) { Text("Open Verify Page") }
+    IconButton(onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) }) {
+        Icon(
+            imageVector = CustomIcons.ContentCopy,
+            contentDescription = "Copy Code",
+            tint = AppColors.textPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    IconButton(onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) }) {
+        Icon(
+            imageVector = CustomIcons.OpenInBrowser,
+            contentDescription = "Open Verify Page",
+            tint = AppColors.textPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
 }
 
 @Composable
@@ -109,7 +146,6 @@ private fun ConnectionStatusText(
     Text(
         text = statusText(model = model, currentUser = currentUser),
         color = AppColors.textSecondary,
-        modifier = Modifier.padding(top = 14.dp),
     )
 }
 
@@ -121,7 +157,6 @@ private fun ConnectionErrorText(connectionError: AppError?) {
         Text(
             text = text,
             color = color,
-            modifier = Modifier.padding(top = 14.dp),
         )
     }
 }
