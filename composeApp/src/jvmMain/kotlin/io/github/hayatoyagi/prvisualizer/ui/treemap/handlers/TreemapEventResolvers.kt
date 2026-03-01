@@ -7,6 +7,7 @@ import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.MoveEventResult
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.ReleaseEventResult
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.ZoomEventResult
+import io.github.hayatoyagi.prvisualizer.ui.treemap.nodeKey
 
 internal fun resolveMoveEvent(
     position: Offset,
