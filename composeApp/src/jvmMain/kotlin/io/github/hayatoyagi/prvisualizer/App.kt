@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName") // File contains multiple related declarations with App() being the primary API
+@file:Suppress("MatchingDeclarationName") // VisualizerUiState is used by App() composable; keeping them together for cohesion
 
 package io.github.hayatoyagi.prvisualizer
 
