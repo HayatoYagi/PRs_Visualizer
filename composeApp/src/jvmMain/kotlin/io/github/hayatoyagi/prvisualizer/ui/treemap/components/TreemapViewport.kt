@@ -36,21 +36,34 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportModel
 internal fun TreemapViewport(
     model: TreemapViewportModel,
     isLoading: Boolean,
+    canZoomOut: Boolean,
+    canZoomIn: Boolean,
+    onZoomOut: () -> Unit,
+    onZoomIn: () -> Unit,
     callbacks: TreemapViewportCallbacks,
 ) {
     var legendBounds by remember { mutableStateOf<Rect?>(null) }
+    var zoomControlBounds by remember { mutableStateOf<Rect?>(null) }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clipToBounds()
             .background(AppColors.backgroundCanvas)
             .onSizeChanged(callbacks.onSizeChanged)
-            .treemapMoveHandler(isLoading = isLoading, onMoveEvent = callbacks.onMoveEvent)
+            .treemapMoveHandler(
+                isLoading = isLoading,
+                onMoveEvent = { position, dragging ->
+                    if (zoomControlBounds?.contains(position) != true) {
+                        callbacks.onMoveEvent(position, dragging)
+                    }
+                },
+            )
             .treemapScrollHandler(isLoading = isLoading, onScrollEvent = callbacks.onScrollEvent)
             .treemapReleaseHandler(
                 isLoading = isLoading,
                 onReleaseEvent = { position, uptimeMillis ->
                     if (legendBounds?.contains(position) == true) return@treemapReleaseHandler
+                    if (zoomControlBounds?.contains(position) == true) return@treemapReleaseHandler
                     callbacks.onReleaseEvent(position, uptimeMillis)
                 },
             ),
@@ -84,6 +97,19 @@ internal fun TreemapViewport(
                 .onGloballyPositioned { coordinates ->
                     legendBounds = coordinates.boundsInParent()
                 },
+        )
+        TreemapZoomControlsOverlay(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(LEGEND_PADDING_DP.dp)
+                .padding(4.dp)
+                .onGloballyPositioned { coordinates ->
+                    zoomControlBounds = coordinates.boundsInParent()
+                },
+            canZoomOut = canZoomOut,
+            canZoomIn = canZoomIn,
+            onZoomOut = onZoomOut,
+            onZoomIn = onZoomIn,
         )
         if (isLoading) {
             Box(
