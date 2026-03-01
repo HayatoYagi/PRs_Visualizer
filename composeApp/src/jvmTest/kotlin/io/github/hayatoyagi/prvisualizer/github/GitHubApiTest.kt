@@ -122,4 +122,36 @@ class GitHubApiTest {
 
         assertEquals("https://api.github.com/user/repos?page=3", nextUrl)
     }
+
+    @Test
+    fun `extractNextPageUrl handles whitespace around equals in rel`() {
+        val api = GitHubApi(token = "dummy")
+        val headers = HttpHeaders.of(
+            mapOf(
+                "Link" to listOf(
+                    "<https://api.github.com/user/repos?page=2>; rel = \"next\"",
+                ),
+            ),
+        ) { _, _ -> true }
+
+        val nextUrl = api.extractNextPageUrl(headers)
+
+        assertEquals("https://api.github.com/user/repos?page=2", nextUrl)
+    }
+
+    @Test
+    fun `extractNextPageUrl is case insensitive for rel attribute`() {
+        val api = GitHubApi(token = "dummy")
+        val headers = HttpHeaders.of(
+            mapOf(
+                "Link" to listOf(
+                    "<https://api.github.com/user/repos?page=2>; REL=\"NEXT\"",
+                ),
+            ),
+        ) { _, _ -> true }
+
+        val nextUrl = api.extractNextPageUrl(headers)
+
+        assertEquals("https://api.github.com/user/repos?page=2", nextUrl)
+    }
 }

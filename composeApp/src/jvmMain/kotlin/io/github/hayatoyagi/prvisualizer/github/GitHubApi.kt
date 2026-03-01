@@ -24,7 +24,7 @@ data class GitHubSnapshot(
     val defaultBranch: String,
 )
 
-private data class HttpResponseWithHeaders(
+private data class RawResponseWithHeaders(
     val body: String,
     val headers: HttpHeaders,
 )
@@ -231,21 +231,21 @@ class GitHubApi(
         return json.decodeFromString<List<T>>(body)
     }
 
-    private data class ResponseWithHeaders<T>(
+    private data class TypedResponseWithHeaders<T>(
         val data: T,
         val headers: HttpHeaders,
     )
 
-    private inline fun <reified T> requestWithHeaders(url: String): ResponseWithHeaders<T> {
+    private inline fun <reified T> requestWithHeaders(url: String): TypedResponseWithHeaders<T> {
         val response = requestBodyWithHeaders(url)
         val data = json.decodeFromString<T>(response.body)
-        return ResponseWithHeaders(data, response.headers)
+        return TypedResponseWithHeaders(data, response.headers)
     }
 
-    private inline fun <reified T> requestListWithHeaders(url: String): ResponseWithHeaders<List<T>> {
+    private inline fun <reified T> requestListWithHeaders(url: String): TypedResponseWithHeaders<List<T>> {
         val response = requestBodyWithHeaders(url)
         val data = json.decodeFromString<List<T>>(response.body)
-        return ResponseWithHeaders(data, response.headers)
+        return TypedResponseWithHeaders(data, response.headers)
     }
 
     /**
@@ -258,13 +258,16 @@ class GitHubApi(
 
         // Parse Link header to find rel="next"
         // Example: <https://api.github.com/user/repos?page=2>; rel="next"
+        // Uses regex to handle variations in whitespace and quoting
         val links = linkHeader.split(",")
         for (link in links) {
             val parts = link.trim().split(";")
             if (parts.size >= 2) {
                 val url = parts[0].trim().removeSurrounding("<", ">")
-                val rel = parts[1].trim()
-                if (rel.contains("rel=\"next\"") || rel.contains("rel='next'")) {
+                // Match rel="next" or rel='next' with optional whitespace around the =
+                val relPart = parts[1].trim()
+                val relPattern = """rel\s*=\s*['"](next)['"]""".toRegex(RegexOption.IGNORE_CASE)
+                if (relPattern.containsMatchIn(relPart)) {
                     return url
                 }
             }
@@ -276,7 +279,7 @@ class GitHubApi(
         return requestBodyWithHeaders(url).body
     }
 
-    private fun requestBodyWithHeaders(url: String): HttpResponseWithHeaders {
+    private fun requestBodyWithHeaders(url: String): RawResponseWithHeaders {
         val request = HttpRequest
             .newBuilder(URI(url))
             .header("Accept", "application/vnd.github+json")
@@ -291,7 +294,7 @@ class GitHubApi(
         if (response.statusCode() !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
             throw GitHubApiException(response.statusCode(), "GitHub API error ${response.statusCode()} for $url: ${response.body()}")
         }
-        return HttpResponseWithHeaders(response.body(), response.headers())
+        return RawResponseWithHeaders(response.body(), response.headers())
     }
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
