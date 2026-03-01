@@ -40,9 +40,27 @@ class VisualizerViewModel(
     private val sessionManager = GitHubSessionManager(
         scope = viewModelScope,
         getAuthState = { state.authState },
-        setAuthState = { state = state.copy(authState = it) },
+        setAuthState = { authState ->
+            state = state.copy(
+                authState = authState,
+                dialogState = if (authState is AuthState.Failed) {
+                    DialogState.AuthError(authState.error)
+                } else {
+                    state.dialogState
+                },
+            )
+        },
         getSnapshotFetchState = { state.snapshotFetchState },
-        setSnapshotFetchState = { state = state.copy(snapshotFetchState = it) },
+        setSnapshotFetchState = { snapshotFetchState ->
+            state = state.copy(
+                snapshotFetchState = snapshotFetchState,
+                dialogState = if (snapshotFetchState is SnapshotFetchState.Failed) {
+                    DialogState.SnapshotFetchError(snapshotFetchState.error)
+                } else {
+                    state.dialogState
+                },
+            )
+        },
         getRepoState = { selectedRepositoryStore.repoState.value },
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
@@ -84,6 +102,12 @@ class VisualizerViewModel(
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
+
+    fun dismissErrorDialog() {
+        if (state.dialogState is DialogState.SnapshotFetchError || state.dialogState is DialogState.AuthError) {
+            state = state.copy(dialogState = DialogState.None)
+        }
+    }
 
     fun logout() = sessionManager.logout()
 
