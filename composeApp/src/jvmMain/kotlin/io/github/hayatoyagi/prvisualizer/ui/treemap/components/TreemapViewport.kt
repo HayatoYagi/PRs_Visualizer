@@ -50,7 +50,14 @@ internal fun TreemapViewport(
             .clipToBounds()
             .background(AppColors.backgroundCanvas)
             .onSizeChanged(callbacks.onSizeChanged)
-            .treemapMoveHandler(isLoading = isLoading, onMoveEvent = callbacks.onMoveEvent)
+            .treemapMoveHandler(
+                isLoading = isLoading,
+                onMoveEvent = { position, dragging ->
+                    if (zoomControlBounds?.contains(position) != true) {
+                        callbacks.onMoveEvent(position, dragging)
+                    }
+                },
+            )
             .treemapScrollHandler(isLoading = isLoading, onScrollEvent = callbacks.onScrollEvent)
             .treemapReleaseHandler(
                 isLoading = isLoading,
