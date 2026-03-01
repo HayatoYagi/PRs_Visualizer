@@ -1,5 +1,6 @@
 package io.github.hayatoyagi.prvisualizer
 
+import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.InMemorySelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
@@ -52,9 +53,32 @@ class VisualizerViewModelTest {
     @Test
     fun `openFileDetailsDialog should require ready snapshot`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<IllegalStateException> {
             vm.openFileDetailsDialog("src/main/App.kt")
         }
+    }
+
+    @Test
+    fun `openFileDetailsDialog should set dialog state correctly when snapshot is ready`() {
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(),
+            initialState = VisualizerState(
+                snapshotFetchState = SnapshotFetchState.Ready(
+                    snapshot = GitHubSnapshot(
+                        rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+                        pullRequests = emptyList(),
+                        viewerLogin = null,
+                        defaultBranch = "develop",
+                    ),
+                ),
+            ),
+        )
+
+        vm.openFileDetailsDialog("src/main/App.kt")
+
+        val dialog = assertIs<DialogState.FileDetails>(vm.state.dialogState)
+        assertEquals("src/main/App.kt", dialog.filePath)
+        assertEquals("develop", dialog.defaultBranch)
     }
 
     @Test
@@ -300,9 +324,6 @@ class VisualizerViewModelTest {
         )
 
         vm.ensurePrColors(prs)
-        val originalColors = vm.state.colorState.prColorMap
-            .toMap()
-
         vm.shufflePrColors(prs)
 
         assertEquals(2, vm.state.colorState.prColorMap.size)

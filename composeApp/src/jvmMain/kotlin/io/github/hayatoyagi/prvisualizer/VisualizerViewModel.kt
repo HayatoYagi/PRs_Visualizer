@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore,
     private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
+    initialState: VisualizerState = VisualizerState(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>
         get() = selectedRepositoryStore.repoState
@@ -26,7 +27,7 @@ class VisualizerViewModel(
     private var lastAppliedRepoState: RepoState = selectedRepositoryStore.repoState.value
 
     // Main state container
-    var state by mutableStateOf(VisualizerState())
+    var state by mutableStateOf(initialState)
         private set
 
     private var fileDetailsJob: Job? = null
@@ -140,7 +141,7 @@ class VisualizerViewModel(
 
     fun openFileDetailsDialog(filePath: String) {
         fileDetailsJob?.cancel()
-        val snapshotFetchState = requireNotNull(state.snapshotFetchState as? SnapshotFetchState.Ready) {
+        val snapshotFetchState = checkNotNull(state.snapshotFetchState as? SnapshotFetchState.Ready) {
             "File details requires a ready snapshot."
         }
         state = state.copy(

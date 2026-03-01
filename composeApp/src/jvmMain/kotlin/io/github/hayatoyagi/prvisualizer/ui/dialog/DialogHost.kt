@@ -5,8 +5,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.DialogState
+import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.VisualizerUiState
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
@@ -29,8 +31,8 @@ fun DialogHost(
     dialogState: DialogState,
     selectedRepo: RepoState.Selected?,
     uiState: VisualizerUiState,
-    prColorMap: Map<String, androidx.compose.ui.graphics.Color>,
-    repoSelectionState: io.github.hayatoyagi.prvisualizer.RepoSelectionState,
+    prColorMap: Map<String, Color>,
+    repoSelectionState: RepoSelectionState,
     onReloadRepoOptions: () -> Unit,
     onDismissRepoDialog: () -> Unit,
     onSelectRepo: (String) -> Unit,
@@ -118,7 +120,7 @@ private fun FileDetailsDialogHost(
     dialogState: DialogState.FileDetails,
     uiState: VisualizerUiState,
     selectedRepo: RepoState.Selected?,
-    prColorMap: Map<String, androidx.compose.ui.graphics.Color>,
+    prColorMap: Map<String, Color>,
     onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
 ) {
