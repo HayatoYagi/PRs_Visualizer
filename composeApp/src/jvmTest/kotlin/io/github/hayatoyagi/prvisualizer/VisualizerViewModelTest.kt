@@ -6,6 +6,7 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -49,19 +50,18 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `openFileDetailsDialog should set dialog state correctly`() {
+    fun `openFileDetailsDialog should require ready snapshot`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.openFileDetailsDialog("src/main/App.kt")
-
-        val dialog = assertIs<DialogState.FileDetails>(vm.state.dialogState)
-        assertEquals("src/main/App.kt", dialog.filePath)
+        assertFailsWith<IllegalArgumentException> {
+            vm.openFileDetailsDialog("src/main/App.kt")
+        }
     }
 
     @Test
     fun `closeDialog should close the dialog`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.openFileDetailsDialog("src/main/App.kt")
-        assertIs<DialogState.FileDetails>(vm.state.dialogState)
+        vm.openRepoDialog()
+        assertIs<DialogState.RepoPicker>(vm.state.dialogState)
 
         vm.closeDialog()
         assertIs<DialogState.None>(vm.state.dialogState)

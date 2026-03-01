@@ -139,9 +139,13 @@ class VisualizerViewModel(
 
     fun openFileDetailsDialog(filePath: String) {
         fileDetailsJob?.cancel()
+        val snapshotFetchState = requireNotNull(state.snapshotFetchState as? SnapshotFetchState.Ready) {
+            "File details requires a ready snapshot."
+        }
         state = state.copy(
             dialogState = DialogState.FileDetails(
                 filePath = filePath,
+                defaultBranch = snapshotFetchState.snapshot.defaultBranch,
                 commitsState = DialogState.FileDetails.CommitsState.Loading,
             ),
         )

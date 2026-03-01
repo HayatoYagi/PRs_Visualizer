@@ -134,7 +134,6 @@ fun App() {
                 dialogState = vm.state.dialogState,
                 selectedRepo = selectedRepo,
                 uiState = uiState,
-                snapshotFetchState = snapshotFetchState,
                 prColorMap = vm.state.colorState.prColorMap,
                 repoSelectionState = vm.state.repoSelectionState,
                 onReloadRepoOptions = { vm.loadRepositoryOptions() },

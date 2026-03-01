@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.DialogState
-import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.VisualizerUiState
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
@@ -15,8 +14,6 @@ import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
 import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
-
-private const val DEFAULT_BRANCH = "main"
 
 /**
  * Centralized dialog routing host that manages all application dialogs.
@@ -32,7 +29,6 @@ fun DialogHost(
     dialogState: DialogState,
     selectedRepo: RepoState.Selected?,
     uiState: VisualizerUiState,
-    snapshotFetchState: SnapshotFetchState,
     prColorMap: Map<String, androidx.compose.ui.graphics.Color>,
     repoSelectionState: io.github.hayatoyagi.prvisualizer.RepoSelectionState,
     onReloadRepoOptions: () -> Unit,
@@ -60,7 +56,6 @@ fun DialogHost(
             dialogState = dialogState,
             uiState = uiState,
             selectedRepo = selectedRepo,
-            snapshotFetchState = snapshotFetchState,
             prColorMap = prColorMap,
             onRetryLoadCommits = onRetryLoadCommits,
             onDismiss = onDismissDialog,
@@ -123,7 +118,6 @@ private fun FileDetailsDialogHost(
     dialogState: DialogState.FileDetails,
     uiState: VisualizerUiState,
     selectedRepo: RepoState.Selected?,
-    snapshotFetchState: SnapshotFetchState,
     prColorMap: Map<String, androidx.compose.ui.graphics.Color>,
     onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
@@ -136,15 +130,10 @@ private fun FileDetailsDialogHost(
         totalLines = fileNode.totalLines,
         fileOverlay = uiState.fileOverlayByPath[filePath],
         repoFullName = "${selectedRepo?.owner.orEmpty().trim()}/${selectedRepo?.repo.orEmpty().trim()}",
-        defaultBranch = defaultBranch(snapshotFetchState),
+        defaultBranch = dialogState.defaultBranch,
         prColorMap = prColorMap,
         commitsState = dialogState.commitsState,
         onRetryLoadCommits = onRetryLoadCommits,
         onDismiss = onDismiss,
     )
-}
-
-private fun defaultBranch(snapshotFetchState: SnapshotFetchState): String = when (snapshotFetchState) {
-    is SnapshotFetchState.Ready -> snapshotFetchState.snapshot.defaultBranch
-    SnapshotFetchState.Idle, SnapshotFetchState.Fetching, is SnapshotFetchState.Failed -> DEFAULT_BRANCH
 }
