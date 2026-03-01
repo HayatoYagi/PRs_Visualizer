@@ -2,9 +2,14 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
 
 // Read version from version.properties
+val versionFile = file("${rootProject.projectDir}/version.properties")
+if (!versionFile.exists()) {
+    throw GradleException("version.properties file not found at ${versionFile.absolutePath}")
+}
 val versionProps = Properties()
-file("${rootProject.projectDir}/version.properties").inputStream().use { versionProps.load(it) }
+versionFile.inputStream().use { versionProps.load(it) }
 val appVersion = versionProps.getProperty("version")
+    ?: throw GradleException("'version' property not found in version.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
