@@ -1,16 +1,10 @@
 package io.github.hayatoyagi.prvisualizer.ui.treemap.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +19,6 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
-import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapCanvas
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapLegend
@@ -98,7 +91,7 @@ internal fun TreemapViewport(
                     legendBounds = coordinates.boundsInParent()
                 },
         )
-        Column(
+        TreemapZoomControlsOverlay(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(LEGEND_PADDING_DP.dp)
@@ -106,41 +99,11 @@ internal fun TreemapViewport(
                 .onGloballyPositioned { coordinates ->
                     zoomControlBounds = coordinates.boundsInParent()
                 },
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(
-                        color = AppColors.backgroundHeader.copy(alpha = 0.72f),
-                        shape = RoundedCornerShape(8.dp),
-                    ),
-            ) {
-                TooltipIconButton(
-                    tooltip = "Zoom in",
-                    enabled = canZoomIn,
-                    onClick = onZoomIn,
-                ) {
-                    Text("+", color = AppColors.textPrimary)
-                }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(
-                        color = AppColors.backgroundHeader.copy(alpha = 0.72f),
-                        shape = RoundedCornerShape(8.dp),
-                    ),
-            ) {
-                TooltipIconButton(
-                    tooltip = "Zoom out",
-                    enabled = canZoomOut,
-                    onClick = onZoomOut,
-                ) {
-                    Text("−", color = AppColors.textPrimary)
-                }
-            }
-        }
+            canZoomOut = canZoomOut,
+            canZoomIn = canZoomIn,
+            onZoomOut = onZoomOut,
+            onZoomIn = onZoomIn,
+        )
         if (isLoading) {
             Box(
                 modifier = Modifier
