@@ -1,4 +1,16 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
+
+// Read version from version.properties
+val versionFile = file("${rootProject.projectDir}/version.properties")
+if (!versionFile.exists()) {
+    throw GradleException("version.properties file not found at ${versionFile.absolutePath}")
+}
+val versionProps = Properties()
+versionFile.inputStream().use { versionProps.load(it) }
+val appVersion =
+    versionProps.getProperty("version")
+        ?: throw GradleException("'version' property not found in version.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -53,7 +65,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "io.github.hayatoyagi.prvisualizer"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
 
             // Application icon configuration
             macOS {

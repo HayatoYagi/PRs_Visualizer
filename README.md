@@ -74,9 +74,19 @@ To run static code analysis:
 ./gradlew detekt
 ```
 
-## 📦 Future Distribution
+## 📦 Pre-built Application Distribution
 
-In the future, we plan to distribute pre-built applications through GitHub release tags, making it easy to use without building locally.
+You can download pre-built applications from the GitHub Releases page:
+- [Releases](https://github.com/HayatoYagi/GitHub_PRs_Visualizer/releases)
+
+Installers are available for each platform:
+- macOS: `.dmg` file
+- Windows: `.msi` file
+- Linux: `.deb` file
+
+### For Developers: Release Process
+
+For details on the release process, see [docs/RELEASE.md](./docs/RELEASE.md).
 
 ## 🔗 Documentation
 
