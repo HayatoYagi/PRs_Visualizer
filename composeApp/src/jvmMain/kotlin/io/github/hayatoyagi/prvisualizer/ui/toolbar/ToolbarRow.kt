@@ -33,7 +33,6 @@ private data class ToolbarModel(
 fun ToolbarRow(
     owner: String,
     repo: String,
-    oauthClientId: String,
     authState: AuthState,
     snapshotFetchState: SnapshotFetchState,
     currentUser: String,
@@ -57,8 +56,6 @@ fun ToolbarRow(
         AuthSection(
             isLoggedIn = model.isLoggedIn,
             isAuthorizing = model.isAuthorizing,
-            oauthClientId = oauthClientId,
-            toolbarTextStyle = toolbarTextStyle,
             onLogin = onLogin,
         )
         DevicePromptSection(

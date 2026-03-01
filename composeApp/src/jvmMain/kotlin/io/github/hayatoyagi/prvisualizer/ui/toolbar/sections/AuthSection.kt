@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
@@ -16,12 +14,10 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 fun AuthSection(
     isLoggedIn: Boolean,
     isAuthorizing: Boolean,
-    oauthClientId: String,
-    toolbarTextStyle: TextStyle,
     onLogin: () -> Unit,
 ) {
     if (!isLoggedIn) {
-        val isEnabled = !isAuthorizing && oauthClientId.isNotBlank()
+        val isEnabled = !isAuthorizing
         val label = if (isAuthorizing) "Authorizing..." else "Login with GitHub"
         TooltipIconButton(
             tooltip = label,
@@ -35,13 +31,5 @@ fun AuthSection(
                 modifier = Modifier.size(20.dp),
             )
         }
-    }
-
-    if (oauthClientId.isBlank()) {
-        Text(
-            text = "Missing GITHUB_CLIENT_ID in .env",
-            color = AppColors.textWarning,
-            style = toolbarTextStyle,
-        )
     }
 }
