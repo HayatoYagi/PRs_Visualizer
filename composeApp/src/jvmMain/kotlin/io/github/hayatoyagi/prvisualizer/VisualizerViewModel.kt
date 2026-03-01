@@ -253,16 +253,6 @@ class VisualizerViewModel(
         )
     }
 
-    fun addRelatedPrs(related: Set<String>) {
-        if (related.isNotEmpty()) {
-            state = state.copy(
-                filterState = state.filterState.copy(
-                    selectedPrIds = state.filterState.selectedPrIds + related,
-                ),
-            )
-        }
-    }
-
     // region: ナビゲーション
     fun selectDirectory(path: String) = navigationManager.selectDirectory(path)
 

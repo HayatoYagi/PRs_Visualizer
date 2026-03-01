@@ -2,7 +2,6 @@ package io.github.hayatoyagi.prvisualizer.ui.treemap.handlers
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
-import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.MoveEventResult
 import io.github.hayatoyagi.prvisualizer.ui.treemap.models.ReleaseEventResult
@@ -60,12 +59,10 @@ internal fun resolveReleaseEvent(
     zoom: Float,
     pan: Offset,
     visibleNodes: List<TreemapNode>,
-    visiblePrs: List<PullRequest>,
     lastClickKey: String?,
     lastClickAt: Long,
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
-    onRelatedPrsDetected: (Set<String>) -> Unit,
     onFileDoubleClick: (String) -> Unit,
 ): ReleaseEventResult {
     val node = visibleNodes.asReversed().firstOrNull { it.rect.contains((position - pan) / zoom) }
@@ -73,7 +70,6 @@ internal fun resolveReleaseEvent(
 
     if (!node.isDirectory) {
         onSelectedPathChange(node.path)
-        onRelatedPrsDetected(relatedPrIdsForNode(nodePath = node.path, visiblePrs = visiblePrs))
     }
 
     val key = nodeKey(node)
@@ -83,14 +79,6 @@ internal fun resolveReleaseEvent(
     }
     return ReleaseEventResult(lastClickKey = key, lastClickAt = uptimeMillis)
 }
-
-internal fun relatedPrIdsForNode(
-    nodePath: String,
-    visiblePrs: List<PullRequest>,
-): Set<String> = visiblePrs
-    .filter { pr -> pr.files.any { it.path == nodePath } }
-    .map { it.id }
-    .toSet()
 
 internal fun centeredPan(
     canvasSize: IntSize,

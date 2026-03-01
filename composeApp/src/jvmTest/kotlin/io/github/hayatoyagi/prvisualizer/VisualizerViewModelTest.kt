@@ -189,24 +189,6 @@ class VisualizerViewModelTest {
     }
 
     @Test
-    fun `addRelatedPrs should add to existing selection`() {
-        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.selectAllPrs(setOf("pr1", "pr2"))
-
-        vm.addRelatedPrs(setOf("pr3", "pr4"))
-        assertEquals(setOf("pr1", "pr2", "pr3", "pr4"), vm.state.filterState.selectedPrIds)
-    }
-
-    @Test
-    fun `addRelatedPrs should not change state if empty set provided`() {
-        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
-        vm.selectAllPrs(setOf("pr1"))
-
-        vm.addRelatedPrs(emptySet())
-        assertEquals(setOf("pr1"), vm.state.filterState.selectedPrIds)
-    }
-
-    @Test
     fun `selectDirectory should update focusPath and reset token`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken
