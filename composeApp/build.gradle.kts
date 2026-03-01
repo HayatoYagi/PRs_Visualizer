@@ -16,6 +16,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
 }
@@ -43,7 +44,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.coroutinesSwing)
-            implementation("org.json:json:20250107")
+            implementation(libs.kotlinx.serialization.json)
         }
         jvmTest.dependencies {
             implementation(libs.kotlinx.coroutinesTest)
