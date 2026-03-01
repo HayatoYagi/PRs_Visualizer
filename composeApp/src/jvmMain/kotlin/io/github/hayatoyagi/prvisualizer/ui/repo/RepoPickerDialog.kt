@@ -51,6 +51,24 @@ fun RepoPickerDialog(
         filterRepoOptions(options, query)
     }
 
+    // Check if query is a valid owner/repo format and not already in the list
+    val trimmedQuery = query.trim()
+    val isValidManualEntry = remember(trimmedQuery) {
+        isValidOwnerRepoFormat(trimmedQuery)
+    }
+    val isManualEntryNotInList = remember(trimmedQuery, filteredOptions) {
+        isValidManualEntry && !filteredOptions.contains(trimmedQuery)
+    }
+
+    // If manual entry is valid and not in list, add it to the top
+    val displayOptions = remember(filteredOptions, isManualEntryNotInList, trimmedQuery) {
+        if (isManualEntryNotInList) {
+            listOf(trimmedQuery) + filteredOptions
+        } else {
+            filteredOptions
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Repository") },
@@ -80,8 +98,16 @@ fun RepoPickerDialog(
                     Button(onClick = onReload) {
                         Text(if (isLoading) "Loading..." else "Reload")
                     }
+                    if (isManualEntryNotInList) {
+                        Button(onClick = {
+                            onSelect(trimmedQuery)
+                            onDismiss()
+                        }) {
+                            Text("Open \"$trimmedQuery\"")
+                        }
+                    }
                     Text(
-                        text = "${filteredOptions.size} results",
+                        text = "${displayOptions.size} results",
                         color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 12.dp),
                     )
@@ -99,7 +125,7 @@ fun RepoPickerDialog(
                         .background(AppColors.backgroundPaneList, RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    items(filteredOptions) { fullName ->
+                    items(displayOptions) { fullName ->
                         Text(
                             text = fullName,
                             color = AppColors.textRepoOption,
@@ -116,4 +142,16 @@ fun RepoPickerDialog(
             TextButton(onClick = onDismiss) { Text("Close", color = AppColors.textPrimary) }
         },
     )
+}
+
+/**
+ * Validates if a string matches the "owner/repo" format for GitHub repositories.
+ * Returns true if the format is valid (contains exactly one slash with non-empty owner and repo parts).
+ */
+private fun isValidOwnerRepoFormat(text: String): Boolean {
+    val parts = text.split('/')
+    if (parts.size != 2) return false
+    val owner = parts[0].trim()
+    val repo = parts[1].trim()
+    return owner.isNotEmpty() && repo.isNotEmpty()
 }
