@@ -74,9 +74,19 @@ Kotlin と [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatfo
 ./gradlew detekt
 ```
 
-## 📦 今後の配布予定
+## 📦 ビルド済みアプリの配布
 
-将来的には、GitHubのリリースタグを通じてビルド済みのアプリケーションを配信する予定です。手元でビルドする必要なく、簡単に利用できるようになります。
+GitHubのリリースページから、ビルド済みのアプリケーションをダウンロードできます：
+- [Releases](https://github.com/HayatoYagi/GitHub_PRs_Visualizer/releases)
+
+各プラットフォーム用のインストーラーが利用可能です：
+- macOS: `.dmg` ファイル
+- Windows: `.msi` ファイル
+- Linux: `.deb` ファイル
+
+### 開発者向け: リリースプロセス
+
+リリースプロセスの詳細については、[docs/RELEASE.md](./docs/RELEASE.md) を参照してください。
 
 ## 🔗 参考
 
