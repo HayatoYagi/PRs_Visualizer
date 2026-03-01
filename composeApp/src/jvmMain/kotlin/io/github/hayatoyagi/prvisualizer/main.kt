@@ -1,10 +1,12 @@
 package io.github.hayatoyagi.prvisualizer
 
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import io.github.hayatoyagi.prvisualizer.generated.resources.Res
+import io.github.hayatoyagi.prvisualizer.generated.resources.icon
 import java.awt.Taskbar
 import javax.imageio.ImageIO
+import org.jetbrains.compose.resources.painterResource
 
 fun main() = application {
     setDockAndTaskbarIcon()
@@ -12,7 +14,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "GitHubPRsVisualizer",
-        icon = painterResource("icon.png"),
+        icon = painterResource(Res.drawable.icon),
     ) {
         App()
     }

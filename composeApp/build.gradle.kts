@@ -36,6 +36,11 @@ kotlin {
     }
 }
 
+compose.resources {
+    packageOfResClass = "io.github.hayatoyagi.prvisualizer.generated.resources"
+    publicResClass = true
+}
+
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
