@@ -64,11 +64,13 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.github.hayatoyagi.prvisualizer"
+            packageName = "GitHubPRsVisualizer"
             packageVersion = appVersion
+            modules("java.net.http")
 
             // Application icon configuration
             macOS {
+                bundleID = "io.github.hayatoyagi.prvisualizer"
                 iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
             }
             windows {
