@@ -11,6 +11,8 @@ object GitHubTokenStore {
     private const val SECURITY_COMMAND = "security"
     private const val WINDOWS_TOKEN_ENV_PATH = "GHPV_PATH"
     private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
+    private const val WINDOWS_TOKEN_DIR_NAME = "PRsVisualizerForGitHub"
+    private const val WINDOWS_TOKEN_FILE_NAME = "oauth_token.dpapi"
     private val COMMAND_TIMEOUT = 5.seconds
 
     fun loadToken(fallback: String): String {
@@ -79,7 +81,10 @@ object GitHubTokenStore {
     }
 
     private fun loadFromWindowsDpapi(): String? {
-        val path = windowsTokenFilePath()
+        return loadFromWindowsDpapiFile(windowsTokenFilePath())
+    }
+
+    private fun loadFromWindowsDpapiFile(path: Path): String? {
         if (!Files.exists(path)) return null
         val script =
             """
@@ -128,13 +133,18 @@ object GitHubTokenStore {
     }
 
     private fun windowsTokenFilePath(): Path {
+        return windowsRoamingAppDataBasePath()
+            .resolve(WINDOWS_TOKEN_DIR_NAME)
+            .resolve(WINDOWS_TOKEN_FILE_NAME)
+    }
+
+    private fun windowsRoamingAppDataBasePath(): Path {
         val appData = System.getenv("APPDATA")
-        val base = if (appData.isNullOrBlank()) {
+        return if (appData.isNullOrBlank()) {
             Path.of(System.getProperty("user.home"), "AppData", "Roaming")
         } else {
             Path.of(appData)
         }
-        return base.resolve("PRsVisualizerForGitHub").resolve("oauth_token.dpapi")
     }
 
     private fun runCommand(
