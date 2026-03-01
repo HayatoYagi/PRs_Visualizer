@@ -279,4 +279,37 @@ class TreemapLayoutTest {
             assertTrue(node.rect.height >= 0f, "Height should be non-negative for ${node.path}")
         }
     }
+
+    @Test
+    fun `computeTreemap should be deterministic for memoization`() {
+        // This test verifies that computeTreemap is deterministic (same inputs = same outputs)
+        // which is a prerequisite for remember() memoization to work correctly
+        val files = listOf(
+            FileNode.File(path = "a.kt", name = "a.kt", extension = "kt", totalLines = 10, hasActivePr = true, weight = 10.0),
+            FileNode.File(path = "b.kt", name = "b.kt", extension = "kt", totalLines = 20, hasActivePr = false, weight = 20.0),
+            FileNode.File(path = "c.kt", name = "c.kt", extension = "kt", totalLines = 30, hasActivePr = true, weight = 30.0),
+        )
+        val root = FileNode.Directory(
+            path = "",
+            name = "root",
+            children = files,
+            weight = files.sumOf { it.weight },
+        )
+        val bounds = Rect(0f, 0f, 100f, 100f)
+
+        // Compute layout twice with identical inputs
+        val nodes1 = computeTreemap(root, bounds)
+        val nodes2 = computeTreemap(root, bounds)
+
+        // Verify identical results
+        assertEquals(nodes1.size, nodes2.size, "Should produce same number of nodes")
+        nodes1.zip(nodes2).forEach { (node1, node2) ->
+            assertEquals(node1.path, node2.path, "Paths should match")
+            assertEquals(node1.rect, node2.rect, "Rectangles should match exactly for ${node1.path}")
+            assertEquals(node1.depth, node2.depth, "Depths should match")
+            assertEquals(node1.isDirectory, node2.isDirectory, "isDirectory should match")
+            assertEquals(node1.totalLines, node2.totalLines, "totalLines should match")
+            assertEquals(node1.hasActivePr, node2.hasActivePr, "hasActivePr should match")
+        }
+    }
 }
