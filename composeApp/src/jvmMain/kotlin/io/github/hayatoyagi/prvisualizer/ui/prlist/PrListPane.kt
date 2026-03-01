@@ -39,7 +39,6 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 @Composable
 fun PrListPane(
     filteredPrs: List<PullRequest>,
-    visiblePrCount: Int,
     selectedPrIds: Set<String>,
     selectedPath: String?,
     prColorMap: Map<String, Color>,
@@ -54,6 +53,7 @@ fun PrListPane(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
+    val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
     Column(
         modifier = modifier
             .width(340.dp)

@@ -104,6 +104,7 @@ fun ExplorerPane(
 
 @Composable
 private fun ExplorerHeader(focusPath: String) {
+    val currentPath = "/${focusPath.ifBlank { "" }}"
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -123,7 +124,7 @@ private fun ExplorerHeader(focusPath: String) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = "Current: /${focusPath.ifBlank { "" }}",
+            text = "Current: $currentPath",
             color = AppColors.textSecondary,
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
@@ -132,7 +133,7 @@ private fun ExplorerHeader(focusPath: String) {
         )
         TooltipIconButton(
             tooltip = "Copy current path",
-            onClick = { copyToClipboard("/${focusPath.ifBlank { "" }}") },
+            onClick = { copyToClipboard(currentPath) },
         ) {
             Icon(
                 imageVector = Icons.Filled.ContentCopy,

@@ -304,7 +304,6 @@ private fun AppMainRow(
         )
         PrListPane(
             filteredPrs = uiState.filteredPrs,
-            visiblePrCount = uiState.visiblePrs.size,
             selectedPrIds = uiState.effectiveSelectedIds,
             selectedPath = vm.state.navigationState.selectedPath,
             prColorMap = vm.state.colorState.prColorMap,
