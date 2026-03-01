@@ -14,7 +14,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import io.github.hayatoyagi.prvisualizer.FileNode
-import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
@@ -36,7 +35,6 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportModel
 @Composable
 fun TreemapPane(
     focusPath: String,
-    visiblePrs: List<PullRequest>,
     focusRoot: FileNode.Directory,
     selectedPath: String?,
     fileOverlayByPath: Map<String, FileOverlay>,
@@ -45,7 +43,6 @@ fun TreemapPane(
     viewportResetToken: Int,
     onFocusPathChange: (String) -> Unit,
     onSelectedPathChange: (String?) -> Unit,
-    onRelatedPrsDetected: (Set<String>) -> Unit,
     onFileDoubleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
@@ -166,12 +163,10 @@ fun TreemapPane(
                         zoom = zoom,
                         pan = pan,
                         visibleNodes = visibleNodes,
-                        visiblePrs = visiblePrs,
                         lastClickKey = lastClickKey,
                         lastClickAt = lastClickAt,
                         onFocusPathChange = onFocusPathChange,
                         onSelectedPathChange = onSelectedPathChange,
-                        onRelatedPrsDetected = onRelatedPrsDetected,
                         onFileDoubleClick = onFileDoubleClick,
                     )
                     dragPointerPos = null
