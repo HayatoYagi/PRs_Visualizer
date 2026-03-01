@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.toolbar.sections
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,6 +16,7 @@ fun AuthSection(
     isLoggedIn: Boolean,
     isAuthorizing: Boolean,
     onLogin: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     if (!isLoggedIn) {
         val isEnabled = !isAuthorizing
@@ -28,6 +30,20 @@ fun AuthSection(
                 imageVector = Icons.AutoMirrored.Filled.Login,
                 contentDescription = label,
                 tint = if (isEnabled) AppColors.textPrimary else AppColors.textSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    } else {
+        val label = "Logout"
+        TooltipIconButton(
+            tooltip = label,
+            enabled = true,
+            onClick = onLogout,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Logout,
+                contentDescription = label,
+                tint = AppColors.textPrimary,
                 modifier = Modifier.size(20.dp),
             )
         }
