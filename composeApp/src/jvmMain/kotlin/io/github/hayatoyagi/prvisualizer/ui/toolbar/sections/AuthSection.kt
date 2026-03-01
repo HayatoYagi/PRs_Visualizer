@@ -18,7 +18,21 @@ fun AuthSection(
     onLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    if (!isLoggedIn) {
+    if (isLoggedIn) {
+        val label = "Logout"
+        TooltipIconButton(
+            tooltip = label,
+            enabled = true,
+            onClick = onLogout,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Logout,
+                contentDescription = label,
+                tint = AppColors.textPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    } else {
         val isEnabled = !isAuthorizing
         val label = if (isAuthorizing) "Authorizing..." else "Login with GitHub"
         TooltipIconButton(
@@ -30,20 +44,6 @@ fun AuthSection(
                 imageVector = Icons.AutoMirrored.Filled.Login,
                 contentDescription = label,
                 tint = if (isEnabled) AppColors.textPrimary else AppColors.textSecondary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    } else {
-        val label = "Logout"
-        TooltipIconButton(
-            tooltip = label,
-            enabled = true,
-            onClick = onLogout,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Logout,
-                contentDescription = label,
-                tint = AppColors.textPrimary,
                 modifier = Modifier.size(20.dp),
             )
         }
