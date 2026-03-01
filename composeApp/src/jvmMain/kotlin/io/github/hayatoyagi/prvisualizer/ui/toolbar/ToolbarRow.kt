@@ -22,14 +22,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
-import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private data class ToolbarModel(
@@ -67,129 +68,175 @@ fun ToolbarRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        // Auth action buttons (login/refresh)
-        if (!model.isLoggedIn) {
-            TooltipIconButton(
-                tooltip = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub",
-                enabled = !model.isAuthorizing && oauthClientId.isNotBlank(),
-                onClick = onLogin,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Login,
-                    contentDescription = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub",
-                    tint = if (!model.isAuthorizing && oauthClientId.isNotBlank()) {
-                        AppColors.textPrimary
-                    } else {
-                        AppColors.textSecondary
-                    },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-        // Missing client ID notice
-        if (oauthClientId.isBlank()) {
-            Text(
-                text = "Missing GITHUB_CLIENT_ID in .env",
-                color = AppColors.textWarning,
-                style = toolbarTextStyle,
+            AuthSection(
+                model = model,
+                oauthClientId = oauthClientId,
+                toolbarTextStyle = toolbarTextStyle,
+                onLogin = onLogin,
+            )
+            DevicePromptSection(
+                devicePrompt = model.devicePrompt,
+                toolbarTextStyle = toolbarTextStyle,
+            )
+            ConnectionSection(
+                model = model,
+                currentUser = currentUser,
+                toolbarTextStyle = toolbarTextStyle,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            RepositorySection(
+                model = model,
+                repoFullName = repoFullName,
+                toolbarTextStyle = toolbarTextStyle,
+                onRefresh = onRefresh,
+                onOpenRepoDialog = onOpenRepoDialog,
             )
         }
+    }
+}
 
-        // Device prompt section
-        model.devicePrompt?.let { prompt ->
-            SelectionContainer {
-                Text(
-                    text = "Code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
-                    color = AppColors.textDeviceCode,
-                    style = toolbarTextStyle,
-                )
-            }
-            TooltipIconButton(
-                tooltip = "Copy Code",
-                onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ContentCopy,
-                    contentDescription = "Copy Code",
-                    tint = AppColors.textPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            TooltipIconButton(
-                tooltip = "Open Verify Page",
-                onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.OpenInBrowser,
-                    contentDescription = "Open Verify Page",
-                    tint = AppColors.textPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-
-        // Connection status and error
-        model.connectionError?.let { error ->
-            val (color, text) = connectionErrorPresentation(error)
-            SelectionContainer {
-                Text(
-                    text = text,
-                    color = color,
-                    style = toolbarTextStyle,
-                )
-            }
-        } ?: run {
-            Text(
-                text = statusText(model = model, currentUser = currentUser),
-                color = AppColors.textSecondary,
-                style = toolbarTextStyle,
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Repository action buttons
+@Composable
+private fun AuthSection(
+    model: ToolbarModel,
+    oauthClientId: String,
+    toolbarTextStyle: androidx.compose.ui.text.TextStyle,
+    onLogin: () -> Unit,
+) {
+    if (!model.isLoggedIn) {
+        val isEnabled = !model.isAuthorizing && oauthClientId.isNotBlank()
+        val label = if (model.isAuthorizing) "Authorizing..." else "Login with GitHub"
         TooltipIconButton(
-            tooltip = if (model.isConnecting) "Refreshing..." else "Refresh Repository",
-            enabled = !model.isConnecting && model.isLoggedIn,
-            onClick = onRefresh,
+            tooltip = label,
+            enabled = isEnabled,
+            onClick = onLogin,
         ) {
             Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = if (model.isConnecting) "Refreshing..." else "Refresh",
-                tint = if (!model.isConnecting && model.isLoggedIn) {
-                    AppColors.textPrimary
-                } else {
-                    AppColors.textSecondary
-                },
+                imageVector = Icons.AutoMirrored.Filled.Login,
+                contentDescription = label,
+                tint = if (isEnabled) AppColors.textPrimary else AppColors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }
-        // Keep repository label and picker trigger adjacent for discoverability.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    }
+
+    if (oauthClientId.isBlank()) {
+        Text(
+            text = "Missing GITHUB_CLIENT_ID in .env",
+            color = AppColors.textWarning,
+            style = toolbarTextStyle,
+        )
+    }
+}
+
+@Composable
+private fun DevicePromptSection(
+    devicePrompt: AuthState.Authorizing?,
+    toolbarTextStyle: androidx.compose.ui.text.TextStyle,
+) {
+    val prompt = devicePrompt ?: return
+
+    SelectionContainer {
+        Text(
+            text = "Code: ${prompt.deviceUserCode} @ ${prompt.deviceVerificationUrl}",
+            color = AppColors.textDeviceCode,
+            style = toolbarTextStyle,
+        )
+    }
+    TooltipIconButton(
+        tooltip = "Copy Code",
+        onClick = { copyToClipboard(prompt.deviceUserCode.orEmpty()) },
+    ) {
+        Icon(
+            imageVector = Icons.Filled.ContentCopy,
+            contentDescription = "Copy Code",
+            tint = AppColors.textPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    TooltipIconButton(
+        tooltip = "Open Verify Page",
+        onClick = { openUrl(prompt.deviceVerificationUrl.orEmpty()) },
+    ) {
+        Icon(
+            imageVector = Icons.Filled.OpenInBrowser,
+            contentDescription = "Open Verify Page",
+            tint = AppColors.textPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+private fun ConnectionSection(
+    model: ToolbarModel,
+    currentUser: String,
+    toolbarTextStyle: androidx.compose.ui.text.TextStyle,
+) {
+    val connectionError = model.connectionError
+    if (connectionError != null) {
+        val (color, text) = connectionErrorPresentation(connectionError)
+        SelectionContainer {
             Text(
-                text = repoFullName,
-                color = AppColors.textPrimary,
+                text = text,
+                color = color,
                 style = toolbarTextStyle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
-            TooltipIconButton(
-                tooltip = "Select Repository",
-                enabled = model.isLoggedIn,
-                onClick = onOpenRepoDialog,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Folder,
-                    contentDescription = "Select Repo",
-                    tint = if (model.isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
         }
+        return
+    }
+
+    Text(
+        text = statusText(model = model, currentUser = currentUser),
+        color = AppColors.textSecondary,
+        style = toolbarTextStyle,
+    )
+}
+
+@Composable
+private fun RepositorySection(
+    model: ToolbarModel,
+    repoFullName: String,
+    toolbarTextStyle: androidx.compose.ui.text.TextStyle,
+    onRefresh: () -> Unit,
+    onOpenRepoDialog: () -> Unit,
+) {
+    val isRefreshEnabled = !model.isConnecting && model.isLoggedIn
+    val refreshLabel = if (model.isConnecting) "Refreshing..." else "Refresh Repository"
+
+    TooltipIconButton(
+        tooltip = refreshLabel,
+        enabled = isRefreshEnabled,
+        onClick = onRefresh,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Refresh,
+            contentDescription = if (model.isConnecting) "Refreshing..." else "Refresh",
+            tint = if (isRefreshEnabled) AppColors.textPrimary else AppColors.textSecondary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = repoFullName,
+            color = AppColors.textPrimary,
+            style = toolbarTextStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        TooltipIconButton(
+            tooltip = "Select Repository",
+            enabled = model.isLoggedIn,
+            onClick = onOpenRepoDialog,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Folder,
+                contentDescription = "Select Repo",
+                tint = if (model.isLoggedIn) AppColors.textPrimary else AppColors.textSecondary,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
@@ -222,7 +269,7 @@ private fun statusText(
     "Logged in as: $currentUser (not connected)"
 }
 
-private fun connectionErrorPresentation(error: AppError): Pair<androidx.compose.ui.graphics.Color, String> = when (error) {
+private fun connectionErrorPresentation(error: AppError): Pair<Color, String> = when (error) {
     is AppError.AuthExpired -> AppColors.textWarning to error.message
     is AppError.Network -> AppColors.textError to "Network error: ${error.message}"
     is AppError.ApiError -> AppColors.textError to "GitHub error ${error.statusCode}: ${error.message}"

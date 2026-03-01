@@ -114,7 +114,6 @@ fun App() {
     val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
-    val isLoggedIn = authState is AuthState.Authenticated
     val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
 
     val uiState = rememberVisualizerUiState(vm)
