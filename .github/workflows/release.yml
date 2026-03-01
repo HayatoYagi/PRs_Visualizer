@@ -47,6 +47,10 @@ jobs:
       shell: bash
       run: |
         VERSION=$(grep "^version=" version.properties | cut -d'=' -f2)
+        if [ -z "$VERSION" ]; then
+          echo "::error::VERSION is empty. Check version.properties."
+          exit 1
+        fi
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Current version: $VERSION"
     
@@ -58,6 +62,10 @@ jobs:
       shell: bash
       run: |
         ARTIFACT=$(find composeApp/build/compose/binaries/main-release/${{ matrix.artifact_dir }} -name "${{ matrix.artifact_pattern }}" | head -n 1)
+        if [ -z "$ARTIFACT" ]; then
+          echo "::error::No artifact found in composeApp/build/compose/binaries/main-release/${{ matrix.artifact_dir }} matching pattern ${{ matrix.artifact_pattern }}"
+          exit 1
+        fi
         echo "ARTIFACT_PATH=$ARTIFACT" >> $GITHUB_OUTPUT
         echo "Found artifact: $ARTIFACT"
     
@@ -86,6 +94,10 @@ jobs:
       id: version
       run: |
         VERSION=$(grep "^version=" version.properties | cut -d'=' -f2)
+        if [ -z "$VERSION" ]; then
+          echo "::error::VERSION is empty. Check version.properties."
+          exit 1
+        fi
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Current version: $VERSION"
     
@@ -107,8 +119,18 @@ jobs:
           exit 0
         fi
         
+        files=()
+        while IFS= read -r -d '' file; do
+          files+=("$file")
+        done < <(find artifacts -type f -print0)
+
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "::error::No artifact files found under artifacts/"
+          exit 1
+        fi
+
         # Create release with artifacts
         gh release create "$TAG" \
           --title "Release $VERSION" \
           --notes "Automated release for version $VERSION" \
-          artifacts/**/*
+          "${files[@]}"
