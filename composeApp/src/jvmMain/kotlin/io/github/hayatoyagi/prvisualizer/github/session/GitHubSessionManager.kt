@@ -60,6 +60,15 @@ class GitHubSessionManager(
         scope.launch { loadRepositoryOptionsInternal() }
     }
 
+    fun logout() {
+        scope.launch {
+            authService.clearToken()
+            setAuthState(AuthState.Unauthenticated)
+            setSnapshotFetchState(SnapshotFetchState.Idle)
+            setRepoSelectionState(RepoSelectionState.Idle)
+        }
+    }
+
     private suspend fun restoreTokenAndConnectIfNeeded() {
         if (restoreAttempted) return
         restoreAttempted = true

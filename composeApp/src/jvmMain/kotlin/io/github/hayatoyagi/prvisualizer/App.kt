@@ -129,6 +129,7 @@ fun App() {
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
                 onLogin = { vm.loginAndConnect() },
+                onLogout = { vm.logout() },
                 onRefresh = { vm.refresh() },
                 onOpenRepoDialog = { vm.openRepoDialog() },
             )

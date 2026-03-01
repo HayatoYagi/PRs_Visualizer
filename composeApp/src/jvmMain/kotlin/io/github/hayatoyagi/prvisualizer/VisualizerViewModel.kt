@@ -85,6 +85,8 @@ class VisualizerViewModel(
 
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
 
+    fun logout() = sessionManager.logout()
+
     // region: ダイアログ管理
     fun openRepoDialog() {
         state = state.copy(
