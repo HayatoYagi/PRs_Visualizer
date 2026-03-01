@@ -20,7 +20,7 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
-val appDisplayName = "GitHub PRs Visualizer"
+val appDisplayName = "PRs Visualizer for GitHub"
 
 kotlin {
     jvm()
@@ -69,7 +69,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "GitHubPRsVisualizer"
+            packageName = "PRsVisualizerForGitHub"
             packageVersion = appVersion
             modules("java.net.http")
 
