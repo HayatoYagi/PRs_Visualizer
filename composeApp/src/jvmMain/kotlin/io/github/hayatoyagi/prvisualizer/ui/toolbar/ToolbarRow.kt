@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -48,41 +46,39 @@ fun ToolbarRow(
     val repoFullName = "${owner.trim()}/${repo.trim()}".trim('/').ifBlank { "Repository not selected" }
     val toolbarTextStyle = MaterialTheme.typography.bodySmall
 
-    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .background(AppColors.backgroundHeader)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AuthSection(
-                isLoggedIn = model.isLoggedIn,
-                isAuthorizing = model.isAuthorizing,
-                oauthClientId = oauthClientId,
-                toolbarTextStyle = toolbarTextStyle,
-                onLogin = onLogin,
-            )
-            DevicePromptSection(
-                devicePrompt = model.devicePrompt,
-                toolbarTextStyle = toolbarTextStyle,
-            )
-            ConnectionSection(
-                connectionError = model.connectionError,
-                statusText = statusText(model = model, currentUser = currentUser),
-                toolbarTextStyle = toolbarTextStyle,
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            RepositorySection(
-                isConnecting = model.isConnecting,
-                isLoggedIn = model.isLoggedIn,
-                repoFullName = repoFullName,
-                toolbarTextStyle = toolbarTextStyle,
-                onRefresh = onRefresh,
-                onOpenRepoDialog = onOpenRepoDialog,
-            )
-        }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(AppColors.backgroundHeader)
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AuthSection(
+            isLoggedIn = model.isLoggedIn,
+            isAuthorizing = model.isAuthorizing,
+            oauthClientId = oauthClientId,
+            toolbarTextStyle = toolbarTextStyle,
+            onLogin = onLogin,
+        )
+        DevicePromptSection(
+            devicePrompt = model.devicePrompt,
+            toolbarTextStyle = toolbarTextStyle,
+        )
+        ConnectionSection(
+            connectionError = model.connectionError,
+            statusText = statusText(model = model, currentUser = currentUser),
+            toolbarTextStyle = toolbarTextStyle,
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        RepositorySection(
+            isConnecting = model.isConnecting,
+            isLoggedIn = model.isLoggedIn,
+            repoFullName = repoFullName,
+            toolbarTextStyle = toolbarTextStyle,
+            onRefresh = onRefresh,
+            onOpenRepoDialog = onOpenRepoDialog,
+        )
     }
 }
 

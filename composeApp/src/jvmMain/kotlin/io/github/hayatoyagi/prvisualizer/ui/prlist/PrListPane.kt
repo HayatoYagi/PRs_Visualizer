@@ -66,7 +66,7 @@ fun PrListPane(
             onlyMine = onlyMine,
             onShowDraftsChange = onShowDraftsChange,
             onOnlyMineChange = onOnlyMineChange,
-            canShuffleColors = filteredPrs.isNotEmpty(),
+            canShuffleColors = prColorMap.isNotEmpty(),
             onShuffleColors = onShuffleColors,
         )
         HorizontalDivider(color = AppColors.prListDivider)
