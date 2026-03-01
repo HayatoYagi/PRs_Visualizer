@@ -118,13 +118,13 @@ class GitHubApi(
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE"
 
         while (nextUrl != null) {
-            val response = requestListWithHeaders<GitHubPullRequest>(nextUrl)
+            val response = apiSemaphore.withPermit {
+                requestListWithHeaders<GitHubPullRequest>(nextUrl)
+            }
             // Fetch files for all PRs in this page concurrently
             val prFilesDeferred = response.data.map { pr ->
                 async {
-                    val files = apiSemaphore.withPermit {
-                        fetchPullRequestFiles(owner, repo, pr.number)
-                    }
+                    val files = fetchPullRequestFiles(owner, repo, pr.number)
                     PullRequest(
                         id = pr.nodeId.ifBlank { "pr-${pr.number}" },
                         number = pr.number,
@@ -152,7 +152,9 @@ class GitHubApi(
         var nextUrl: String? = "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE"
 
         while (nextUrl != null) {
-            val response = requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
+            val response = apiSemaphore.withPermit {
+                requestListWithHeaders<GitHubPullRequestFile>(nextUrl)
+            }
             response.data.forEach { file ->
                 val path = file.filename
                 if (isBinaryFile(path)) return@forEach
