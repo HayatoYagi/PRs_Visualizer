@@ -96,14 +96,6 @@ fun RepoPickerDialog(
                     Button(onClick = onReload) {
                         Text(if (isLoading) "Loading..." else "Reload")
                     }
-                    if (isManualEntryNotInList) {
-                        Button(onClick = {
-                            onSelect(trimmedQuery)
-                            onDismiss()
-                        }) {
-                            Text("Open Repository")
-                        }
-                    }
                     Text(
                         text = "${displayOptions.size} results",
                         color = AppColors.textSecondary,
@@ -144,12 +136,14 @@ fun RepoPickerDialog(
 
 /**
  * Validates if a string matches the "owner/repo" format for GitHub repositories.
- * Returns true if the format is valid (contains exactly one slash with non-empty owner and repo parts).
+ * Returns true if owner/repo follow GitHub naming rules and contain no whitespace.
  */
 private fun isValidOwnerRepoFormat(text: String): Boolean {
-    val parts = text.split('/')
+    val parts = text.split('/', limit = 3)
     if (parts.size != 2) return false
     val owner = parts[0]
     val repo = parts[1]
-    return owner.isNotEmpty() && repo.isNotEmpty()
+    val ownerRegex = Regex("^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$")
+    val repoRegex = Regex("^[A-Za-z0-9._-]+$")
+    return owner.matches(ownerRegex) && repo.matches(repoRegex)
 }
