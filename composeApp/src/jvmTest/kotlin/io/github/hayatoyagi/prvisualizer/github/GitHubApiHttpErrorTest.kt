@@ -17,6 +17,10 @@ import kotlin.test.assertTrue
  * - Malformed or unexpected JSON responses
  * - Empty lists (zero PRs, zero files)
  * - Pagination edge cases
+ *
+ * Note: Uses com.sun.net.httpserver.HttpServer (from JDK) to avoid adding external test dependencies.
+ * While this ties tests to internal JDK APIs, it allows comprehensive testing without new dependencies.
+ * If portability becomes an issue, consider migrating to a dedicated library like MockWebServer.
  */
 class GitHubApiHttpErrorTest {
     @Test
