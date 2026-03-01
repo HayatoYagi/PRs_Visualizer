@@ -1,4 +1,3 @@
-import org.gradle.process.JavaForkOptions
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
 
@@ -22,8 +21,6 @@ plugins {
 }
 
 val appDisplayName = "GitHub PRs Visualizer"
-val isDevRun = providers.gradleProperty("appDisplayNameDev").orNull == "true"
-val runtimeAppDisplayName = if (isDevRun) "$appDisplayName (dev)" else appDisplayName
 
 kotlin {
     jvm()
@@ -89,15 +86,6 @@ compose.desktop {
             }
         }
     }
-}
-
-tasks.matching { it.name == "jvmRun" }.configureEach {
-    (this as JavaForkOptions).jvmArgs(
-        "-Dapp.display.name=$runtimeAppDisplayName",
-        "-Xdock:name=$runtimeAppDisplayName",
-        "-Dapple.awt.application.name=$runtimeAppDisplayName",
-        "-Dcom.apple.mrj.application.apple.menu.about.name=$runtimeAppDisplayName",
-    )
 }
 
 ktlint {

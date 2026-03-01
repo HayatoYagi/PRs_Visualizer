@@ -12,10 +12,6 @@ import javax.imageio.ImageIO
 fun main() {
     val appDisplayName = System.getProperty("app.display.name", "GitHub PRs Visualizer")
 
-    // Set macOS-specific system properties for proper application name
-    System.setProperty("apple.awt.application.name", appDisplayName)
-    System.setProperty("com.apple.mrj.application.apple.menu.about.name", appDisplayName)
-
     setDockAndTaskbarIcon()
 
     application {
