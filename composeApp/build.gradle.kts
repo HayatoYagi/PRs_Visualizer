@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.process.JavaForkOptions
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,6 +8,10 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
 }
+
+val appDisplayName = "GitHub PRs Visualizer"
+val isDevRun = providers.gradleProperty("appDisplayNameDev").orNull == "true"
+val runtimeAppDisplayName = if (isDevRun) "$appDisplayName (dev)" else appDisplayName
 
 kotlin {
     jvm()
@@ -39,7 +44,12 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
-        jvmArgs += "-Dapple.awt.application.name=GitHub PRs Visualizer"
+        jvmArgs(
+            "-Dapp.display.name=$appDisplayName",
+            "-Xdock:name=$appDisplayName",
+            "-Dapple.awt.application.name=$appDisplayName",
+            "-Dcom.apple.mrj.application.apple.menu.about.name=$appDisplayName",
+        )
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
@@ -48,10 +58,28 @@ compose.desktop {
             
             macOS {
                 bundleID = "io.github.hayatoyagi.prvisualizer"
-                dockName = "GitHub PRs Visualizer"
+                dockName = appDisplayName
+                infoPlist {
+                    extraKeysRawXml =
+                        """
+                        <key>CFBundleName</key>
+                        <string>$appDisplayName</string>
+                        <key>CFBundleDisplayName</key>
+                        <string>$appDisplayName</string>
+                        """.trimIndent()
+                }
             }
         }
     }
+}
+
+tasks.matching { it.name == "jvmRun" }.configureEach {
+    (this as JavaForkOptions).jvmArgs(
+        "-Dapp.display.name=$runtimeAppDisplayName",
+        "-Xdock:name=$runtimeAppDisplayName",
+        "-Dapple.awt.application.name=$runtimeAppDisplayName",
+        "-Dcom.apple.mrj.application.apple.menu.about.name=$runtimeAppDisplayName",
+    )
 }
 
 ktlint {
