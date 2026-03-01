@@ -242,7 +242,7 @@ private fun AppMainRow(
             viewportResetToken = vm.state.navigationState.viewportResetToken,
             onFocusPathChange = { vm.changeFocusPath(it) },
             onSelectedPathChange = { vm.updateSelectedPath(it) },
-            onRelatedPrsDetected = { vm.addRelatedPrs(it) },
+            onRelatedPrsDetected = { vm.addRelatedPrs(it, uiState.effectiveSelectedIds) },
             onFileDoubleClick = { vm.openFileDetailsDialog(it) },
             isLoading = isConnecting,
         )

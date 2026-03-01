@@ -193,7 +193,7 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectAllPrs(setOf("pr1", "pr2"))
 
-        vm.addRelatedPrs(setOf("pr3", "pr4"))
+        vm.addRelatedPrs(setOf("pr3", "pr4"), currentEffectiveSelection = setOf("pr1", "pr2"))
         assertEquals(setOf("pr1", "pr2", "pr3", "pr4"), vm.state.filterState.selectedPrIds)
     }
 
@@ -202,8 +202,23 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectAllPrs(setOf("pr1"))
 
-        vm.addRelatedPrs(emptySet())
+        vm.addRelatedPrs(emptySet(), currentEffectiveSelection = setOf("pr1"))
         assertEquals(setOf("pr1"), vm.state.filterState.selectedPrIds)
+    }
+
+    @Test
+    fun `addRelatedPrs should preserve effective selection when transitioning from empty selectedPrIds`() {
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
+        // Initially, selectedPrIds is empty, which means "all selected"
+        // Simulating a scenario where effectiveSelectedIds = {"pr1", "pr2", "pr3"}
+        val currentEffectiveSelection = setOf("pr1", "pr2", "pr3")
+
+        // User clicks a file that was modified by pr2 and pr4
+        vm.addRelatedPrs(setOf("pr2", "pr4"), currentEffectiveSelection = currentEffectiveSelection)
+
+        // Expected: all previously selected PRs (pr1, pr2, pr3) + newly related PR (pr4)
+        // This prevents pr1 and pr3 from being unintentionally deselected
+        assertEquals(setOf("pr1", "pr2", "pr3", "pr4"), vm.state.filterState.selectedPrIds)
     }
 
     @Test

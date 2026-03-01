@@ -253,11 +253,19 @@ class VisualizerViewModel(
         )
     }
 
-    fun addRelatedPrs(related: Set<String>) {
+    fun addRelatedPrs(related: Set<String>, currentEffectiveSelection: Set<String>) {
         if (related.isNotEmpty()) {
+            // If selectedPrIds is empty, it means "all selected". To preserve this semantic,
+            // we need to explicitly set selectedPrIds to the current effective selection first,
+            // then add the related PRs. This prevents unintended deselection.
+            val baseSelection = if (state.filterState.selectedPrIds.isEmpty()) {
+                currentEffectiveSelection
+            } else {
+                state.filterState.selectedPrIds
+            }
             state = state.copy(
                 filterState = state.filterState.copy(
-                    selectedPrIds = state.filterState.selectedPrIds + related,
+                    selectedPrIds = baseSelection + related,
                 ),
             )
         }
