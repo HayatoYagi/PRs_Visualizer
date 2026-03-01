@@ -47,10 +47,6 @@ fun RepoPickerDialog(
     val loadingError = (repoSelectionState as? RepoSelectionState.Error)?.error
 
     var query by rememberSaveable { mutableStateOf(initialQuery) }
-    val normalizedQuery = query.trim().trim('/')
-    val typedOwner = normalizedQuery.substringBefore('/', "")
-    val typedRepo = normalizedQuery.substringAfter('/', "")
-    val canSelectTyped = typedOwner.isNotBlank() && typedRepo.isNotBlank()
     val filteredOptions = remember(options, query) {
         filterRepoOptions(options, query)
     }
@@ -83,12 +79,6 @@ fun RepoPickerDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onReload) {
                         Text(if (isLoading) "Loading..." else "Reload")
-                    }
-                    Button(
-                        enabled = canSelectTyped,
-                        onClick = { onSelect("$typedOwner/$typedRepo") },
-                    ) {
-                        Text("Use Input")
                     }
                     Text(
                         text = "${filteredOptions.size} results",
