@@ -25,6 +25,7 @@ data class GitHubSnapshot(
 
 class GitHubApi(
     private val token: String,
+    private val baseUrl: String = "https://api.github.com",
 ) {
     private val client = HttpClient.newHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
@@ -32,7 +33,7 @@ class GitHubApi(
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
         val repos = loadRepositoryNamesByPage { page ->
-            requestList<GitHubRepository>("https://api.github.com/user/repos?per_page=100&page=$page&sort=updated")
+            requestList<GitHubRepository>("$baseUrl/user/repos?per_page=100&page=$page&sort=updated")
         }
         repos.distinct().sortedBy { it.lowercase() }
     }
@@ -77,7 +78,7 @@ class GitHubApi(
     }
 
     private fun fetchViewerLogin(): String? {
-        val response = request<GitHubUser>("https://api.github.com/user")
+        val response = request<GitHubUser>("$baseUrl/user")
         return response.login.ifBlank { null }
     }
 
@@ -85,7 +86,7 @@ class GitHubApi(
         owner: String,
         repo: String,
     ): String {
-        val response = request<GitHubRepository>("https://api.github.com/repos/${enc(owner)}/${enc(repo)}")
+        val response = request<GitHubRepository>("$baseUrl/repos/${enc(owner)}/${enc(repo)}")
         return response.defaultBranch?.ifBlank { null } ?: "main"
     }
 
@@ -98,7 +99,7 @@ class GitHubApi(
         var hasNextPage: Boolean
         do {
             val response = requestList<GitHubPullRequest>(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
+                "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls?state=open&per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
             val responseSize = response.size
             hasNextPage = responseSize == GITHUB_PAGE_SIZE
@@ -131,7 +132,7 @@ class GitHubApi(
         var hasNextPage: Boolean
         do {
             val response = requestList<GitHubPullRequestFile>(
-                "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
+                "$baseUrl/repos/${enc(owner)}/${enc(repo)}/pulls/$number/files?per_page=$GITHUB_PAGE_SIZE&page=$page",
             )
             val responseSize = response.size
             hasNextPage = responseSize == GITHUB_PAGE_SIZE
@@ -165,7 +166,7 @@ class GitHubApi(
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
 
         val response = requestList<GitHubCommit>(
-            "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
+            "$baseUrl/repos/${enc(owner)}/${enc(repo)}/commits?path=${enc(path)}&per_page=$limit",
         )
 
         val commits = response.map { commitObj ->
@@ -199,7 +200,7 @@ class GitHubApi(
         branch: String,
     ): List<FileSeed> {
         val response = request<GitHubTree>(
-            "https://api.github.com/repos/${enc(owner)}/${enc(repo)}/git/trees/${enc(branch)}?recursive=1",
+            "$baseUrl/repos/${enc(owner)}/${enc(repo)}/git/trees/${enc(branch)}?recursive=1",
         )
         val files = mutableListOf<FileSeed>()
         response.tree.forEach { node ->
