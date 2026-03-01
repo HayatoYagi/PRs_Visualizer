@@ -86,7 +86,7 @@ Installers are available for each platform:
 
 ### For Developers: Release Process
 
-For details on the release process, see [docs/RELEASE_en.md](./docs/RELEASE_en.md).
+For details on the release process, see [docs/RELEASE.md](./docs/RELEASE.md).
 
 ## 🔗 Documentation
 
