@@ -275,9 +275,7 @@ class GitHubApi(
         return null
     }
 
-    private fun requestBody(url: String): String {
-        return requestBodyWithHeaders(url).body
-    }
+    private fun requestBody(url: String): String = requestBodyWithHeaders(url).body
 
     private fun requestBodyWithHeaders(url: String): RawResponseWithHeaders {
         val request = HttpRequest
