@@ -31,6 +31,20 @@ private const val MAX_VISIBLE_PR_COUNT = 3
 private const val FILE_PR_Y_OFFSET_PX = 18f
 private const val TOOLTIP_POINTER_OFFSET_PX = 12f
 
+/**
+ * Renders overlay elements on the treemap including labels and tooltips.
+ *
+ * @param visibleNodes List of all visible nodes
+ * @param visibleFiles List of visible file nodes
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @param hoveredNode The currently hovered node
+ * @param hoveredOverlay Overlay data for the hovered file
+ * @param hoveredDirOverlay Overlay data for the hovered directory
+ * @param zoom Current zoom level
+ * @param pan Current pan offset
+ * @param pointerPos Current pointer position
+ * @param modifier Modifier for the overlay
+ */
 @Composable
 fun TreemapOverlay(
     visibleNodes: List<TreemapNode>,

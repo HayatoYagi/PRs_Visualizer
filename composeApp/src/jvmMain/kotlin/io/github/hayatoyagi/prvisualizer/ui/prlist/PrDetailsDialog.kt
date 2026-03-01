@@ -25,6 +25,14 @@ import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+/**
+ * Displays a dialog with detailed information about a pull request.
+ *
+ * @param pr The pull request to display
+ * @param onDismiss Callback when the dialog is dismissed
+ * @param onOpenInBrowser Callback to open a URL in browser
+ * @param onSelectFile Callback when a file is selected
+ */
 @Composable
 fun PrDetailsDialog(
     pr: PullRequest,

@@ -7,6 +7,12 @@ import kotlin.random.Random
 object PrColorAssigner {
     private const val RECENT_COLORS_TO_AVOID = 5
 
+    /**
+     * Returns the next available color for a new PR.
+     *
+     * @param assignedMap Map of already assigned colors (insertion order preserved)
+     * @return A color from the palette, avoiding recent assignments
+     */
     fun nextColor(assignedMap: LinkedHashMap<String, Color>): Color {
         // Avoid the 5 most recently assigned colors (insertion order guaranteed by LinkedHashMap)
         val recentColors = assignedMap.values

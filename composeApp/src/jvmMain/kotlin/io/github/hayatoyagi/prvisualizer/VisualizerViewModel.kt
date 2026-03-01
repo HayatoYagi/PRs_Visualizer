@@ -75,29 +75,56 @@ class VisualizerViewModel(
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
+    /**
+     * Initializes the session by restoring saved token.
+     */
     fun initializeSession() = sessionManager.initializeSession()
 
+    /**
+     * Initiates GitHub login flow.
+     *
+     * @param clientId The GitHub OAuth client ID
+     */
     fun loginAndConnect(clientId: String) = sessionManager.loginAndConnect(clientId)
 
+    /**
+     * Refreshes the connection and fetches latest data.
+     */
     fun refresh() = sessionManager.refresh()
 
+    /**
+     * Ensures repository options are loaded.
+     */
     fun ensureRepositoryOptions() = sessionManager.ensureRepositoryOptions()
 
+    /**
+     * Loads or reloads available repositories.
+     */
     fun loadRepositoryOptions() = sessionManager.loadRepositoryOptions()
 
-    // region: ダイアログ管理
+    /**
+     * Opens the repository picker dialog.
+     */
     fun openRepoDialog() {
         state = state.copy(
             dialogState = DialogState.RepoPicker,
         )
     }
 
+    /**
+     * Closes the repository picker dialog.
+     */
     fun closeRepoDialog() {
         state = state.copy(
             dialogState = DialogState.None,
         )
     }
 
+    /**
+     * Opens the file details dialog for a specific file.
+     *
+     * @param filePath The path of the file to show details for
+     */
     fun openFileDetailsDialog(filePath: String) {
         fileDetailsJob?.cancel()
         state = state.copy(
@@ -109,12 +136,20 @@ class VisualizerViewModel(
         fileDetailsJob = loadFileDetailsCommits(filePath)
     }
 
+    /**
+     * Opens the PR details dialog.
+     *
+     * @param pr The pull request to show details for
+     */
     fun openPrDetailsDialog(pr: PullRequest) {
         state = state.copy(
             dialogState = DialogState.PrDetails(pr = pr),
         )
     }
 
+    /**
+     * Closes the currently open dialog.
+     */
     fun closeDialog() {
         fileDetailsJob?.cancel()
         state = state.copy(
@@ -122,6 +157,9 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Reloads commits for the currently open file details dialog.
+     */
     fun reloadFileDetailsCommits() {
         val fileDetails = state.dialogState as? DialogState.FileDetails ?: return
         fileDetailsJob?.cancel()
@@ -166,7 +204,11 @@ class VisualizerViewModel(
         )
     }
 
-    // region: リポジトリ選択
+    /**
+     * Selects a repository.
+     *
+     * @param fullName The full repository name in "owner/repo" format
+     */
     fun selectRepo(fullName: String) {
         val currentOwner = (selectedRepositoryStore.repoState.value as? RepoState.Selected)?.owner.orEmpty()
         val newOwner = fullName.substringBefore('/', currentOwner)
@@ -175,19 +217,34 @@ class VisualizerViewModel(
         applyRepositoryState(selectedRepositoryStore.repoState.value)
     }
 
-    // region: PR フィルタ
+    /**
+     * Updates whether draft PRs are shown.
+     *
+     * @param value Whether to show draft PRs
+     */
     fun updateShowDrafts(value: Boolean) {
         state = state.copy(
             filterState = state.filterState.copy(showDrafts = value),
         )
     }
 
+    /**
+     * Updates whether only the user's PRs are shown.
+     *
+     * @param value Whether to show only the user's PRs
+     */
     fun updateOnlyMine(value: Boolean) {
         state = state.copy(
             filterState = state.filterState.copy(onlyMine = value),
         )
     }
 
+    /**
+     * Toggles a PR's selection state.
+     *
+     * @param prId The PR ID to toggle
+     * @param checked Whether the PR should be checked
+     */
     fun togglePr(
         prId: String,
         checked: Boolean,
@@ -202,12 +259,22 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Selects all available PRs.
+     *
+     * @param available Set of available PR IDs
+     */
     fun selectAllPrs(available: Set<String>) {
         state = state.copy(
             filterState = state.filterState.copy(selectedPrIds = available),
         )
     }
 
+    /**
+     * Adds related PRs to the selection.
+     *
+     * @param related Set of PR IDs to add
+     */
     fun addRelatedPrs(related: Set<String>) {
         if (related.isNotEmpty()) {
             state = state.copy(
@@ -218,7 +285,11 @@ class VisualizerViewModel(
         }
     }
 
-    // region: ナビゲーション
+    /**
+     * Selects a directory in the treemap view.
+     *
+     * @param path The directory path to select
+     */
     fun selectDirectory(path: String) {
         navigationHistory.recordFocusPath(path)
         // Auto-expand the selected directory and its ancestor chain.
@@ -233,6 +304,11 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Selects a file in the treemap view.
+     *
+     * @param path The file path to select
+     */
     fun selectFile(path: String) {
         val parentPath = parentPathOf(path)
         navigationHistory.recordFocusPath(parentPath)
@@ -249,6 +325,11 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Changes the focus path in the treemap view.
+     *
+     * @param path The new focus path
+     */
     fun changeFocusPath(path: String) {
         navigationHistory.recordFocusPath(path)
         // Auto-expand the focused directory and its ancestor chain.
@@ -263,12 +344,20 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Updates the selected path.
+     *
+     * @param path The new selected path, or null to clear
+     */
     fun updateSelectedPath(path: String?) {
         state = state.copy(
             navigationState = state.navigationState.copy(selectedPath = path),
         )
     }
 
+    /**
+     * Resets navigation to the root.
+     */
     fun resetNavigation() {
         state = state.copy(
             navigationState = state.navigationState.resetNavigation(),
@@ -277,12 +366,20 @@ class VisualizerViewModel(
         navigationHistory.recordFocusPath(state.navigationState.focusPath)
     }
 
+    /**
+     * Resets the treemap viewport to default zoom and pan.
+     */
     fun resetViewport() {
         state = state.copy(
             navigationState = state.navigationState.resetViewport(),
         )
     }
 
+    /**
+     * Toggles the expansion state of a directory in the explorer.
+     *
+     * @param path The directory path to toggle
+     */
     fun toggleDirectoryExpanded(path: String) {
         val explorerState = state.navigationState.explorerState
         val expandedPaths = explorerState.expandedPaths
@@ -358,7 +455,11 @@ class VisualizerViewModel(
         }
     }
 
-    // region: 色管理
+    /**
+     * Ensures all PRs have assigned colors.
+     *
+     * @param prs List of pull requests to assign colors to
+     */
     fun ensurePrColors(prs: List<PullRequest>) {
         val prsNeedingColors = prs.filter { !state.colorState.prColorMap.containsKey(it.id) }
         if (prsNeedingColors.isNotEmpty()) {
@@ -372,6 +473,11 @@ class VisualizerViewModel(
         }
     }
 
+    /**
+     * Shuffles all PR colors randomly.
+     *
+     * @param prs List of pull requests to shuffle colors for
+     */
     fun shufflePrColors(prs: List<PullRequest>) {
         val newMap = LinkedHashMap<String, Color>()
         prs.forEach { pr ->
@@ -382,6 +488,11 @@ class VisualizerViewModel(
         )
     }
 
+    /**
+     * Cycles a PR's color to the next in the palette.
+     *
+     * @param prId The PR ID to cycle the color for
+     */
     fun cyclePrColor(prId: String) {
         val currentColor = state.colorState.prColorMap[prId]
         val currentIndex = if (currentColor != null) {

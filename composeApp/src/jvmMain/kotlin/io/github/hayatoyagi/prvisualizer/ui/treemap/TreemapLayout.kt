@@ -4,6 +4,13 @@ import androidx.compose.ui.geometry.Rect
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 
+/**
+ * Computes treemap layout for a directory tree using squarified algorithm.
+ *
+ * @param root The root directory to layout
+ * @param bounds The bounding rectangle for the treemap
+ * @return List of treemap nodes with computed positions
+ */
 fun computeTreemap(root: FileNode.Directory, bounds: Rect): List<TreemapNode> {
     val engine = TreemapLayoutEngine()
     return engine.compute(root, bounds)

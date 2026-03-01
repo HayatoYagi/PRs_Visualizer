@@ -5,10 +5,27 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
 interface LocalStorage {
+    /**
+     * Gets a string value from storage.
+     *
+     * @param key The storage key
+     * @return The stored value, or null if not found
+     */
     fun getString(key: String): String?
 
+    /**
+     * Stores a string value.
+     *
+     * @param key The storage key
+     * @param value The value to store
+     */
     fun putString(key: String, value: String)
 
+    /**
+     * Removes a value from storage.
+     *
+     * @param key The storage key to remove
+     */
     fun remove(key: String)
 }
 

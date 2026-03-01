@@ -4,6 +4,14 @@ import io.github.hayatoyagi.prvisualizer.github.GitHubApi
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
 interface SnapshotFetchService {
+    /**
+     * Fetches a repository snapshot from GitHub.
+     *
+     * @param token The OAuth token
+     * @param owner The repository owner
+     * @param repo The repository name
+     * @return Result containing the snapshot
+     */
     suspend fun fetchSnapshot(
         token: String,
         owner: String,

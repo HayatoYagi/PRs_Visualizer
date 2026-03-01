@@ -32,6 +32,23 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
+/**
+ * Displays the pull request list pane with filtering options.
+ *
+ * @param filteredPrs List of filtered pull requests to display
+ * @param selectedPrIds Set of selected PR IDs
+ * @param selectedPath The currently selected file path
+ * @param prColorMap Map of PR IDs to their assigned colors
+ * @param showDrafts Whether draft PRs are shown
+ * @param onlyMine Whether only the user's PRs are shown
+ * @param onShowDraftsChange Callback when draft filter changes
+ * @param onOnlyMineChange Callback when author filter changes
+ * @param onTogglePr Callback when a PR is toggled
+ * @param onOpenPr Callback when a PR is opened
+ * @param onCyclePrColor Callback to cycle PR color
+ * @param modifier Modifier for the pane
+ * @param isLoading Whether the pane is in loading state
+ */
 @Composable
 fun PrListPane(
     filteredPrs: List<PullRequest>,

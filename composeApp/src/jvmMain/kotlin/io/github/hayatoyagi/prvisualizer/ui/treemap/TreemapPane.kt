@@ -91,6 +91,24 @@ private data class TreemapViewportCallbacks(
     val onReleaseEvent: (position: Offset, uptimeMillis: Long) -> Unit,
 )
 
+/**
+ * Displays the interactive treemap visualization pane.
+ *
+ * @param focusPath The current focused directory path
+ * @param visiblePrs List of visible pull requests
+ * @param focusRoot The root directory node for the focused path
+ * @param selectedPath The currently selected file path
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @param directoryOverlayByPath Map of directory paths to their overlay data
+ * @param prColorMap Map of PR IDs to their assigned colors
+ * @param viewportResetToken Token to trigger viewport resets
+ * @param onFocusPathChange Callback when focus path changes
+ * @param onSelectedPathChange Callback when selected path changes
+ * @param onRelatedPrsDetected Callback when related PRs are detected
+ * @param onFileDoubleClick Callback when a file is double-clicked
+ * @param modifier Modifier for the pane
+ * @param isLoading Whether the pane is in loading state
+ */
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 fun TreemapPane(

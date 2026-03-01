@@ -5,13 +5,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 interface AuthService {
+    /**
+     * Restores a previously saved OAuth token.
+     *
+     * @param fallbackToken Token to use if no saved token is found
+     * @return The restored token or the fallback token
+     */
     suspend fun restoreToken(fallbackToken: String): String
 
+    /**
+     * Initiates GitHub login flow using device authorization.
+     *
+     * @param clientId The GitHub OAuth client ID
+     * @param onDeviceFlowStart Callback when device flow starts with prompt info
+     * @return Result containing the OAuth token
+     */
     suspend fun login(
         clientId: String,
         onDeviceFlowStart: (GitHubOAuthDesktopAuthenticator.DeviceFlowPrompt) -> Unit,
     ): Result<String>
 
+    /**
+     * Clears the saved OAuth token.
+     */
     suspend fun clearToken()
 }
 

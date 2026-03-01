@@ -39,6 +39,20 @@ import java.nio.charset.StandardCharsets
 private const val ISO_DATE_PREFIX_LENGTH = 10
 private const val ISO_DATE_PARTS_COUNT = 3
 
+/**
+ * Displays a dialog with detailed information about a file.
+ *
+ * @param filePath The full path to the file
+ * @param fileName The name of the file
+ * @param totalLines The total number of lines in the file
+ * @param fileOverlay Optional overlay data containing PR information
+ * @param repoFullName The full name of the repository (owner/repo)
+ * @param defaultBranch The default branch of the repository
+ * @param prColorMap Map of PR IDs to their assigned colors
+ * @param commitsState The state of commit loading for this file
+ * @param onRetryLoadCommits Callback to retry loading commits
+ * @param onDismiss Callback when the dialog is dismissed
+ */
 @Composable
 fun FileDetailsDialog(
     filePath: String,

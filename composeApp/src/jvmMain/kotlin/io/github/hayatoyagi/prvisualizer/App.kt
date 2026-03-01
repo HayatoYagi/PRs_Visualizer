@@ -102,6 +102,9 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     )
 }
 
+/**
+ * The main application composable that renders the UI.
+ */
 @Composable
 @Preview
 @OptIn(ExperimentalComposeUiApi::class)

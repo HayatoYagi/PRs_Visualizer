@@ -47,6 +47,21 @@ private fun ExplorerRow.statusKindOrNull(): ExplorerStatusKind? {
     }
 }
 
+/**
+ * Displays the file explorer pane showing directory tree structure.
+ *
+ * @param root The root directory node to display
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @param directoryOverlayByPath Map of directory paths to their overlay data
+ * @param focusPath The currently focused directory path
+ * @param selectedPath The currently selected file path
+ * @param expandedPaths Set of expanded directory paths
+ * @param onSelectDirectory Callback when a directory is selected
+ * @param onSelectFile Callback when a file is selected
+ * @param onToggleExpanded Callback to toggle directory expansion
+ * @param modifier Modifier for the pane
+ * @param isLoading Whether the pane is in loading state
+ */
 @Composable
 fun ExplorerPane(
     root: FileNode.Directory?,

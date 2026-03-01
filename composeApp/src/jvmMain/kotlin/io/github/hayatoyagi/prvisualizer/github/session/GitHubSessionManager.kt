@@ -30,18 +30,32 @@ class GitHubSessionManager(
 ) {
     private var restoreAttempted = false
 
+    /**
+     * Initializes the session by restoring saved token and connecting if available.
+     */
     fun initializeSession() {
         scope.launch { restoreTokenAndConnectIfNeeded() }
     }
 
+    /**
+     * Initiates login flow and establishes connection.
+     *
+     * @param clientId The GitHub OAuth client ID
+     */
     fun loginAndConnect(clientId: String) {
         scope.launch { loginAndConnectInternal(clientId) }
     }
 
+    /**
+     * Refreshes the connection by fetching latest data.
+     */
     fun refresh() {
         scope.launch { connectWithResolvedRepository() }
     }
 
+    /**
+     * Ensures repository options are loaded if needed.
+     */
     fun ensureRepositoryOptions() {
         scope.launch {
             val token = authenticatedTokenOrBlank()
@@ -55,6 +69,9 @@ class GitHubSessionManager(
         }
     }
 
+    /**
+     * Loads or reloads the list of available repositories.
+     */
     fun loadRepositoryOptions() {
         scope.launch { loadRepositoryOptionsInternal() }
     }

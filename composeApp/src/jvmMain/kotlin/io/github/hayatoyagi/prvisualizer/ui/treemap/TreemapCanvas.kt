@@ -35,6 +35,20 @@ private const val CONFLICT_STRIPE_SPACING_PX = 8f
 private const val CONFLICT_STRIPE_WIDTH_PX = 1f
 private const val DOUBLE_INSET_MULTIPLIER = 2f
 
+/**
+ * Renders the treemap visualization canvas with directories and files.
+ *
+ * @param visibleDirectories List of directory nodes to render
+ * @param visibleFiles List of file nodes to render
+ * @param directoryOverlayByPath Map of directory paths to their overlay data
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @param prColorMap Map of PR IDs to their assigned colors
+ * @param hoveredNode The currently hovered node
+ * @param selectedPath The path of the currently selected node
+ * @param zoom Current zoom level
+ * @param pan Current pan offset
+ * @param modifier Modifier for the canvas
+ */
 @Composable
 fun TreemapCanvas(
     visibleDirectories: List<TreemapNode>,

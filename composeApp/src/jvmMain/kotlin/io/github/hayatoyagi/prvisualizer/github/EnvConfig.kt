@@ -13,6 +13,12 @@ object EnvConfig {
         fromSystem + fromFile
     }
 
+    /**
+     * Gets an environment configuration value.
+     *
+     * @param key The configuration key
+     * @return The configuration value, or null if not found
+     */
     fun get(key: String): String? = values[key]
 
     private fun loadDotEnvFromCandidates(): Map<String, String> {

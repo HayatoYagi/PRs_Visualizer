@@ -22,6 +22,14 @@ private const val CONFLICT_BADGE_ALPHA = 0.28f
 private const val NORMAL_BADGE_ALPHA = 0.22f
 private val CONFLICT_BORDER_WIDTH = 1.dp
 
+/**
+ * Displays a status badge in the explorer view.
+ *
+ * @param kind The kind of status badge to display
+ * @param withLabel Whether to show the legend label
+ * @param size The size variant for the badge
+ * @param modifier Modifier for the badge
+ */
 @Composable
 fun ExplorerStatusBadge(
     kind: ExplorerStatusKind,

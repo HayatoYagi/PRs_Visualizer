@@ -5,8 +5,21 @@ package io.github.hayatoyagi.prvisualizer.ui.theme
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.PullRequest
 
+/**
+ * Determines a color for an author based on their username.
+ *
+ * @param author The author's username
+ * @return A color from the author palette based on a hash of the author name
+ */
 fun authorColor(author: String): Color = AppColors.authorPalette[author.hashCode().ushr(1) % AppColors.authorPalette.size]
 
+/**
+ * Determines the color for a pull request.
+ *
+ * @param pr The pull request to get the color for
+ * @param colorMap Map of PR IDs to assigned colors
+ * @return The color for the PR from the map, or a fallback color based on author
+ */
 fun prColor(
     pr: PullRequest,
     colorMap: Map<String, Color>,

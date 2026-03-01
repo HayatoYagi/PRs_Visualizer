@@ -29,6 +29,11 @@ class GitHubApi(
 ) {
     private val client = HttpClient.newHttpClient()
 
+    /**
+     * Fetches the list of repositories accessible to the authenticated user.
+     *
+     * @return List of repository names in "owner/repo" format
+     */
     suspend fun fetchAccessibleRepositoryNames(): List<String> = withContext(Dispatchers.IO) {
         require(token.isNotBlank()) { TOKEN_REQUIRED_MESSAGE }
         val repos = loadRepositoryNamesByPage { page ->
@@ -37,6 +42,13 @@ class GitHubApi(
         repos.distinct().sortedBy { it.lowercase() }
     }
 
+    /**
+     * Fetches a complete snapshot of repository state including PRs and file tree.
+     *
+     * @param owner The repository owner
+     * @param repo The repository name
+     * @return A snapshot containing the file tree, pull requests, and metadata
+     */
     suspend fun fetchSnapshot(
         owner: String,
         repo: String,
@@ -155,6 +167,15 @@ class GitHubApi(
         return files
     }
 
+    /**
+     * Fetches recent commits for a specific file.
+     *
+     * @param owner The repository owner
+     * @param repo The repository name
+     * @param path The file path
+     * @param limit Maximum number of commits to fetch
+     * @return List of file commits
+     */
     suspend fun fetchFileCommits(
         owner: String,
         repo: String,

@@ -27,6 +27,17 @@ private data class AuthRowModel(
     val devicePrompt: AuthState.Authorizing?,
 )
 
+/**
+ * Displays the authentication row with login controls and status.
+ *
+ * @param oauthClientId The GitHub OAuth client ID
+ * @param authState The current authentication state
+ * @param snapshotFetchState The current snapshot fetch state
+ * @param currentUser The current user's login name
+ * @param onLogin Callback to initiate login
+ * @param onRefresh Callback to refresh the connection
+ * @param modifier Modifier for the row
+ */
 @Composable
 fun AuthRow(
     oauthClientId: String,

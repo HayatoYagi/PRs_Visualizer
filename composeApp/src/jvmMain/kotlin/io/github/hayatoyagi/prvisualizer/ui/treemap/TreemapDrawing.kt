@@ -9,6 +9,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
+/**
+ * Draws the border for a treemap node with PR-specific coloring.
+ *
+ * @param topLeft The top-left position of the border
+ * @param size The size of the border
+ * @param prs List of pull requests affecting this node
+ * @param colorMap Map of PR IDs to their assigned colors
+ * @param fallback Fallback color if no PRs
+ * @param borderWidth Width of the border
+ */
 fun DrawScope.drawPrBorder(
     topLeft: Offset,
     size: Size,

@@ -13,6 +13,12 @@ object GitHubTokenStore {
     private const val WINDOWS_TOKEN_ENV_VALUE = "GHPV_TOKEN"
     private val COMMAND_TIMEOUT = 5.seconds
 
+    /**
+     * Loads the saved OAuth token from secure storage.
+     *
+     * @param fallback Token to use if no saved token is found
+     * @return The loaded token or the fallback token
+     */
     fun loadToken(fallback: String): String {
         val loaded = when {
             isMacOs() -> loadFromMacKeychain()
@@ -22,6 +28,11 @@ object GitHubTokenStore {
         return loaded?.takeIf { it.isNotBlank() } ?: fallback
     }
 
+    /**
+     * Saves the OAuth token to secure storage.
+     *
+     * @param token The token to save
+     */
     fun saveToken(token: String) {
         if (token.isBlank()) return
         when {
@@ -31,6 +42,9 @@ object GitHubTokenStore {
         }
     }
 
+    /**
+     * Clears the saved OAuth token from secure storage.
+     */
     fun clearToken() {
         when {
             isMacOs() -> clearFromMacKeychain()

@@ -4,6 +4,13 @@ import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
 
+/**
+ * Finds a directory by path in the file tree.
+ *
+ * @param root The root directory to search from
+ * @param path The path of the directory to find
+ * @return The directory node if found, null otherwise
+ */
 fun findDirectory(
     root: FileNode.Directory,
     path: String,
@@ -19,6 +26,13 @@ fun findDirectory(
     return null
 }
 
+/**
+ * Finds a file node by path in the file tree.
+ *
+ * @param root The root directory to search from
+ * @param path The path of the file to find
+ * @return The file node if found, null otherwise
+ */
 fun findFileNode(
     root: FileNode.Directory,
     path: String,
@@ -37,17 +51,34 @@ fun findFileNode(
     return null
 }
 
+/**
+ * Returns the parent path of a given path.
+ *
+ * @param path The path to get the parent of
+ * @return The parent path, or empty string if no parent exists
+ */
 fun parentPathOf(path: String): String {
     if (path.isBlank()) return ""
     return path.substringBeforeLast('/', missingDelimiterValue = "")
 }
 
-// Total lines for overlay density calculation (distinct from TreemapLayoutEngine's private version used for layout weights)
+/**
+ * Calculates the total lines of code for a node and its children.
+ *
+ * @param node The file or directory node
+ * @return Total number of lines
+ */
 fun totalLines(node: FileNode): Int = when (node) {
     is FileNode.File -> node.totalLines
     is FileNode.Directory -> node.children.sumOf(::totalLines)
 }
 
+/**
+ * Computes which directories contain files with multiple PRs (conflicts).
+ *
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @return Set of directory paths that contain conflicted files
+ */
 fun computeConflictedDirs(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
     val conflictedDirectories = mutableSetOf<String>()
     fileOverlayByPath.forEach { (filePath, overlay) ->
@@ -62,6 +93,13 @@ fun computeConflictedDirs(fileOverlayByPath: Map<String, FileOverlay>): Set<Stri
     return conflictedDirectories
 }
 
+/**
+ * Computes overlay data for files affected by visible PRs.
+ *
+ * @param visiblePrs List of visible pull requests
+ * @param visibleFiles List of visible file nodes
+ * @return Map of file paths to their computed overlay data
+ */
 fun computeFileOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleFiles: List<FileNode.File>,
@@ -85,6 +123,13 @@ fun computeFileOverlayByPath(
         }
 }
 
+/**
+ * Computes overlay data for directories affected by visible PRs.
+ *
+ * @param visiblePrs List of visible pull requests
+ * @param visibleDirectories List of visible directory nodes
+ * @return Map of directory paths to their computed overlay data
+ */
 fun computeDirectoryOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleDirectories: List<FileNode.Directory>,

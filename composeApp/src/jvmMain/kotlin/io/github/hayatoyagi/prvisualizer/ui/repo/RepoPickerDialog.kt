@@ -28,6 +28,15 @@ import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+/**
+ * Displays a dialog for selecting a repository.
+ *
+ * @param initialQuery Initial search query text
+ * @param repoSelectionState The current state of repository selection
+ * @param onReload Callback to reload the repository list
+ * @param onDismiss Callback when the dialog is dismissed
+ * @param onSelect Callback when a repository is selected
+ */
 @Composable
 fun RepoPickerDialog(
     initialQuery: String,

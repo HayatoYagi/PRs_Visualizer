@@ -131,11 +131,21 @@ data class VisualizerState(
         }
 }
 
+/**
+ * Resets navigation to the root directory.
+ *
+ * @return Updated navigation state
+ */
 fun NavigationState.resetNavigation(): NavigationState = copy(
     focusPath = "",
     selectedPath = null,
 )
 
+/**
+ * Resets the viewport by incrementing the reset token.
+ *
+ * @return Updated navigation state
+ */
 fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 
 /**

@@ -19,6 +19,14 @@ import kotlin.time.TimeSource
 class GitHubOAuthDesktopAuthenticator {
     private val client = HttpClient.newHttpClient()
 
+    /**
+     * Authenticates with GitHub using OAuth device flow.
+     *
+     * @param clientId The GitHub OAuth client ID
+     * @param scope The OAuth scope to request
+     * @param onDeviceFlowStart Callback when device flow starts
+     * @return The OAuth access token
+     */
     suspend fun authenticate(
         clientId: String,
         scope: String = "repo",

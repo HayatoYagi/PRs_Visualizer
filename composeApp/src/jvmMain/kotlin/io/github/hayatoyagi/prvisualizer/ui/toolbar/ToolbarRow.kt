@@ -12,6 +12,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
+/**
+ * Displays the toolbar row with repository controls.
+ *
+ * @param owner The repository owner
+ * @param repo The repository name
+ * @param isLoggedIn Whether the user is logged in
+ * @param onOpenRepoDialog Callback to open repository selection dialog
+ * @param onShuffleColors Callback to shuffle PR colors
+ * @param modifier Modifier for the row
+ */
 @Composable
 fun ToolbarRow(
     owner: String,

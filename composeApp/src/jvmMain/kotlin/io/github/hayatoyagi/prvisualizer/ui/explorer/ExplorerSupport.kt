@@ -5,6 +5,15 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 
+/**
+ * Builds a flat list of explorer rows from a directory tree.
+ *
+ * @param root The root directory to build rows from
+ * @param fileOverlayByPath Map of file paths to their overlay data
+ * @param directoryOverlayByPath Map of directory paths to their overlay data
+ * @param expandedPaths Set of expanded directory paths
+ * @return Flat list of explorer rows for rendering
+ */
 fun buildExplorerRows(
     root: FileNode.Directory,
     fileOverlayByPath: Map<String, FileOverlay>,

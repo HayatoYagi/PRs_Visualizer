@@ -4,6 +4,12 @@ sealed class AppError {
     abstract val message: String
 
     companion object {
+        /**
+         * Creates an AppError from a Throwable.
+         *
+         * @param error The throwable to convert
+         * @return An appropriate AppError subclass
+         */
         fun from(error: Throwable): AppError = when (error) {
             is java.net.ConnectException, is java.net.UnknownHostException ->
                 Network(error.message ?: "Network error")
