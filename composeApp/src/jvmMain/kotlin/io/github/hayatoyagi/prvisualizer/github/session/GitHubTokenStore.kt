@@ -80,9 +80,7 @@ object GitHubTokenStore {
         )
     }
 
-    private fun loadFromWindowsDpapi(): String? {
-        return loadFromWindowsDpapiFile(windowsTokenFilePath())
-    }
+    private fun loadFromWindowsDpapi(): String? = loadFromWindowsDpapiFile(windowsTokenFilePath())
 
     private fun loadFromWindowsDpapiFile(path: Path): String? {
         if (!Files.exists(path)) return null
@@ -132,11 +130,10 @@ object GitHubTokenStore {
         runCatching { Files.deleteIfExists(path) }
     }
 
-    private fun windowsTokenFilePath(): Path {
-        return windowsRoamingAppDataBasePath()
+    private fun windowsTokenFilePath(): Path =
+        windowsRoamingAppDataBasePath()
             .resolve(WINDOWS_TOKEN_DIR_NAME)
             .resolve(WINDOWS_TOKEN_FILE_NAME)
-    }
 
     private fun windowsRoamingAppDataBasePath(): Path {
         val appData = System.getenv("APPDATA")
