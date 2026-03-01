@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -232,8 +235,47 @@ private fun AppDialogHost(
                 vm.closeDialog()
             },
         )
+        is DialogState.AuthError -> ErrorDialog(
+            title = "Authentication error",
+            error = dialogState.error,
+            onDismiss = { vm.dismissErrorDialog() },
+        )
+        is DialogState.SnapshotFetchError -> ErrorDialog(
+            title = "Failed to load repository",
+            error = dialogState.error,
+            onDismiss = { vm.dismissErrorDialog() },
+        )
         is DialogState.None -> Unit
     }
+}
+
+@Composable
+private fun ErrorDialog(
+    title: String,
+    error: AppError,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(errorDialogMessage(error)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        containerColor = AppColors.backgroundPane,
+        titleContentColor = AppColors.textPaneTitle,
+        textContentColor = AppColors.textBody,
+    )
+}
+
+private fun errorDialogMessage(error: AppError): String = when (error) {
+    is AppError.Network -> "Network error: ${error.message}"
+    is AppError.ApiError -> "GitHub error ${error.statusCode}: ${error.message}"
+    is AppError.AuthExpired -> error.message
+    is AppError.OAuthFailed -> "OAuth failed: ${error.message}"
+    is AppError.Unknown -> "Error: ${error.message}"
 }
 
 @Composable

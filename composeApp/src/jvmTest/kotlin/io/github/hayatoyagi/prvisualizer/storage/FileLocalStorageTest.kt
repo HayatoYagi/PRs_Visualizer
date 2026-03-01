@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class FileLocalStorageTest {
-    private val storage = FileLocalStorage(appName = "GitHubPRsVisualizerTest")
+    private val storage = FileLocalStorage(appName = "PRsVisualizerForGitHubTest")
     private lateinit var key: String
 
     @BeforeTest

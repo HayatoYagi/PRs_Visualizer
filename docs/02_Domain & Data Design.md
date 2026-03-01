@@ -1,4 +1,4 @@
-# **GitHub PRs Visualizer: Domain & Data Design**
+# **PRs Visualizer for GitHub: Domain & Data Design**
 
 本ドキュメントでは、GitHub APIから取得したデータをどのように処理し、UIに反映させるかのデータ構造とアルゴリズムを定義する。
 

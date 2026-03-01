@@ -1,4 +1,4 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.navigation
 
 /**
  * Tracks navigation history for back/forward functionality.

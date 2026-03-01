@@ -53,6 +53,7 @@ fun PrListPane(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
+    val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
     Column(
         modifier = modifier
             .width(340.dp)
@@ -62,6 +63,7 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
+            visiblePrCount = visiblePrCount,
             showDrafts = showDrafts,
             onlyMine = onlyMine,
             onShowDraftsChange = onShowDraftsChange,
@@ -91,6 +93,7 @@ fun PrListPane(
 
 @Composable
 private fun PrListHeader(
+    visiblePrCount: Int,
     showDrafts: Boolean,
     onlyMine: Boolean,
     onShowDraftsChange: (Boolean) -> Unit,
@@ -103,7 +106,14 @@ private fun PrListHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+        Column {
+            Text("Open PRs", color = AppColors.textPaneTitle, style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Visible PRs: $visiblePrCount",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         TooltipIconButton(
             tooltip = "Shuffle Colors",
             enabled = canShuffleColors,
