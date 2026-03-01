@@ -29,7 +29,6 @@ private data class AuthRowModel(
 
 @Composable
 fun AuthRow(
-    oauthClientId: String,
     authState: AuthState,
     snapshotFetchState: SnapshotFetchState,
     currentUser: String,
@@ -46,8 +45,7 @@ fun AuthRow(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AuthActionButtons(model = model, oauthClientId = oauthClientId, onLogin = onLogin, onRefresh = onRefresh)
-        MissingClientIdNotice(oauthClientId = oauthClientId)
+        AuthActionButtons(model = model, onLogin = onLogin, onRefresh = onRefresh)
         DevicePromptSection(devicePrompt = model.devicePrompt)
         ConnectionStatusText(model = model, currentUser = currentUser)
         ConnectionErrorText(connectionError = model.connectionError)
@@ -57,13 +55,12 @@ fun AuthRow(
 @Composable
 private fun AuthActionButtons(
     model: AuthRowModel,
-    oauthClientId: String,
     onLogin: () -> Unit,
     onRefresh: () -> Unit,
 ) {
     if (!model.isLoggedIn) {
         Button(
-            enabled = !model.isAuthorizing && oauthClientId.isNotBlank(),
+            enabled = !model.isAuthorizing,
             onClick = onLogin,
         ) {
             Text(if (model.isAuthorizing) "Authorizing..." else "Login with GitHub")
@@ -77,15 +74,6 @@ private fun AuthActionButtons(
     }
 }
 
-@Composable
-private fun MissingClientIdNotice(oauthClientId: String) {
-    if (oauthClientId.isNotBlank()) return
-    Text(
-        text = "Missing GITHUB_CLIENT_ID in .env",
-        color = AppColors.textWarning,
-        modifier = Modifier.padding(top = 14.dp),
-    )
-}
 
 @Composable
 private fun DevicePromptSection(devicePrompt: AuthState.Authorizing?) {
