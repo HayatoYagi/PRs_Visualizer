@@ -90,9 +90,27 @@ fun TreemapPane(
         TreemapPaneHeader(
             focusPath = focusPath,
             visiblePrCount = visiblePrs.size,
+            onFocusPathChange = onFocusPathChange,
+        )
+        TreemapViewport(
+            model = TreemapViewportModel(
+                visibleNodes = visibleNodes,
+                visibleDirectories = visibleDirectories,
+                visibleFiles = visibleFiles,
+                fileOverlayByPath = fileOverlayByPath,
+                directoryOverlayByPath = directoryOverlayByPath,
+                prColorMap = prColorMap,
+                selectedPath = selectedPath,
+                hoveredNode = hoveredNode,
+                hoveredOverlay = hoveredOverlay,
+                hoveredDirOverlay = hoveredDirOverlay,
+                zoom = zoom,
+                pan = pan,
+                pointerPos = pointerPos,
+            ),
+            isLoading = isLoading,
             canZoomOut = zoom > MIN_ZOOM,
             canZoomIn = zoom < MAX_ZOOM,
-            onFocusPathChange = onFocusPathChange,
             onZoomOut = {
                 val result = resolveZoomByFactor(
                     factor = ZOOM_OUT_FACTOR,
@@ -113,24 +131,6 @@ fun TreemapPane(
                 zoom = result.zoom
                 pan = result.pan
             },
-        )
-        TreemapViewport(
-            model = TreemapViewportModel(
-                visibleNodes = visibleNodes,
-                visibleDirectories = visibleDirectories,
-                visibleFiles = visibleFiles,
-                fileOverlayByPath = fileOverlayByPath,
-                directoryOverlayByPath = directoryOverlayByPath,
-                prColorMap = prColorMap,
-                selectedPath = selectedPath,
-                hoveredNode = hoveredNode,
-                hoveredOverlay = hoveredOverlay,
-                hoveredDirOverlay = hoveredDirOverlay,
-                zoom = zoom,
-                pan = pan,
-                pointerPos = pointerPos,
-            ),
-            isLoading = isLoading,
             callbacks = TreemapViewportCallbacks(
                 onSizeChanged = { newSize ->
                     canvasSize = newSize

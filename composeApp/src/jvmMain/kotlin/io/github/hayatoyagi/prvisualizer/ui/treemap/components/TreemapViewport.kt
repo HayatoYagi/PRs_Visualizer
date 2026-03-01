@@ -1,10 +1,14 @@
 package io.github.hayatoyagi.prvisualizer.ui.treemap.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,9 +40,14 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportModel
 internal fun TreemapViewport(
     model: TreemapViewportModel,
     isLoading: Boolean,
+    canZoomOut: Boolean,
+    canZoomIn: Boolean,
+    onZoomOut: () -> Unit,
+    onZoomIn: () -> Unit,
     callbacks: TreemapViewportCallbacks,
 ) {
     var legendBounds by remember { mutableStateOf<Rect?>(null) }
+    var zoomControlBounds by remember { mutableStateOf<Rect?>(null) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -51,6 +60,7 @@ internal fun TreemapViewport(
                 isLoading = isLoading,
                 onReleaseEvent = { position, uptimeMillis ->
                     if (legendBounds?.contains(position) == true) return@treemapReleaseHandler
+                    if (zoomControlBounds?.contains(position) == true) return@treemapReleaseHandler
                     callbacks.onReleaseEvent(position, uptimeMillis)
                 },
             ),
@@ -85,6 +95,22 @@ internal fun TreemapViewport(
                     legendBounds = coordinates.boundsInParent()
                 },
         )
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(LEGEND_PADDING_DP.dp)
+                .onGloballyPositioned { coordinates ->
+                    zoomControlBounds = coordinates.boundsInParent()
+                },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(onClick = onZoomOut, enabled = canZoomOut) {
+                Text("-")
+            }
+            Button(onClick = onZoomIn, enabled = canZoomIn) {
+                Text("+")
+            }
+        }
         if (isLoading) {
             Box(
                 modifier = Modifier
