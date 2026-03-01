@@ -55,6 +55,7 @@ class GitHubSessionManagerTest {
                         repo = fullName.substringAfter('/'),
                     )
                 },
+                unselectRepo = {},
                 authService = authService,
                 repoSelectionService = repoService,
                 snapshotFetchService = snapshotService,
@@ -89,6 +90,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = FakeAuthService(
                     restoredToken = "",
                     loginResult = Result.failure(IllegalStateException("boom")),
@@ -125,6 +127,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = FakeAuthService(
                     restoredToken = "",
                     loginResult = Result.success("token"),
@@ -162,6 +165,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = {},
                 authService = authService,
                 repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
                 snapshotFetchService = FakeSnapshotFetchService(
@@ -185,6 +189,7 @@ class GitHubSessionManagerTest {
             var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Ready(snapshot())
             var repoState: RepoState = RepoState.Selected("owner", "repo")
             var repoSelectionState: RepoSelectionState = RepoSelectionState.Ready(listOf("owner/repo"))
+            var unselectRepoCalled = false
 
             val authService = FakeAuthService(
                 restoredToken = "",
@@ -201,6 +206,7 @@ class GitHubSessionManagerTest {
                 setRepoSelectionState = { repoSelectionState = it },
                 onSnapshotLoaded = {},
                 selectRepo = {},
+                unselectRepo = { unselectRepoCalled = true },
                 authService = authService,
                 repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
                 snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
@@ -212,6 +218,7 @@ class GitHubSessionManagerTest {
             assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
             assertEquals(RepoSelectionState.Idle, repoSelectionState)
             assertTrue(authService.clearTokenCalled)
+            assertTrue(unselectRepoCalled)
         }
 
     private fun assertNotFetching(snapshotFetchState: SnapshotFetchState) {

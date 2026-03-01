@@ -51,6 +51,7 @@ class VisualizerViewModel(
             resetViewport()
         },
         selectRepo = ::selectRepo,
+        unselectRepo = { selectedRepositoryStore.unselect() },
     )
 
     /**
