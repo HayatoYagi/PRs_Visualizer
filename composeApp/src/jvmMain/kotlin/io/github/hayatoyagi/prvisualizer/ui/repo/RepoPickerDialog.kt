@@ -53,9 +53,7 @@ fun RepoPickerDialog(
 
     // Check if query is a valid owner/repo format and not already in the list
     val trimmedQuery = query.trim()
-    val isValidManualEntry = remember(trimmedQuery) {
-        isValidOwnerRepoFormat(trimmedQuery)
-    }
+    val isValidManualEntry = isValidOwnerRepoFormat(trimmedQuery)
     val isManualEntryNotInList = remember(trimmedQuery, filteredOptions) {
         isValidManualEntry && !filteredOptions.contains(trimmedQuery)
     }
@@ -103,7 +101,7 @@ fun RepoPickerDialog(
                             onSelect(trimmedQuery)
                             onDismiss()
                         }) {
-                            Text("Open \"$trimmedQuery\"")
+                            Text("Open Repository")
                         }
                     }
                     Text(
