@@ -73,7 +73,7 @@ fun ToolbarRow(
         RepositorySection(
             isConnecting = model.isConnecting,
             canRefresh = model.isLoggedIn,
-            canOpenRepoDialog = model.isLoggedIn || model.connectionError != null,
+            canOpenRepoDialog = model.isLoggedIn,
             repoFullName = repoFullName,
             toolbarTextStyle = toolbarTextStyle,
             onRefresh = onRefresh,
