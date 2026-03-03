@@ -57,14 +57,11 @@ private fun setDockAndTaskbarIcon() {
         )
 
         for (path in resourcePaths) {
-            val iconStream = Res::class.java.getResourceAsStream(path)
-            if (iconStream != null) {
-                iconStream.use { stream ->
-                    ImageIO.read(stream)?.let { image ->
-                        taskbar.iconImage = image
-                        return // Successfully loaded
-                    }
-                }
+            val iconStream = Res::class.java.getResourceAsStream(path) ?: continue
+            iconStream.use { stream ->
+                val image = ImageIO.read(stream) ?: return@use
+                taskbar.iconImage = image
+                return // Successfully loaded
             }
         }
     }.onFailure { e ->
