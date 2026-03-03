@@ -61,7 +61,7 @@ private fun setDockAndTaskbarIcon() {
             iconStream.use { stream ->
                 val image = ImageIO.read(stream) ?: return@use
                 taskbar.iconImage = image
-                return // Successfully loaded
+                return // Successfully loaded icon, exit function
             }
         }
     }.onFailure { e ->
