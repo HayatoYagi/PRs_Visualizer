@@ -32,7 +32,7 @@ fun main() {
         e.printStackTrace()
         JOptionPane.showMessageDialog(
             null,
-            "Failed to start application:\n${e.message}\n\nSee console for details.",
+            "Failed to start application:\n${e.message}",
             "Startup Error",
             JOptionPane.ERROR_MESSAGE,
         )
@@ -46,7 +46,9 @@ private fun setDockAndTaskbarIcon() {
     if (!taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) return
 
     runCatching {
-        // Use resource as stream instead of URI to avoid Windows path issues
+        // Use resource as stream instead of URI to avoid Windows path issues.
+        // Note: We use Java ClassLoader resource loading here (not Compose resources)
+        // because we need a java.awt.Image, not a Compose Painter.
         val iconStream = Res::class.java.getResourceAsStream("/drawable/icon.png")
         iconStream?.use { stream ->
             ImageIO.read(stream)?.let { image ->
