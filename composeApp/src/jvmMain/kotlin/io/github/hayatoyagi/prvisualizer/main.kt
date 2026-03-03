@@ -36,7 +36,7 @@ fun main() {
             "Startup Error",
             JOptionPane.ERROR_MESSAGE,
         )
-        throw e
+        System.exit(1)
     }
 }
 
@@ -55,7 +55,7 @@ private fun setDockAndTaskbarIcon() {
             "/drawable/icon.png",
             "drawable/icon.png",
         )
-        
+
         for (path in resourcePaths) {
             val iconStream = Res::class.java.getResourceAsStream(path)
             if (iconStream != null) {
