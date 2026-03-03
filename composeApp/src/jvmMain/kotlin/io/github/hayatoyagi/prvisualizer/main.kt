@@ -49,10 +49,22 @@ private fun setDockAndTaskbarIcon() {
         // Use resource as stream instead of URI to avoid Windows path issues.
         // Note: We use Java ClassLoader resource loading here (not Compose resources)
         // because we need a java.awt.Image, not a Compose Painter.
-        val iconStream = Res::class.java.getResourceAsStream("/drawable/icon.png")
-        iconStream?.use { stream ->
-            ImageIO.read(stream)?.let { image ->
-                taskbar.iconImage = image
+        // Try common resource paths where Compose resources might be packaged.
+        val resourcePaths = listOf(
+            "/composeResources/drawable/icon.png",
+            "/drawable/icon.png",
+            "drawable/icon.png",
+        )
+        
+        for (path in resourcePaths) {
+            val iconStream = Res::class.java.getResourceAsStream(path)
+            if (iconStream != null) {
+                iconStream.use { stream ->
+                    ImageIO.read(stream)?.let { image ->
+                        taskbar.iconImage = image
+                        return // Successfully loaded
+                    }
+                }
             }
         }
     }.onFailure { e ->
