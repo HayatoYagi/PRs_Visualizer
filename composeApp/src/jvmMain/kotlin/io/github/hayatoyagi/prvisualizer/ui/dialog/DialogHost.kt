@@ -42,6 +42,7 @@ fun DialogHost(
     onDismissErrorDialog: () -> Unit,
     onOpenPrInBrowser: (String) -> Unit,
     onSelectFile: (String) -> Unit,
+    onResetViewport: () -> Unit,
 ) {
     when (dialogState) {
         is DialogState.RepoPicker -> RepoPickerDialog(
@@ -61,6 +62,7 @@ fun DialogHost(
             prColorMap = prColorMap,
             onRetryLoadCommits = onRetryLoadCommits,
             onDismiss = onDismissDialog,
+            onResetViewport = onResetViewport,
         )
         is DialogState.PrDetails -> PrDetailsDialog(
             pr = dialogState.pr,
@@ -71,6 +73,7 @@ fun DialogHost(
             onSelectFile = { filePath ->
                 onSelectFile(filePath)
             },
+            onResetViewport = onResetViewport,
         )
         is DialogState.AuthError -> ErrorDialog(
             title = "Authentication error",
@@ -123,6 +126,7 @@ private fun FileDetailsDialogHost(
     prColorMap: Map<String, Color>,
     onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
+    onResetViewport: () -> Unit,
 ) {
     val filePath = dialogState.filePath
     val fileNode = remember(uiState.focusRoot, filePath) { findFileNode(uiState.focusRoot, filePath) } ?: return
@@ -137,5 +141,6 @@ private fun FileDetailsDialogHost(
         commitsState = dialogState.commitsState,
         onRetryLoadCommits = onRetryLoadCommits,
         onDismiss = onDismiss,
+        onResetViewport = onResetViewport,
     )
 }

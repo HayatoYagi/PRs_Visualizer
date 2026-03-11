@@ -151,6 +151,7 @@ fun App() {
                     vm.selectFile(filePath)
                     vm.closeDialog()
                 },
+                onResetViewport = { vm.resetViewport() },
             )
             AppMainRow(
                 vm = vm,
