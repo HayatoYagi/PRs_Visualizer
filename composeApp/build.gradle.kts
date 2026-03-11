@@ -93,6 +93,8 @@ compose.desktop {
             }
             windows {
                 iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+                menuGroup = appDisplayName
+                shortcut = true
             }
             linux {
                 iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon.png"))
