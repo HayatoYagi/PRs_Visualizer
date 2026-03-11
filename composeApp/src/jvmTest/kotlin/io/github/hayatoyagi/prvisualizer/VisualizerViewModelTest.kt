@@ -189,6 +189,18 @@ class VisualizerViewModelTest {
     }
 
     @Test
+    fun `deselectAllPrs should clear all PR IDs`() {
+        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
+        // First select some PRs
+        vm.selectAllPrs(setOf("pr1", "pr2", "pr3"))
+        assertEquals(setOf("pr1", "pr2", "pr3"), vm.state.filterState.selectedPrIds)
+
+        // Then deselect all
+        vm.deselectAllPrs()
+        assertTrue(vm.state.filterState.selectedPrIds.isEmpty())
+    }
+
+    @Test
     fun `selectDirectory should update focusPath and reset token`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         val initialToken = vm.state.navigationState.viewportResetToken

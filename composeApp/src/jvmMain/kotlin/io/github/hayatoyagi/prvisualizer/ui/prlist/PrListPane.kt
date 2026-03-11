@@ -24,6 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,10 +52,13 @@ fun PrListPane(
     onOpenPr: (PullRequest) -> Unit,
     onCyclePrColor: (String) -> Unit,
     onShuffleColors: () -> Unit,
+    onSelectAllPrs: () -> Unit,
+    onDeselectAllPrs: () -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
     val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
+    val selectAllState = computeSelectAllState(filteredPrs, selectedPrIds)
     Column(
         modifier = modifier
             .width(340.dp)
@@ -70,6 +75,9 @@ fun PrListPane(
             onOnlyMineChange = onOnlyMineChange,
             canShuffleColors = prColorMap.isNotEmpty(),
             onShuffleColors = onShuffleColors,
+            selectAllState = selectAllState,
+            onSelectAll = onSelectAllPrs,
+            onDeselectAll = onDeselectAllPrs,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
@@ -100,6 +108,9 @@ private fun PrListHeader(
     onOnlyMineChange: (Boolean) -> Unit,
     canShuffleColors: Boolean,
     onShuffleColors: () -> Unit,
+    selectAllState: ToggleableState,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -126,6 +137,28 @@ private fun PrListHeader(
                 modifier = Modifier.size(20.dp),
             )
         }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TriStateCheckbox(
+            state = selectAllState,
+            onClick = {
+                when (selectAllState) {
+                    ToggleableState.Off, ToggleableState.Indeterminate -> onSelectAll()
+                    ToggleableState.On -> onDeselectAll()
+                }
+            },
+        )
+        Text(
+            text = when (selectAllState) {
+                ToggleableState.On -> "Deselect all"
+                ToggleableState.Off -> "Select all"
+                ToggleableState.Indeterminate -> "Select all"
+            },
+            color = AppColors.textBodyMuted,
+        )
     }
     PrFilterSwitch(checked = showDrafts, label = "Show draft", onCheckedChange = onShowDraftsChange)
     PrFilterSwitch(checked = onlyMine, label = "Only my PRs", onCheckedChange = onOnlyMineChange)
@@ -265,3 +298,17 @@ private fun ColorCycleChip(
 }
 
 private fun prItemBorderWidth(relatedToSelection: Boolean) = if (relatedToSelection) 3.dp else 2.dp
+
+private fun computeSelectAllState(
+    filteredPrs: List<PullRequest>,
+    selectedPrIds: Set<String>,
+): ToggleableState {
+    if (filteredPrs.isEmpty()) return ToggleableState.Off
+    
+    val selectedCount = filteredPrs.count { selectedPrIds.contains(it.id) }
+    return when {
+        selectedCount == 0 -> ToggleableState.Off
+        selectedCount == filteredPrs.size -> ToggleableState.On
+        else -> ToggleableState.Indeterminate
+    }
+}
