@@ -129,8 +129,9 @@ jobs:
           exit 1
         fi
 
-        # Create release with artifacts
+        # Create release with artifacts, pinned to the PR's merge commit
         gh release create "$TAG" \
           --title "Release $VERSION" \
           --generate-notes \
+          --target "${{ github.event.pull_request.merge_commit_sha }}" \
           "${files[@]}"
