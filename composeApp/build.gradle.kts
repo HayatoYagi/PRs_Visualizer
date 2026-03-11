@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.internal.os.OperatingSystem
 import java.util.Properties
 
 // Read version from version.properties
@@ -48,7 +49,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.compose.materialIconsExtended)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.kotlinx.serialization.json)
         }
@@ -66,13 +67,18 @@ compose.resources {
 compose.desktop {
     application {
         mainClass = "io.github.hayatoyagi.prvisualizer.MainKt"
-        jvmArgs(
-            "-Dapp.display.name=$appDisplayName",
-            "-Xdock:name=$appDisplayName",
-            "-Dapple.awt.application.name=$appDisplayName",
-            "-Dcom.apple.mrj.application.apple.menu.about.name=$appDisplayName",
-            "-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png",
-        )
+        val currentOs = OperatingSystem.current()
+        val appJvmArgs =
+            buildList {
+                add("-Dapp.display.name=$appDisplayName")
+                if (currentOs.isMacOsX) {
+                    add("-Xdock:name=$appDisplayName")
+                    add("-Dapple.awt.application.name=$appDisplayName")
+                    add("-Dcom.apple.mrj.application.apple.menu.about.name=$appDisplayName")
+                    add("-Xdock:icon=${project.projectDir}/src/jvmMain/composeResources/drawable/icon.png")
+                }
+            }
+        jvmArgs(*appJvmArgs.toTypedArray())
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
