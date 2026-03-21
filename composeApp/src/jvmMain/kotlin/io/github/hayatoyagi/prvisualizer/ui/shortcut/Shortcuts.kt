@@ -19,10 +19,8 @@ private fun RegisterResetViewportShortcut(vm: VisualizerViewModel) {
         val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         val shortcutMask = Toolkit.getDefaultToolkit().menuShortcutKeyMaskEx
         val dispatcher = KeyEventDispatcher { event ->
-            if (event.id != KeyEvent.KEY_PRESSED) return@KeyEventDispatcher false
-            if (event.keyCode != KeyEvent.VK_R) return@KeyEventDispatcher false
-            if ((event.modifiersEx and shortcutMask) == 0) return@KeyEventDispatcher false
-            if (focusManager.activeWindow == null) return@KeyEventDispatcher false
+            if (!event.isViewportResetShortcut(shortcutMask)) return@KeyEventDispatcher false
+            if (!focusManager.hasActiveWindow()) return@KeyEventDispatcher false
             vm.resetViewport()
             true
         }
@@ -32,3 +30,12 @@ private fun RegisterResetViewportShortcut(vm: VisualizerViewModel) {
         }
     }
 }
+
+private fun KeyEvent.isViewportResetShortcut(shortcutMask: Int): Boolean {
+    if (id != KeyEvent.KEY_PRESSED) return false
+    if (keyCode != KeyEvent.VK_R) return false
+    if (modifiersEx and shortcutMask == 0) return false
+    return true
+}
+
+private fun KeyboardFocusManager.hasActiveWindow(): Boolean = activeWindow != null
