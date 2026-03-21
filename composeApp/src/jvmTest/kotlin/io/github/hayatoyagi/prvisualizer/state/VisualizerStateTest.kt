@@ -1,18 +1,8 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.state
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
-import io.github.hayatoyagi.prvisualizer.state.AuthState
-import io.github.hayatoyagi.prvisualizer.state.ColorState
-import io.github.hayatoyagi.prvisualizer.state.DialogState
-import io.github.hayatoyagi.prvisualizer.state.FilterState
-import io.github.hayatoyagi.prvisualizer.state.NavigationState
-import io.github.hayatoyagi.prvisualizer.state.PrSelection
-import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
-import io.github.hayatoyagi.prvisualizer.state.VisualizerState
-import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
-import io.github.hayatoyagi.prvisualizer.state.resetNavigation
-import io.github.hayatoyagi.prvisualizer.state.resetViewport
+import io.github.hayatoyagi.prvisualizer.AppError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
