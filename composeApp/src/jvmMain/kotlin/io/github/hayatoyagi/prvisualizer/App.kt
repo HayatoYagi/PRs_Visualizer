@@ -67,10 +67,11 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     ) {
         filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, currentUser)
     }
-    // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
-    // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
-    val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
-        computeEffectiveSelectedIds(vm.state.filterState.selectedPrIds, filteredPrs)
+    val visibleIds = remember(filteredPrs) {
+        filteredPrs.map { it.id }.toSet()
+    }
+    val effectiveSelectedIds = remember(vm.state.filterState.prSelection, visibleIds) {
+        vm.state.filterState.prSelection.resolve(visibleIds)
     }
     val visiblePrs = remember(filteredPrs, effectiveSelectedIds) {
         filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
@@ -113,7 +114,7 @@ fun App() {
 
     val uiState = rememberVisualizerUiState(vm)
 
-    AppEffects(vm = vm, authState = authState, allPrs = uiState.allPrs, filteredPrs = uiState.filteredPrs)
+    AppEffects(vm = vm, authState = authState, allPrs = uiState.allPrs)
 
     MaterialTheme {
         Column(
@@ -167,7 +168,6 @@ private fun AppEffects(
     vm: VisualizerViewModel,
     authState: AuthState,
     allPrs: List<PullRequest>,
-    filteredPrs: List<PullRequest>,
 ) {
     LaunchedEffect(Unit) {
         vm.initializeSession()
@@ -177,14 +177,6 @@ private fun AppEffects(
     }
     LaunchedEffect(allPrs) {
         vm.ensurePrColors(allPrs)
-    }
-    // Only reset to all when a filter change leaves the current selection with no overlap.
-    LaunchedEffect(filteredPrs) {
-        val available = filteredPrs.map { it.id }.toSet()
-        val selected = vm.state.filterState.selectedPrIds
-        if (selected.isNotEmpty() && selected.none(available::contains)) {
-            vm.selectAllPrs(available)
-        }
     }
 }
 
@@ -254,48 +246,26 @@ private fun AppMainRow(
             onShowDraftsChange = { vm.updateShowDrafts(it) },
             onOnlyMineChange = { vm.updateOnlyMine(it) },
             onTogglePr = { prId, checked ->
-                onPrToggle(
-                    vm = vm,
-                    effectiveSelectedIds = uiState.effectiveSelectedIds,
+                vm.togglePr(
                     prId = prId,
                     checked = checked,
+                    visibleIds = uiState.filteredPrs.map { it.id }.toSet(),
                 )
             },
             onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
             onCyclePrColor = { vm.cyclePrColor(it) },
             onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-            onSelectAllPrs = {
-                val allFilteredIds = uiState.filteredPrs.map { it.id }.toSet()
-                vm.selectAllPrs(allFilteredIds)
-            },
-            onDeselectAllPrs = { vm.deselectAllPrs() },
+            onSelectAllPrs = { vm.selectAllPrs() },
+            onDeselectAllPrs = { vm.clearPrSelection() },
             isLoading = isConnecting,
         )
     }
-}
-
-private fun onPrToggle(
-    vm: VisualizerViewModel,
-    effectiveSelectedIds: Set<String>,
-    prId: String,
-    checked: Boolean,
-) {
-    // Initialize from effectiveSelectedIds on first interaction (selectedPrIds is empty = all)
-    if (vm.state.filterState.selectedPrIds.isEmpty()) {
-        vm.selectAllPrs(effectiveSelectedIds)
-    }
-    vm.togglePr(prId, checked)
 }
 
 private fun snapshotOrNull(fetchState: SnapshotFetchState) = when (fetchState) {
     is SnapshotFetchState.Ready -> fetchState.snapshot
     SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> null
 }
-
-private fun computeEffectiveSelectedIds(
-    selectedPrIds: Set<String>,
-    filteredPrs: List<PullRequest>,
-): Set<String> = if (selectedPrIds.isEmpty()) filteredPrs.map { it.id }.toSet() else selectedPrIds
 
 private fun collectAllFiles(root: FileNode.Directory): List<FileNode.File> = buildList {
     fun collectFiles(node: FileNode) {

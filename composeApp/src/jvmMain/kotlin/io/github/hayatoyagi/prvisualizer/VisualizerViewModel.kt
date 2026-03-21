@@ -236,26 +236,28 @@ class VisualizerViewModel(
     fun togglePr(
         prId: String,
         checked: Boolean,
+        visibleIds: Set<String>,
     ) {
-        val newSelectedPrIds = if (checked) {
-            state.filterState.selectedPrIds + prId
-        } else {
-            state.filterState.selectedPrIds - prId
-        }
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = newSelectedPrIds),
+            filterState = state.filterState.copy(
+                prSelection = state.filterState.prSelection.toggle(
+                    prId = prId,
+                    checked = checked,
+                    visibleIds = visibleIds,
+                ),
+            ),
         )
     }
 
-    fun selectAllPrs(available: Set<String>) {
+    fun selectAllPrs() {
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = available),
+            filterState = state.filterState.copy(prSelection = PrSelection.allVisible()),
         )
     }
 
-    fun deselectAllPrs() {
+    fun clearPrSelection() {
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = emptySet()),
+            filterState = state.filterState.copy(prSelection = PrSelection.none()),
         )
     }
 

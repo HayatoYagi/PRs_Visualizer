@@ -25,11 +25,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TriStateCheckbox
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -125,40 +125,32 @@ private fun PrListHeader(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        TooltipIconButton(
-            tooltip = "Shuffle Colors",
-            enabled = canShuffleColors,
-            onClick = onShuffleColors,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Shuffle,
-                contentDescription = "Shuffle Colors",
-                tint = if (canShuffleColors) AppColors.textPrimary else AppColors.textSecondary,
-                modifier = Modifier.size(20.dp),
+            TriStateCheckbox(
+                state = selectAllState,
+                onClick = {
+                    when (selectAllState) {
+                        ToggleableState.Off, ToggleableState.Indeterminate -> onSelectAll()
+                        ToggleableState.On -> onDeselectAll()
+                    }
+                },
             )
+            TooltipIconButton(
+                tooltip = "Shuffle Colors",
+                enabled = canShuffleColors,
+                onClick = onShuffleColors,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Shuffle,
+                    contentDescription = "Shuffle Colors",
+                    tint = if (canShuffleColors) AppColors.textPrimary else AppColors.textSecondary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        TriStateCheckbox(
-            state = selectAllState,
-            onClick = {
-                when (selectAllState) {
-                    ToggleableState.Off, ToggleableState.Indeterminate -> onSelectAll()
-                    ToggleableState.On -> onDeselectAll()
-                }
-            },
-        )
-        Text(
-            text = when (selectAllState) {
-                ToggleableState.On -> "Deselect all"
-                ToggleableState.Off -> "Select all"
-                ToggleableState.Indeterminate -> "Select all"
-            },
-            color = AppColors.textBodyMuted,
-        )
     }
     PrFilterSwitch(checked = showDrafts, label = "Show draft", onCheckedChange = onShowDraftsChange)
     PrFilterSwitch(checked = onlyMine, label = "Only my PRs", onCheckedChange = onOnlyMineChange)
