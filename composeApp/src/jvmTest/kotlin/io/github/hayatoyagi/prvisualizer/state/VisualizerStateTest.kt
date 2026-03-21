@@ -54,6 +54,16 @@ class VisualizerStateTest {
     }
 
     @Test
+    fun `PrSelection fromExplicit should drop stale non-visible ids before canonicalizing`() {
+        val selection = PrSelection.fromExplicit(
+            ids = setOf("pr1", "pr2", "stale"),
+            visibleIds = setOf("pr1", "pr2"),
+        )
+
+        assertIs<PrSelection.AllVisible>(selection)
+    }
+
+    @Test
     fun `PrSelection triState should report On for AllVisible`() {
         val triState = PrSelection.allVisible().triState(setOf("pr1", "pr2"))
 

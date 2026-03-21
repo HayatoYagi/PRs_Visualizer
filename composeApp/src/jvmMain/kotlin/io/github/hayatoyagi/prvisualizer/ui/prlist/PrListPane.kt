@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipContainer
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
@@ -112,10 +113,14 @@ private fun PrListHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            TriStateCheckbox(
-                state = selectAllState,
-                onClick = onToggleSelectAll,
-            )
+            TooltipContainer(
+                tooltip = bulkSelectionActionLabel(selectAllState),
+            ) {
+                TriStateCheckbox(
+                    state = selectAllState,
+                    onClick = onToggleSelectAll,
+                )
+            }
             TooltipIconButton(
                 tooltip = "Shuffle Colors",
                 enabled = canShuffleColors,
@@ -268,3 +273,8 @@ private fun ColorCycleChip(
 }
 
 private fun prItemBorderWidth(relatedToSelection: Boolean) = if (relatedToSelection) 3.dp else 2.dp
+
+private fun bulkSelectionActionLabel(selectAllState: ToggleableState): String = when (selectAllState) {
+    ToggleableState.On -> "Deselect all PRs"
+    ToggleableState.Off, ToggleableState.Indeterminate -> "Select all PRs"
+}

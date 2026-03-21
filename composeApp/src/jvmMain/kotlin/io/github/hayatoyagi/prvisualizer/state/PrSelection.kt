@@ -14,10 +14,7 @@ sealed interface PrSelection {
         checked: Boolean,
         visibleIds: Set<String>,
     ): PrSelection {
-        val baseSelection = when (this) {
-            AllVisible -> visibleIds
-            is Explicit -> ids
-        }
+        val baseSelection = resolve(visibleIds)
         val updatedIds = if (checked) {
             baseSelection + prId
         } else {
@@ -56,6 +53,9 @@ sealed interface PrSelection {
         fun fromExplicit(
             ids: Set<String>,
             visibleIds: Set<String>,
-        ): PrSelection = if (ids == visibleIds) allVisible() else Explicit.create(ids)
+        ): PrSelection {
+            val normalizedIds = ids.intersect(visibleIds)
+            return if (normalizedIds == visibleIds) allVisible() else Explicit.create(normalizedIds)
+        }
     }
 }

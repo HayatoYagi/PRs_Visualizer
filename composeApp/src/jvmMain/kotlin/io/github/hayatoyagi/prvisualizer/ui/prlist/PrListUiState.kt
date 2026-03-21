@@ -60,8 +60,8 @@ fun rememberPrListUiState(
     val selectAllState = remember(filterState.prSelection, visibleIds) {
         filterState.prSelection.triState(visibleIds)
     }
-    val visiblePrCount = remember(filteredPrs, selectedPrIds) {
-        filteredPrs.count { selectedPrIds.contains(it.id) }
+    val visiblePrCount = remember(selectedPrIds) {
+        selectedPrIds.size
     }
     return PrListUiState(
         filteredPrs = filteredPrs,

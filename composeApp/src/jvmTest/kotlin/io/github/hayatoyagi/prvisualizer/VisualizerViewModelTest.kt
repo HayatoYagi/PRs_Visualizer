@@ -124,7 +124,7 @@ class VisualizerViewModelTest {
         vm.openRepoDialog()
         vm.updateShowDrafts(false)
         vm.updateOnlyMine(true)
-        vm.clearPrSelection()
+        vm.deselectAllPrs()
 
         // Select new repo
         vm.selectRepo("New/Repository")
@@ -167,7 +167,7 @@ class VisualizerViewModelTest {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         assertIs<PrSelection.AllVisible>(vm.state.filterState.prSelection)
 
-        vm.clearPrSelection()
+        vm.deselectAllPrs()
         vm.togglePr("pr1", checked = true, visibleIds = setOf("pr1", "pr2"))
         assertEquals(setOf("pr1"), assertIs<PrSelection.Explicit>(vm.state.filterState.prSelection).ids)
 
@@ -182,17 +182,17 @@ class VisualizerViewModelTest {
     fun `selectAllPrs should set selection to AllVisible`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
 
-        vm.clearPrSelection()
+        vm.deselectAllPrs()
         vm.selectAllPrs()
         assertIs<PrSelection.AllVisible>(vm.state.filterState.prSelection)
     }
 
     @Test
-    fun `clearPrSelection should clear all PR IDs`() {
+    fun `deselectAllPrs should clear all PR IDs`() {
         val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
         vm.selectAllPrs()
 
-        vm.clearPrSelection()
+        vm.deselectAllPrs()
         assertEquals(emptySet(), assertIs<PrSelection.Explicit>(vm.state.filterState.prSelection).ids)
     }
 

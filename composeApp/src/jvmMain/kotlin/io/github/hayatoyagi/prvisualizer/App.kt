@@ -230,7 +230,7 @@ private fun AppMainRow(
                 onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
                 onToggleSelectAll = {
                     when (uiState.prList.selectAllState) {
-                        ToggleableState.On -> vm.clearPrSelection()
+                        ToggleableState.On -> vm.deselectAllPrs()
                         ToggleableState.Off,
                         ToggleableState.Indeterminate,
                         -> vm.selectAllPrs()

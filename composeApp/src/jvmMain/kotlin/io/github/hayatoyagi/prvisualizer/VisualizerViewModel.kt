@@ -261,7 +261,7 @@ class VisualizerViewModel(
         )
     }
 
-    fun clearPrSelection() {
+    fun deselectAllPrs() {
         state = state.copy(
             filterState = state.filterState.copy(prSelection = PrSelection.none()),
         )
