@@ -14,7 +14,9 @@ import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.ColorState
 import io.github.hayatoyagi.prvisualizer.state.DialogState
+import io.github.hayatoyagi.prvisualizer.state.NavigationState
 import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
@@ -54,28 +56,6 @@ class VisualizerViewModel(
         },
     )
 
-    /**
-     * Updates the [SnapshotFetchState.Ready] state. No-op when snapshot is not ready.
-     */
-    private inline fun updateReady(block: SnapshotFetchState.Ready.() -> SnapshotFetchState.Ready) {
-        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
-        state = state.copy(snapshotFetchState = ready.block())
-    }
-
-    /**
-     * Computes the set of currently visible PR IDs from the Ready state.
-     * Returns empty set when snapshot is not ready.
-     */
-    private fun computeVisibleIds(): Set<String> {
-        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return emptySet()
-        return filterPrs(
-            allPrs = ready.snapshot.pullRequests,
-            showDrafts = ready.filterState.showDrafts,
-            onlyMine = ready.filterState.onlyMine,
-            currentUser = state.currentUser,
-        ).map { it.id }.toSet()
-    }
-
     // region: セッション管理
     private val sessionManager = GitHubSessionManager(
         scope = viewModelScope,
@@ -105,12 +85,34 @@ class VisualizerViewModel(
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
         onSnapshotLoaded = {
-            resetNavigation()
-            resetViewport()
+            navigationManager.resetNavigation()
+            navigationManager.resetViewport()
         },
         selectRepo = ::selectRepo,
         unselectRepo = { selectedRepositoryStore.unselect() },
     )
+
+    /**
+     * Updates the [SnapshotFetchState.Ready] state. No-op when snapshot is not ready.
+     */
+    private inline fun updateReady(block: SnapshotFetchState.Ready.() -> SnapshotFetchState.Ready) {
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
+        state = state.copy(snapshotFetchState = ready.block())
+    }
+
+    /**
+     * Computes the set of currently visible PR IDs from the Ready state.
+     * Returns empty set when snapshot is not ready.
+     */
+    private fun computeVisibleIds(): Set<String> {
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return emptySet()
+        return filterPrs(
+            allPrs = ready.snapshot.pullRequests,
+            showDrafts = ready.filterState.showDrafts,
+            onlyMine = ready.filterState.onlyMine,
+            currentUser = state.currentUser,
+        ).map { it.id }.toSet()
+    }
 
     /**
      * Applies UI state changes for a repository transition.
@@ -124,8 +126,8 @@ class VisualizerViewModel(
             is RepoState.Selected -> {
                 state = state.resetForRepositoryChange()
                 // Sync managers with reset state (Idle has no filter/nav/color)
-                colorManager.updateState(io.github.hayatoyagi.prvisualizer.state.ColorState())
-                navigationManager.updateState(io.github.hayatoyagi.prvisualizer.state.NavigationState())
+                colorManager.updateState(ColorState())
+                navigationManager.updateState(NavigationState())
             }
             RepoState.Unselected -> {
                 state = state.copy(
@@ -281,14 +283,6 @@ class VisualizerViewModel(
             }
             copy(filterState = filterState.copy(prSelection = newSelection))
         }
-    }
-
-    fun selectAllPrs() {
-        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.allVisible())) }
-    }
-
-    fun deselectAllPrs() {
-        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.none())) }
     }
 
     // region: ナビゲーション
