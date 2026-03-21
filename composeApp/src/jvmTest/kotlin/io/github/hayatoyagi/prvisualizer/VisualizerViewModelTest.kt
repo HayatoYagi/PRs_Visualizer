@@ -18,7 +18,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class VisualizerViewModelTest {
-
     private val emptySnapshot = GitHubSnapshot(
         rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
         pullRequests = emptyList(),
