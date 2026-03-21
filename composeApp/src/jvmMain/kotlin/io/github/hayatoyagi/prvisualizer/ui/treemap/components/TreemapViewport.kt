@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +23,6 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapCanvas
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapLegend
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapOverlay
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.LEGEND_PADDING_DP
-import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.LOADING_OVERLAY_ALPHA
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.treemapMoveHandler
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.treemapReleaseHandler
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.treemapScrollHandler
@@ -35,7 +33,6 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.models.TreemapViewportModel
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun TreemapViewport(
     model: TreemapViewportModel,
-    isLoading: Boolean,
     canZoomOut: Boolean,
     canZoomIn: Boolean,
     onZoomOut: () -> Unit,
@@ -51,16 +48,14 @@ internal fun TreemapViewport(
             .background(AppColors.backgroundCanvas)
             .onSizeChanged(callbacks.onSizeChanged)
             .treemapMoveHandler(
-                isLoading = isLoading,
                 onMoveEvent = { position, dragging ->
                     if (zoomControlBounds?.contains(position) != true) {
                         callbacks.onMoveEvent(position, dragging)
                     }
                 },
             )
-            .treemapScrollHandler(isLoading = isLoading, onScrollEvent = callbacks.onScrollEvent)
+            .treemapScrollHandler(onScrollEvent = callbacks.onScrollEvent)
             .treemapReleaseHandler(
-                isLoading = isLoading,
                 onReleaseEvent = { position, uptimeMillis ->
                     if (legendBounds?.contains(position) == true) return@treemapReleaseHandler
                     if (zoomControlBounds?.contains(position) == true) return@treemapReleaseHandler
@@ -111,15 +106,5 @@ internal fun TreemapViewport(
             onZoomOut = onZoomOut,
             onZoomIn = onZoomIn,
         )
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(AppColors.backgroundCanvas.copy(alpha = LOADING_OVERLAY_ALPHA)),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = AppColors.textPrimary)
-            }
-        }
     }
 }

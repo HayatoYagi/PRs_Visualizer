@@ -3,21 +3,27 @@
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
@@ -59,7 +65,6 @@ private fun rememberVisualizerUiState(ready: SnapshotFetchState.Ready): Visualiz
         currentUser = currentUser,
         selectedPath = ready.navigationState.selectedPath,
         prColorMap = ready.colorState.prColorMap,
-        isLoading = false,
     )
     val focusRoot = remember(root, ready.navigationState.focusPath) {
         findDirectory(root, ready.navigationState.focusPath) ?: root
@@ -134,12 +139,14 @@ fun App() {
                     vm.closeDialog()
                 },
             )
-            if (ready != null && uiState != null) {
-                AppMainRow(
+            when {
+                ready != null && uiState != null -> AppMainRow(
                     vm = vm,
                     uiState = uiState,
                     ready = ready,
                 )
+                snapshotFetchState is SnapshotFetchState.Fetching -> AppLoadingState()
+                else -> Unit
             }
         }
     }
@@ -194,7 +201,6 @@ private fun AppMainRow(
             onSelectDirectory = { vm.selectDirectory(it) },
             onSelectFile = { vm.selectFile(it) },
             onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
-            isLoading = false,
         )
         TreemapPane(
             modifier = Modifier
@@ -210,7 +216,6 @@ private fun AppMainRow(
             onFocusPathChange = { vm.changeFocusPath(it) },
             onSelectedPathChange = { vm.updateSelectedPath(it) },
             onFileDoubleClick = { vm.openFileDetailsDialog(it) },
-            isLoading = false,
         )
         PrListPane(
             uiState = uiState.prList,
@@ -224,6 +229,26 @@ private fun AppMainRow(
                 onToggleSelectAll = { vm.toggleSelectAll() },
             ),
         )
+    }
+}
+
+@Composable
+private fun AppLoadingState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = AppColors.textPrimary)
+            Text(
+                text = "Loading snapshot...",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+        }
     }
 }
 

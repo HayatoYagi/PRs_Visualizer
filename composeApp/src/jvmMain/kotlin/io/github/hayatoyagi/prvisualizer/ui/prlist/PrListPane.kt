@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +72,6 @@ fun PrListPane(
             onTogglePr = actions.onTogglePr,
             onOpenPr = actions.onOpenPr,
             onCyclePrColor = actions.onCyclePrColor,
-            isLoading = uiState.isLoading,
             contentModifier = Modifier.weight(1f),
         )
         Text(
@@ -160,18 +158,8 @@ private fun PrListBody(
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
     onOpenPr: (PullRequest) -> Unit,
     onCyclePrColor: (String) -> Unit,
-    isLoading: Boolean,
     contentModifier: Modifier,
 ) {
-    if (isLoading) {
-        Box(
-            modifier = contentModifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator(color = AppColors.textPrimary)
-        }
-        return
-    }
     LazyColumn(
         modifier = contentModifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),

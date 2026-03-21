@@ -45,7 +45,6 @@ fun TreemapPane(
     onSelectedPathChange: (String?) -> Unit,
     onFileDoubleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
 ) {
     var zoom by remember { mutableStateOf(INITIAL_ZOOM) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -101,7 +100,6 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             ),
-            isLoading = isLoading,
             canZoomOut = zoom > MIN_ZOOM,
             canZoomIn = zoom < MAX_ZOOM,
             onZoomOut = {

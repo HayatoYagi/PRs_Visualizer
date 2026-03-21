@@ -17,7 +17,6 @@ data class PrListUiState(
     val onlyMine: Boolean,
     val visiblePrCount: Int,
     val selectAllState: ToggleableState,
-    val isLoading: Boolean,
 )
 
 data class PrListActions(
@@ -37,7 +36,6 @@ fun rememberPrListUiState(
     currentUser: String,
     selectedPath: String?,
     prColorMap: Map<String, Color>,
-    isLoading: Boolean,
 ): PrListUiState {
     val filteredPrs = remember(
         filterState.showDrafts,
@@ -72,6 +70,5 @@ fun rememberPrListUiState(
         onlyMine = filterState.onlyMine,
         visiblePrCount = visiblePrCount,
         selectAllState = selectAllState,
-        isLoading = isLoading,
     )
 }
