@@ -40,25 +40,10 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
 @Composable
 fun PrListPane(
-    filteredPrs: List<PullRequest>,
-    selectedPrIds: Set<String>,
-    selectedPath: String?,
-    prColorMap: Map<String, Color>,
-    showDrafts: Boolean,
-    onlyMine: Boolean,
-    onShowDraftsChange: (Boolean) -> Unit,
-    onOnlyMineChange: (Boolean) -> Unit,
-    onTogglePr: (prId: String, checked: Boolean) -> Unit,
-    onOpenPr: (PullRequest) -> Unit,
-    onCyclePrColor: (String) -> Unit,
-    onShuffleColors: () -> Unit,
-    onSelectAllPrs: () -> Unit,
-    onDeselectAllPrs: () -> Unit,
+    uiState: PrListUiState,
+    actions: PrListActions,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
 ) {
-    val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
-    val selectAllState = computeSelectAllState(filteredPrs, selectedPrIds)
     Column(
         modifier = modifier
             .width(340.dp)
@@ -68,27 +53,26 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
-            visiblePrCount = visiblePrCount,
-            showDrafts = showDrafts,
-            onlyMine = onlyMine,
-            onShowDraftsChange = onShowDraftsChange,
-            onOnlyMineChange = onOnlyMineChange,
-            canShuffleColors = prColorMap.isNotEmpty(),
-            onShuffleColors = onShuffleColors,
-            selectAllState = selectAllState,
-            onSelectAll = onSelectAllPrs,
-            onDeselectAll = onDeselectAllPrs,
+            visiblePrCount = uiState.visiblePrCount,
+            showDrafts = uiState.showDrafts,
+            onlyMine = uiState.onlyMine,
+            onShowDraftsChange = actions.onShowDraftsChange,
+            onOnlyMineChange = actions.onOnlyMineChange,
+            canShuffleColors = uiState.prColorMap.isNotEmpty(),
+            onShuffleColors = actions.onShuffleColors,
+            selectAllState = uiState.selectAllState,
+            onToggleSelectAll = actions.onToggleSelectAll,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
-            filteredPrs = filteredPrs,
-            selectedPrIds = selectedPrIds,
-            selectedPath = selectedPath,
-            prColorMap = prColorMap,
-            onTogglePr = onTogglePr,
-            onOpenPr = onOpenPr,
-            onCyclePrColor = onCyclePrColor,
-            isLoading = isLoading,
+            filteredPrs = uiState.filteredPrs,
+            selectedPrIds = uiState.selectedPrIds,
+            selectedPath = uiState.selectedPath,
+            prColorMap = uiState.prColorMap,
+            onTogglePr = actions.onTogglePr,
+            onOpenPr = actions.onOpenPr,
+            onCyclePrColor = actions.onCyclePrColor,
+            isLoading = uiState.isLoading,
             contentModifier = Modifier.weight(1f),
         )
         Text(
@@ -109,8 +93,7 @@ private fun PrListHeader(
     canShuffleColors: Boolean,
     onShuffleColors: () -> Unit,
     selectAllState: ToggleableState,
-    onSelectAll: () -> Unit,
-    onDeselectAll: () -> Unit,
+    onToggleSelectAll: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -131,12 +114,7 @@ private fun PrListHeader(
         ) {
             TriStateCheckbox(
                 state = selectAllState,
-                onClick = {
-                    when (selectAllState) {
-                        ToggleableState.Off, ToggleableState.Indeterminate -> onSelectAll()
-                        ToggleableState.On -> onDeselectAll()
-                    }
-                },
+                onClick = onToggleSelectAll,
             )
             TooltipIconButton(
                 tooltip = "Shuffle Colors",
@@ -290,17 +268,3 @@ private fun ColorCycleChip(
 }
 
 private fun prItemBorderWidth(relatedToSelection: Boolean) = if (relatedToSelection) 3.dp else 2.dp
-
-private fun computeSelectAllState(
-    filteredPrs: List<PullRequest>,
-    selectedPrIds: Set<String>,
-): ToggleableState {
-    if (filteredPrs.isEmpty()) return ToggleableState.Off
-    
-    val selectedCount = filteredPrs.count { selectedPrIds.contains(it.id) }
-    return when {
-        selectedCount == 0 -> ToggleableState.Off
-        selectedCount == filteredPrs.size -> ToggleableState.On
-        else -> ToggleableState.Indeterminate
-    }
-}
