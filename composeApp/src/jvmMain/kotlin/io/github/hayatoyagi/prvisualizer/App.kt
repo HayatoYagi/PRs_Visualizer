@@ -222,7 +222,6 @@ private fun AppMainRow(
                 .weight(1f)
                 .fillMaxHeight(),
             focusPath = vm.state.navigationState.focusPath,
-            visiblePrs = uiState.visiblePrs,
             focusRoot = uiState.focusRoot,
             selectedPath = vm.state.navigationState.selectedPath,
             fileOverlayByPath = uiState.fileOverlayByPath,
@@ -231,7 +230,6 @@ private fun AppMainRow(
             viewportResetToken = vm.state.navigationState.viewportResetToken,
             onFocusPathChange = { vm.changeFocusPath(it) },
             onSelectedPathChange = { vm.updateSelectedPath(it) },
-            onRelatedPrsDetected = { vm.addRelatedPrs(it) },
             onFileDoubleClick = { vm.openFileDetailsDialog(it) },
             isLoading = isConnecting,
         )

@@ -34,7 +34,9 @@ A desktop application for visually understanding the state of open pull requests
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Java 17 or higher installed
+- JDK 21 or higher recommended
+- A full JDK is required for packaging tasks such as `:composeApp:packageDistributionForCurrentOS`
+- On Windows, Android Studio bundled `jbr` may not include `jpackage`, so use a standalone JDK for distribution builds
 
 ### Running the Application
 
