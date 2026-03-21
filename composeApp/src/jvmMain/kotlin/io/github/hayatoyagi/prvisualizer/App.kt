@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -32,13 +31,10 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
+import io.github.hayatoyagi.prvisualizer.ui.shortcut.RegisterShortcuts
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
-import java.awt.KeyEventDispatcher
-import java.awt.KeyboardFocusManager
-import java.awt.Toolkit
-import java.awt.event.KeyEvent
 
 data class VisualizerUiState(
     val allPrs: List<PullRequest>,
@@ -167,7 +163,7 @@ private fun AppEffects(
     allPrs: List<PullRequest>,
     filteredPrs: List<PullRequest>,
 ) {
-    RegisterResetViewportShortcut(vm)
+    RegisterShortcuts(vm)
     LaunchedEffect(Unit) {
         vm.initializeSession()
     }
@@ -198,26 +194,6 @@ private fun appRootModifier(vm: VisualizerViewModel): Modifier = Modifier
             else -> Unit
         }
     }
-
-@Composable
-private fun RegisterResetViewportShortcut(vm: VisualizerViewModel) {
-    DisposableEffect(vm) {
-        val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
-        val shortcutMask = Toolkit.getDefaultToolkit().menuShortcutKeyMaskEx
-        val dispatcher = KeyEventDispatcher { event ->
-            if (event.id != KeyEvent.KEY_PRESSED) return@KeyEventDispatcher false
-            if (event.keyCode != KeyEvent.VK_R) return@KeyEventDispatcher false
-            if ((event.modifiersEx and shortcutMask) == 0) return@KeyEventDispatcher false
-            if (focusManager.activeWindow == null) return@KeyEventDispatcher false
-            vm.resetViewport()
-            true
-        }
-        focusManager.addKeyEventDispatcher(dispatcher)
-        onDispose {
-            focusManager.removeKeyEventDispatcher(dispatcher)
-        }
-    }
-}
 
 @Composable
 private fun AppMainRow(
