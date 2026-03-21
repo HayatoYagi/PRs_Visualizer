@@ -9,7 +9,6 @@ import io.github.hayatoyagi.prvisualizer.state.FilterState
 
 data class PrListUiState(
     val filteredPrs: List<PullRequest>,
-    val visibleIds: Set<String>,
     val selectedPrIds: Set<String>,
     val visiblePrs: List<PullRequest>,
     val selectedPath: String?,
@@ -65,7 +64,6 @@ fun rememberPrListUiState(
     }
     return PrListUiState(
         filteredPrs = filteredPrs,
-        visibleIds = visibleIds,
         selectedPrIds = selectedPrIds,
         visiblePrs = visiblePrs,
         selectedPath = selectedPath,

@@ -30,7 +30,7 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 fun DialogHost(
     dialogState: DialogState,
     selectedRepo: RepoState.Selected?,
-    uiState: VisualizerUiState,
+    uiState: VisualizerUiState?,
     prColorMap: Map<String, Color>,
     repoSelectionState: RepoSelectionState,
     onReloadRepoOptions: () -> Unit,
@@ -54,14 +54,16 @@ fun DialogHost(
                 onRefresh()
             },
         )
-        is DialogState.FileDetails -> FileDetailsDialogHost(
-            dialogState = dialogState,
-            uiState = uiState,
-            selectedRepo = selectedRepo,
-            prColorMap = prColorMap,
-            onRetryLoadCommits = onRetryLoadCommits,
-            onDismiss = onDismissDialog,
-        )
+        is DialogState.FileDetails -> if (uiState != null) {
+            FileDetailsDialogHost(
+                dialogState = dialogState,
+                uiState = uiState,
+                selectedRepo = selectedRepo,
+                prColorMap = prColorMap,
+                onRetryLoadCommits = onRetryLoadCommits,
+                onDismiss = onDismissDialog,
+            )
+        }
         is DialogState.PrDetails -> PrDetailsDialog(
             pr = dialogState.pr,
             onDismiss = onDismissDialog,

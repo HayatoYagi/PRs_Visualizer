@@ -45,6 +45,9 @@ sealed interface SnapshotFetchState {
 
     data class Ready(
         val snapshot: GitHubSnapshot,
+        val filterState: FilterState = FilterState(),
+        val navigationState: NavigationState = NavigationState(),
+        val colorState: ColorState = ColorState(),
     ) : SnapshotFetchState
 
     data class Failed(
@@ -123,13 +126,13 @@ data class ColorState(
 
 /**
  * Main state container for the VisualizerViewModel.
+ *
+ * FilterState, NavigationState, and ColorState are scoped to [SnapshotFetchState.Ready]
+ * because they only have meaning when a snapshot is loaded.
  */
 data class VisualizerState(
     val repoSelectionState: RepoSelectionState = RepoSelectionState.Idle,
     val dialogState: DialogState = DialogState.None,
-    val filterState: FilterState = FilterState(),
-    val navigationState: NavigationState = NavigationState(),
-    val colorState: ColorState = ColorState(),
     val authState: AuthState = AuthState.Unauthenticated,
     val snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle,
 ) {
@@ -149,14 +152,11 @@ fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken =
 
 /**
  * Resets state when changing repositories.
- * Keeps toggle filters while clearing selection, colors, and navigation.
- * Clears fetched snapshot/error; auth errors are cleared back to unauthenticated.
+ * Clears snapshot (which includes filter, navigation, and color state).
+ * Auth errors are cleared back to unauthenticated.
  */
 fun VisualizerState.resetForRepositoryChange(): VisualizerState = copy(
     dialogState = DialogState.None,
-    filterState = filterState.copy(prSelection = PrSelection.allVisible()),
-    navigationState = NavigationState(),
-    colorState = ColorState(),
     snapshotFetchState = SnapshotFetchState.Idle,
     authState = if (authState is AuthState.Failed) AuthState.Unauthenticated else authState,
 )
