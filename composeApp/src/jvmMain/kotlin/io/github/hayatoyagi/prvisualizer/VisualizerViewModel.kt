@@ -26,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore,
     private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
@@ -283,6 +284,14 @@ class VisualizerViewModel(
             }
             copy(filterState = filterState.copy(prSelection = newSelection))
         }
+    }
+
+    fun selectAllPrs() {
+        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.allVisible())) }
+    }
+
+    fun deselectAllPrs() {
+        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.none())) }
     }
 
     // region: ナビゲーション
