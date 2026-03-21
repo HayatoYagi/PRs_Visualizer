@@ -24,36 +24,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipContainer
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
 @Composable
 fun PrListPane(
-    filteredPrs: List<PullRequest>,
-    selectedPrIds: Set<String>,
-    selectedPath: String?,
-    prColorMap: Map<String, Color>,
-    showDrafts: Boolean,
-    onlyMine: Boolean,
-    onShowDraftsChange: (Boolean) -> Unit,
-    onOnlyMineChange: (Boolean) -> Unit,
-    onTogglePr: (prId: String, checked: Boolean) -> Unit,
-    onOpenPr: (PullRequest) -> Unit,
-    onCyclePrColor: (String) -> Unit,
-    onShuffleColors: () -> Unit,
+    uiState: PrListUiState,
+    actions: PrListActions,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
 ) {
-    val visiblePrCount = filteredPrs.count { selectedPrIds.contains(it.id) }
     Column(
         modifier = modifier
             .width(340.dp)
@@ -63,24 +54,26 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
-            visiblePrCount = visiblePrCount,
-            showDrafts = showDrafts,
-            onlyMine = onlyMine,
-            onShowDraftsChange = onShowDraftsChange,
-            onOnlyMineChange = onOnlyMineChange,
-            canShuffleColors = prColorMap.isNotEmpty(),
-            onShuffleColors = onShuffleColors,
+            visiblePrCount = uiState.visiblePrCount,
+            showDrafts = uiState.showDrafts,
+            onlyMine = uiState.onlyMine,
+            onShowDraftsChange = actions.onShowDraftsChange,
+            onOnlyMineChange = actions.onOnlyMineChange,
+            canShuffleColors = uiState.prColorMap.isNotEmpty(),
+            onShuffleColors = actions.onShuffleColors,
+            selectAllState = uiState.selectAllState,
+            onToggleSelectAll = actions.onToggleSelectAll,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
-            filteredPrs = filteredPrs,
-            selectedPrIds = selectedPrIds,
-            selectedPath = selectedPath,
-            prColorMap = prColorMap,
-            onTogglePr = onTogglePr,
-            onOpenPr = onOpenPr,
-            onCyclePrColor = onCyclePrColor,
-            isLoading = isLoading,
+            filteredPrs = uiState.filteredPrs,
+            selectedPrIds = uiState.selectedPrIds,
+            selectedPath = uiState.selectedPath,
+            prColorMap = uiState.prColorMap,
+            onTogglePr = actions.onTogglePr,
+            onOpenPr = actions.onOpenPr,
+            onCyclePrColor = actions.onCyclePrColor,
+            isLoading = uiState.isLoading,
             contentModifier = Modifier.weight(1f),
         )
         Text(
@@ -100,6 +93,8 @@ private fun PrListHeader(
     onOnlyMineChange: (Boolean) -> Unit,
     canShuffleColors: Boolean,
     onShuffleColors: () -> Unit,
+    selectAllState: ToggleableState,
+    onToggleSelectAll: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -114,17 +109,30 @@ private fun PrListHeader(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        TooltipIconButton(
-            tooltip = "Shuffle Colors",
-            enabled = canShuffleColors,
-            onClick = onShuffleColors,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Shuffle,
-                contentDescription = "Shuffle Colors",
-                tint = if (canShuffleColors) AppColors.textPrimary else AppColors.textSecondary,
-                modifier = Modifier.size(20.dp),
-            )
+            TooltipContainer(
+                tooltip = bulkSelectionActionLabel(selectAllState),
+            ) {
+                TriStateCheckbox(
+                    state = selectAllState,
+                    onClick = onToggleSelectAll,
+                )
+            }
+            TooltipIconButton(
+                tooltip = "Shuffle Colors",
+                enabled = canShuffleColors,
+                onClick = onShuffleColors,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Shuffle,
+                    contentDescription = "Shuffle Colors",
+                    tint = if (canShuffleColors) AppColors.textPrimary else AppColors.textSecondary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
     PrFilterSwitch(checked = showDrafts, label = "Show draft", onCheckedChange = onShowDraftsChange)
@@ -265,3 +273,8 @@ private fun ColorCycleChip(
 }
 
 private fun prItemBorderWidth(relatedToSelection: Boolean) = if (relatedToSelection) 3.dp else 2.dp
+
+private fun bulkSelectionActionLabel(selectAllState: ToggleableState): String = when (selectAllState) {
+    ToggleableState.On -> "Deselect all PRs"
+    ToggleableState.Off, ToggleableState.Indeterminate -> "Select all PRs"
+}

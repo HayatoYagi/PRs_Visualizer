@@ -11,8 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.hayatoyagi.prvisualizer.AuthState
-import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.AuthSection
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.ConnectionSection

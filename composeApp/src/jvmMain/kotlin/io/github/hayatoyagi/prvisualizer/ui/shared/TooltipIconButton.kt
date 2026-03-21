@@ -1,5 +1,6 @@
 package io.github.hayatoyagi.prvisualizer.ui.shared
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.PlainTooltip
@@ -23,10 +24,9 @@ import androidx.compose.ui.window.PopupPositionProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TooltipIconButton(
+fun TooltipContainer(
     tooltip: String,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
+    contentDescription: String = tooltip,
     content: @Composable () -> Unit,
 ) {
     val defaultProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above)
@@ -54,8 +54,24 @@ fun TooltipIconButton(
         tooltip = { PlainTooltip { Text(tooltip) } },
         state = rememberTooltipState(),
     ) {
+        Box(
+            modifier = Modifier.semantics { this.contentDescription = contentDescription },
+        ) {
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TooltipIconButton(
+    tooltip: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    TooltipContainer(tooltip = tooltip) {
         IconButton(
-            modifier = Modifier.semantics { contentDescription = tooltip },
             enabled = enabled,
             onClick = onClick,
         ) {

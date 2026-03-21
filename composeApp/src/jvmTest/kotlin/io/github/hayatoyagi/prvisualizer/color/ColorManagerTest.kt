@@ -1,7 +1,7 @@
 package io.github.hayatoyagi.prvisualizer.color
 
-import io.github.hayatoyagi.prvisualizer.ColorState
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.state.ColorState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals

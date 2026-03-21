@@ -12,6 +12,12 @@ import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.DialogState
+import io.github.hayatoyagi.prvisualizer.state.PrSelection
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.state.VisualizerState
+import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -236,20 +242,28 @@ class VisualizerViewModel(
     fun togglePr(
         prId: String,
         checked: Boolean,
+        visibleIds: Set<String>,
     ) {
-        val newSelectedPrIds = if (checked) {
-            state.filterState.selectedPrIds + prId
-        } else {
-            state.filterState.selectedPrIds - prId
-        }
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = newSelectedPrIds),
+            filterState = state.filterState.copy(
+                prSelection = state.filterState.prSelection.toggle(
+                    prId = prId,
+                    checked = checked,
+                    visibleIds = visibleIds,
+                ),
+            ),
         )
     }
 
-    fun selectAllPrs(available: Set<String>) {
+    fun selectAllPrs() {
         state = state.copy(
-            filterState = state.filterState.copy(selectedPrIds = available),
+            filterState = state.filterState.copy(prSelection = PrSelection.allVisible()),
+        )
+    }
+
+    fun deselectAllPrs() {
+        state = state.copy(
+            filterState = state.filterState.copy(prSelection = PrSelection.none()),
         )
     }
 

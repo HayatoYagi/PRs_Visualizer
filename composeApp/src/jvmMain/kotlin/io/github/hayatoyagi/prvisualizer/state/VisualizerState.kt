@@ -1,6 +1,9 @@
-package io.github.hayatoyagi.prvisualizer
+package io.github.hayatoyagi.prvisualizer.state
 
 import androidx.compose.ui.graphics.Color
+import io.github.hayatoyagi.prvisualizer.AppError
+import io.github.hayatoyagi.prvisualizer.FileCommit
+import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
 sealed interface RepoSelectionState {
@@ -88,13 +91,10 @@ sealed interface DialogState {
     ) : DialogState
 }
 
-/**
- * Represents PR filter state.
- */
 data class FilterState(
     val showDrafts: Boolean = true,
     val onlyMine: Boolean = false,
-    val selectedPrIds: Set<String> = emptySet(),
+    val prSelection: PrSelection = PrSelection.allVisible(),
 )
 
 /**
@@ -154,7 +154,7 @@ fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken =
  */
 fun VisualizerState.resetForRepositoryChange(): VisualizerState = copy(
     dialogState = DialogState.None,
-    filterState = filterState.copy(selectedPrIds = emptySet()),
+    filterState = filterState.copy(prSelection = PrSelection.allVisible()),
     navigationState = NavigationState(),
     colorState = ColorState(),
     snapshotFetchState = SnapshotFetchState.Idle,

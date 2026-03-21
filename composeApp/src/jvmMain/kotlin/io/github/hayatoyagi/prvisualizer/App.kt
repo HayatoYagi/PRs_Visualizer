@@ -17,14 +17,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.dialog.DialogHost
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
+import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListActions
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
-import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
+import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListUiState
+import io.github.hayatoyagi.prvisualizer.ui.prlist.rememberPrListUiState
 import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
@@ -38,9 +43,7 @@ import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
 
 data class VisualizerUiState(
     val allPrs: List<PullRequest>,
-    val filteredPrs: List<PullRequest>,
-    val effectiveSelectedIds: Set<String>,
-    val visiblePrs: List<PullRequest>,
+    val prList: PrListUiState,
     val focusRoot: FileNode.Directory,
     val fileOverlayByPath: Map<String, FileOverlay>,
     val directoryOverlayByPath: Map<String, DirectoryOverlay>,
@@ -52,40 +55,28 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
     val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
     val root = snapshot?.rootNode ?: emptyRoot
     val allPrs = snapshot?.pullRequests ?: emptyList()
-    val currentUser = vm.state.currentUser
-
-    val filteredPrs = remember(
-        vm.state.filterState.showDrafts,
-        vm.state.filterState.onlyMine,
-        allPrs,
-        currentUser,
-    ) {
-        filterPrs(allPrs, vm.state.filterState.showDrafts, vm.state.filterState.onlyMine, currentUser)
-    }
-    // Treat emptySet as "uninitialized / all selected" to avoid a flash on first load.
-    // After the user explicitly toggles a PR, selectedPrIds becomes non-empty.
-    val effectiveSelectedIds = remember(vm.state.filterState.selectedPrIds, filteredPrs) {
-        computeEffectiveSelectedIds(vm.state.filterState.selectedPrIds, filteredPrs)
-    }
-    val visiblePrs = remember(filteredPrs, effectiveSelectedIds) {
-        filteredPrs.filter { effectiveSelectedIds.contains(it.id) }
-    }
+    val prListUiState = rememberPrListUiState(
+        allPrs = allPrs,
+        filterState = vm.state.filterState,
+        currentUser = vm.state.currentUser,
+        selectedPath = vm.state.navigationState.selectedPath,
+        prColorMap = vm.state.colorState.prColorMap,
+        isLoading = vm.state.snapshotFetchState is SnapshotFetchState.Fetching,
+    )
     val focusRoot = remember(root, vm.state.navigationState.focusPath) {
         findDirectory(root, vm.state.navigationState.focusPath) ?: root
     }
     val allFiles = remember(root) { collectAllFiles(root) }
     val allDirectories = remember(root) { collectAllDirectories(root) }
-    val fileOverlayByPath = remember(visiblePrs, allFiles) {
-        computeFileOverlayByPath(visiblePrs, allFiles)
+    val fileOverlayByPath = remember(prListUiState.visiblePrs, allFiles) {
+        computeFileOverlayByPath(prListUiState.visiblePrs, allFiles)
     }
-    val directoryOverlayByPath = remember(visiblePrs, allDirectories) {
-        computeDirectoryOverlayByPath(visiblePrs, allDirectories)
+    val directoryOverlayByPath = remember(prListUiState.visiblePrs, allDirectories) {
+        computeDirectoryOverlayByPath(prListUiState.visiblePrs, allDirectories)
     }
     return VisualizerUiState(
         allPrs = allPrs,
-        filteredPrs = filteredPrs,
-        effectiveSelectedIds = effectiveSelectedIds,
-        visiblePrs = visiblePrs,
+        prList = prListUiState,
         focusRoot = focusRoot,
         fileOverlayByPath = fileOverlayByPath,
         directoryOverlayByPath = directoryOverlayByPath,
@@ -103,11 +94,9 @@ fun App() {
     val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
-    val isConnecting = snapshotFetchState is SnapshotFetchState.Fetching
-
     val uiState = rememberVisualizerUiState(vm)
 
-    AppEffects(vm = vm, authState = authState, allPrs = uiState.allPrs, filteredPrs = uiState.filteredPrs)
+    AppEffects(vm = vm, authState = authState, allPrs = uiState.allPrs)
 
     MaterialTheme {
         Column(
@@ -150,7 +139,7 @@ fun App() {
                 vm = vm,
                 uiState = uiState,
                 snapshotFetchState = snapshotFetchState,
-                isConnecting = isConnecting,
+                isConnecting = uiState.prList.isLoading,
             )
         }
     }
@@ -161,7 +150,6 @@ private fun AppEffects(
     vm: VisualizerViewModel,
     authState: AuthState,
     allPrs: List<PullRequest>,
-    filteredPrs: List<PullRequest>,
 ) {
     RegisterShortcuts(vm)
     LaunchedEffect(Unit) {
@@ -172,14 +160,6 @@ private fun AppEffects(
     }
     LaunchedEffect(allPrs) {
         vm.ensurePrColors(allPrs)
-    }
-    // Only reset to all when a filter change leaves the current selection with no overlap.
-    LaunchedEffect(filteredPrs) {
-        val available = filteredPrs.map { it.id }.toSet()
-        val selected = vm.state.filterState.selectedPrIds
-        if (selected.isNotEmpty() && selected.none(available::contains)) {
-            vm.selectAllPrs(available)
-        }
     }
 }
 
@@ -234,52 +214,37 @@ private fun AppMainRow(
             isLoading = isConnecting,
         )
         PrListPane(
-            filteredPrs = uiState.filteredPrs,
-            selectedPrIds = uiState.effectiveSelectedIds,
-            selectedPath = vm.state.navigationState.selectedPath,
-            prColorMap = vm.state.colorState.prColorMap,
-            showDrafts = vm.state.filterState.showDrafts,
-            onlyMine = vm.state.filterState.onlyMine,
-            onShowDraftsChange = { vm.updateShowDrafts(it) },
-            onOnlyMineChange = { vm.updateOnlyMine(it) },
-            onTogglePr = { prId, checked ->
-                onPrToggle(
-                    vm = vm,
-                    effectiveSelectedIds = uiState.effectiveSelectedIds,
-                    prId = prId,
-                    checked = checked,
-                )
-            },
-            onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
-            onCyclePrColor = { vm.cyclePrColor(it) },
-            onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-            isLoading = isConnecting,
+            uiState = uiState.prList,
+            actions = PrListActions(
+                onShowDraftsChange = { vm.updateShowDrafts(it) },
+                onOnlyMineChange = { vm.updateOnlyMine(it) },
+                onTogglePr = { prId, checked ->
+                    vm.togglePr(
+                        prId = prId,
+                        checked = checked,
+                        visibleIds = uiState.prList.visibleIds,
+                    )
+                },
+                onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
+                onCyclePrColor = { vm.cyclePrColor(it) },
+                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
+                onToggleSelectAll = {
+                    when (uiState.prList.selectAllState) {
+                        ToggleableState.On -> vm.deselectAllPrs()
+                        ToggleableState.Off,
+                        ToggleableState.Indeterminate,
+                        -> vm.selectAllPrs()
+                    }
+                },
+            ),
         )
     }
-}
-
-private fun onPrToggle(
-    vm: VisualizerViewModel,
-    effectiveSelectedIds: Set<String>,
-    prId: String,
-    checked: Boolean,
-) {
-    // Initialize from effectiveSelectedIds on first interaction (selectedPrIds is empty = all)
-    if (vm.state.filterState.selectedPrIds.isEmpty()) {
-        vm.selectAllPrs(effectiveSelectedIds)
-    }
-    vm.togglePr(prId, checked)
 }
 
 private fun snapshotOrNull(fetchState: SnapshotFetchState) = when (fetchState) {
     is SnapshotFetchState.Ready -> fetchState.snapshot
     SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> null
 }
-
-private fun computeEffectiveSelectedIds(
-    selectedPrIds: Set<String>,
-    filteredPrs: List<PullRequest>,
-): Set<String> = if (selectedPrIds.isEmpty()) filteredPrs.map { it.id }.toSet() else selectedPrIds
 
 private fun collectAllFiles(root: FileNode.Directory): List<FileNode.File> = buildList {
     fun collectFiles(node: FileNode) {
