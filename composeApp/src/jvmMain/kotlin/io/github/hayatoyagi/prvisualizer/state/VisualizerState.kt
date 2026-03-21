@@ -138,6 +138,9 @@ data class VisualizerState(
             is SnapshotFetchState.Ready -> fetchState.snapshot.viewerLogin.orEmpty()
             SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> ""
         }
+
+    val pullRequests: List<PullRequest>
+        get() = (snapshotFetchState as? SnapshotFetchState.Ready)?.snapshot?.pullRequests ?: emptyList()
 }
 
 fun NavigationState.resetNavigation(): NavigationState = copy(
@@ -146,6 +149,15 @@ fun NavigationState.resetNavigation(): NavigationState = copy(
 )
 
 fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
+
+/**
+ * Returns the subset of [allPrs] that pass the current filter toggles.
+ * Used by the ViewModel to derive visible PR IDs without leaking the computation to callers.
+ */
+fun FilterState.filteredPrs(allPrs: List<PullRequest>, currentUser: String): List<PullRequest> =
+    allPrs.filter { pr ->
+        (showDrafts || !pr.isDraft) && (!onlyMine || pr.author == currentUser)
+    }
 
 /**
  * Resets state when changing repositories.

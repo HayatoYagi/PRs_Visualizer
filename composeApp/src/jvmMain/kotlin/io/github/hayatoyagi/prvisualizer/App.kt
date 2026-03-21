@@ -219,11 +219,7 @@ private fun AppMainRow(
                 onShowDraftsChange = { vm.updateShowDrafts(it) },
                 onOnlyMineChange = { vm.updateOnlyMine(it) },
                 onTogglePr = { prId, checked ->
-                    vm.togglePr(
-                        prId = prId,
-                        checked = checked,
-                        visibleIds = uiState.prList.visibleIds,
-                    )
+                    vm.togglePr(prId = prId, checked = checked)
                 },
                 onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
                 onCyclePrColor = { vm.cyclePrColor(it) },

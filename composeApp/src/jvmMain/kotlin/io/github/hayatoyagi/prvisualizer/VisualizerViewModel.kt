@@ -17,6 +17,7 @@ import io.github.hayatoyagi.prvisualizer.state.DialogState
 import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
+import io.github.hayatoyagi.prvisualizer.state.filteredPrs
 import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
@@ -239,11 +240,8 @@ class VisualizerViewModel(
         )
     }
 
-    fun togglePr(
-        prId: String,
-        checked: Boolean,
-        visibleIds: Set<String>,
-    ) {
+    fun togglePr(prId: String, checked: Boolean) {
+        val visibleIds = state.filterState.filteredPrs(state.pullRequests, state.currentUser).map { it.id }.toSet()
         state = state.copy(
             filterState = state.filterState.copy(
                 prSelection = state.filterState.prSelection.toggle(

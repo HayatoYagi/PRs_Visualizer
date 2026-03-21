@@ -164,17 +164,29 @@ class VisualizerViewModelTest {
 
     @Test
     fun `togglePr should add and remove PR IDs`() {
-        val vm = VisualizerViewModel(selectedRepositoryStore = InMemorySelectedRepositoryStore())
+        val snapshot = GitHubSnapshot(
+            rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+            pullRequests = listOf(
+                PullRequest("pr1", 1, "Title 1", "author1", false, "url1", emptyList()),
+                PullRequest("pr2", 2, "Title 2", "author2", false, "url2", emptyList()),
+            ),
+            viewerLogin = null,
+            defaultBranch = "main",
+        )
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(),
+            initialState = VisualizerState(snapshotFetchState = SnapshotFetchState.Ready(snapshot)),
+        )
         assertIs<PrSelection.AllVisible>(vm.state.filterState.prSelection)
 
         vm.deselectAllPrs()
-        vm.togglePr("pr1", checked = true, visibleIds = setOf("pr1", "pr2"))
+        vm.togglePr("pr1", checked = true)
         assertEquals(setOf("pr1"), assertIs<PrSelection.Explicit>(vm.state.filterState.prSelection).ids)
 
-        vm.togglePr("pr2", checked = true, visibleIds = setOf("pr1", "pr2"))
+        vm.togglePr("pr2", checked = true)
         assertIs<PrSelection.AllVisible>(vm.state.filterState.prSelection)
 
-        vm.togglePr("pr1", checked = false, visibleIds = setOf("pr1", "pr2"))
+        vm.togglePr("pr1", checked = false)
         assertEquals(setOf("pr2"), assertIs<PrSelection.Explicit>(vm.state.filterState.prSelection).ids)
     }
 

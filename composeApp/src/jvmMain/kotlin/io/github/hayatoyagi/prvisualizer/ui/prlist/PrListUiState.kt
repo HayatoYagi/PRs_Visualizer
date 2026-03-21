@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.state.FilterState
+import io.github.hayatoyagi.prvisualizer.state.filteredPrs
 
 data class PrListUiState(
     val filteredPrs: List<PullRequest>,
@@ -46,7 +47,7 @@ fun rememberPrListUiState(
         allPrs,
         currentUser,
     ) {
-        filterPrs(allPrs, filterState.showDrafts, filterState.onlyMine, currentUser)
+        filterState.filteredPrs(allPrs, currentUser)
     }
     val visibleIds = remember(filteredPrs) {
         filteredPrs.map { it.id }.toSet()
