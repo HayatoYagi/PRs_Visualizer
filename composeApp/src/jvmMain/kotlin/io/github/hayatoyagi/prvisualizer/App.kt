@@ -9,17 +9,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -40,6 +35,10 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
+import java.awt.KeyEventDispatcher
+import java.awt.KeyboardFocusManager
+import java.awt.Toolkit
+import java.awt.event.KeyEvent
 
 data class VisualizerUiState(
     val allPrs: List<PullRequest>,
@@ -99,7 +98,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
 
 @Composable
 @Preview
-@OptIn(ExperimentalComposeUiApi::class)
 fun App() {
     val vm = viewModel {
         VisualizerViewModel(
@@ -151,7 +149,6 @@ fun App() {
                     vm.selectFile(filePath)
                     vm.closeDialog()
                 },
-                onResetViewport = { vm.resetViewport() },
             )
             AppMainRow(
                 vm = vm,
@@ -170,6 +167,7 @@ private fun AppEffects(
     allPrs: List<PullRequest>,
     filteredPrs: List<PullRequest>,
 ) {
+    RegisterResetViewportShortcut(vm)
     LaunchedEffect(Unit) {
         vm.initializeSession()
     }
@@ -200,12 +198,26 @@ private fun appRootModifier(vm: VisualizerViewModel): Modifier = Modifier
             else -> Unit
         }
     }
-    .onPreviewKeyEvent { event ->
-        if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) return@onPreviewKeyEvent false
-        if (event.key != Key.R) return@onPreviewKeyEvent false
-        vm.resetViewport()
-        true
+
+@Composable
+private fun RegisterResetViewportShortcut(vm: VisualizerViewModel) {
+    DisposableEffect(vm) {
+        val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+        val shortcutMask = Toolkit.getDefaultToolkit().menuShortcutKeyMaskEx
+        val dispatcher = KeyEventDispatcher { event ->
+            if (event.id != KeyEvent.KEY_PRESSED) return@KeyEventDispatcher false
+            if (event.keyCode != KeyEvent.VK_R) return@KeyEventDispatcher false
+            if ((event.modifiersEx and shortcutMask) == 0) return@KeyEventDispatcher false
+            if (focusManager.activeWindow == null) return@KeyEventDispatcher false
+            vm.resetViewport()
+            true
+        }
+        focusManager.addKeyEventDispatcher(dispatcher)
+        onDispose {
+            focusManager.removeKeyEventDispatcher(dispatcher)
+        }
     }
+}
 
 @Composable
 private fun AppMainRow(

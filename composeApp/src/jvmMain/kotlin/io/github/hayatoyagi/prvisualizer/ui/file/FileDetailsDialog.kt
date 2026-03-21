@@ -22,15 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,7 +39,6 @@ import java.nio.charset.StandardCharsets
 private const val ISO_DATE_PREFIX_LENGTH = 10
 private const val ISO_DATE_PARTS_COUNT = 3
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FileDetailsDialog(
     filePath: String,
@@ -59,7 +51,6 @@ fun FileDetailsDialog(
     commitsState: DialogState.FileDetails.CommitsState,
     onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
-    onResetViewport: () -> Unit,
 ) {
     val encodedBranch = encodeGitHubPathPart(defaultBranch)
     val encodedFilePath = filePath
@@ -68,14 +59,6 @@ fun FileDetailsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.onPreviewKeyEvent { event ->
-            if (event.type == KeyEventType.KeyDown && event.isMetaPressed && event.key == Key.R) {
-                onResetViewport()
-                true
-            } else {
-                false
-            }
-        },
         containerColor = AppColors.backgroundPane,
         titleContentColor = AppColors.textPaneTitle,
         textContentColor = AppColors.textBody,

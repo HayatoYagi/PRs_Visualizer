@@ -17,14 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ChangeType
@@ -32,25 +25,15 @@ import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PrDetailsDialog(
     pr: PullRequest,
     onDismiss: () -> Unit,
     onOpenInBrowser: (String) -> Unit,
     onSelectFile: (String) -> Unit,
-    onResetViewport: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.onPreviewKeyEvent { event ->
-            if (event.type == KeyEventType.KeyDown && event.isMetaPressed && event.key == Key.R) {
-                onResetViewport()
-                true
-            } else {
-                false
-            }
-        },
         containerColor = AppColors.backgroundPane,
         titleContentColor = AppColors.textPaneTitle,
         textContentColor = AppColors.textBody,
