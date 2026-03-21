@@ -54,8 +54,34 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Current version: $VERSION"
 
+    - name: Decode PFX certificate (Windows only)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        echo "::add-mask::${{ secrets.WINDOWS_PFX_PASSWORD }}"
+        $pfxPath = "$env:RUNNER_TEMP\certificate.pfx"
+        [System.Convert]::FromBase64String("${{ secrets.WINDOWS_PFX_CERTIFICATE }}") | Set-Content -Path $pfxPath -AsByteStream
+        echo "WINDOWS_PFX_FILE_PATH=$pfxPath" >> $env:GITHUB_ENV
+        echo "WINDOWS_PFX_PASSWORD=${{ secrets.WINDOWS_PFX_PASSWORD }}" >> $env:GITHUB_ENV
+
     - name: Build distribution for ${{ matrix.os }}
       run: ./gradlew :composeApp:packageReleaseDistributionForCurrentOS --stacktrace
+
+    - name: Sign MSI (Windows only)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        $msiPath = Get-ChildItem -Recurse -Filter "*.msi" -Path "composeApp/build/compose/binaries/main-release/msi" | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $msiPath) {
+          Write-Error "No MSI file found to sign"
+          exit 1
+        }
+        $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $signtool) {
+          Write-Error "signtool.exe not found in Windows Kits directory"
+          exit 1
+        }
+        & $signtool sign /f "$env:WINDOWS_PFX_FILE_PATH" /p "$env:WINDOWS_PFX_PASSWORD" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "$msiPath"
 
     - name: Find artifact
       id: find_artifact
