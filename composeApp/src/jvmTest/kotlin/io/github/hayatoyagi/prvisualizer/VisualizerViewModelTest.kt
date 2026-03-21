@@ -3,6 +3,10 @@ package io.github.hayatoyagi.prvisualizer
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.state.DialogState
+import io.github.hayatoyagi.prvisualizer.state.PrSelection
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
+import io.github.hayatoyagi.prvisualizer.state.VisualizerState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import kotlin.test.Test
 import kotlin.test.assertEquals

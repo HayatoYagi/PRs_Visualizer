@@ -25,7 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.hayatoyagi.prvisualizer.RepoSelectionState
+import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 @Composable

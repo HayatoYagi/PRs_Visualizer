@@ -1,14 +1,14 @@
 package io.github.hayatoyagi.prvisualizer.github.session
 
 import io.github.hayatoyagi.prvisualizer.AppError
-import io.github.hayatoyagi.prvisualizer.AuthState
 import io.github.hayatoyagi.prvisualizer.FileNode
-import io.github.hayatoyagi.prvisualizer.RepoSelectionState
-import io.github.hayatoyagi.prvisualizer.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.github.GitHubAuthExpiredException
 import io.github.hayatoyagi.prvisualizer.github.GitHubOAuthDesktopAuthenticator
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
