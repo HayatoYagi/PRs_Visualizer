@@ -14,12 +14,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -37,6 +31,7 @@ import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
 import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
+import io.github.hayatoyagi.prvisualizer.ui.shortcut.RegisterShortcuts
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
@@ -99,7 +94,6 @@ private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiStat
 
 @Composable
 @Preview
-@OptIn(ExperimentalComposeUiApi::class)
 fun App() {
     val vm = viewModel {
         VisualizerViewModel(
@@ -169,6 +163,7 @@ private fun AppEffects(
     allPrs: List<PullRequest>,
     filteredPrs: List<PullRequest>,
 ) {
+    RegisterShortcuts(vm)
     LaunchedEffect(Unit) {
         vm.initializeSession()
     }
@@ -198,12 +193,6 @@ private fun appRootModifier(vm: VisualizerViewModel): Modifier = Modifier
             PointerButton.Forward -> vm.navigateForward()
             else -> Unit
         }
-    }
-    .onPreviewKeyEvent { event ->
-        if (event.type != KeyEventType.KeyDown || !event.isMetaPressed) return@onPreviewKeyEvent false
-        if (event.key != Key.R) return@onPreviewKeyEvent false
-        vm.resetViewport()
-        true
     }
 
 @Composable
