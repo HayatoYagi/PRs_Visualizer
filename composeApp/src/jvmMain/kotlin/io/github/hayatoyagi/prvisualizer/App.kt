@@ -165,7 +165,14 @@ private fun AppMainRow(
             onFileDoubleClick = { vm.openFileDetailsDialog(it) },
         )
         PrListPane(
-            uiState = ready.prListUiState,
+            filteredPrs = ready.filteredPrs,
+            selectedPrIds = ready.selectedPrIds,
+            selectedPath = ready.navigationState.selectedPath,
+            prColorMap = ready.colorState.prColorMap,
+            showDrafts = ready.filterState.showDrafts,
+            onlyMine = ready.filterState.onlyMine,
+            visiblePrCount = ready.selectedPrIds.size,
+            selectAllState = ready.filterState.prSelection.triState(ready.filteredPrIds),
             actions = PrListActions(
                 onShowDraftsChange = { vm.updateShowDrafts(it) },
                 onOnlyMineChange = { vm.updateOnlyMine(it) },

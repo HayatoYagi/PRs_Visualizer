@@ -5,7 +5,6 @@ import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
-import io.github.hayatoyagi.prvisualizer.ui.prlist.buildPrListUiState
 import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.shared.collectAllDirectories
 import io.github.hayatoyagi.prvisualizer.ui.shared.collectAllFiles
@@ -83,17 +82,6 @@ sealed interface SnapshotFetchState {
          * Filtered PRs that are currently selected and therefore contribute to overlays and treemap coloring.
          */
         val selectedPrs = filteredPrs.filter { selectedPrIds.contains(it.id) }
-
-        val prListUiState = buildPrListUiState(
-            filteredPrs = filteredPrs,
-            selectedPrIds = selectedPrIds,
-            selectedPrs = selectedPrs,
-            selectedPath = navigationState.selectedPath,
-            prColorMap = colorState.prColorMap,
-            showDrafts = filterState.showDrafts,
-            onlyMine = filterState.onlyMine,
-            selectAllState = filterState.prSelection.triState(filteredPrIds),
-        )
         val focusRoot = findDirectory(snapshot.rootNode, navigationState.focusPath) ?: snapshot.rootNode
         val fileOverlayByPath = computeFileOverlayByPath(selectedPrs, collectAllFiles(snapshot.rootNode))
         val directoryOverlayByPath = computeDirectoryOverlayByPath(

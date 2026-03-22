@@ -40,7 +40,14 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
 @Composable
 fun PrListPane(
-    uiState: PrListUiState,
+    filteredPrs: List<PullRequest>,
+    selectedPrIds: Set<String>,
+    selectedPath: String?,
+    prColorMap: Map<String, Color>,
+    showDrafts: Boolean,
+    onlyMine: Boolean,
+    visiblePrCount: Int,
+    selectAllState: ToggleableState,
     actions: PrListActions,
     modifier: Modifier = Modifier,
 ) {
@@ -53,22 +60,22 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
-            visiblePrCount = uiState.visiblePrCount,
-            showDrafts = uiState.showDrafts,
-            onlyMine = uiState.onlyMine,
+            visiblePrCount = visiblePrCount,
+            showDrafts = showDrafts,
+            onlyMine = onlyMine,
             onShowDraftsChange = actions.onShowDraftsChange,
             onOnlyMineChange = actions.onOnlyMineChange,
-            canShuffleColors = uiState.prColorMap.isNotEmpty(),
+            canShuffleColors = prColorMap.isNotEmpty(),
             onShuffleColors = actions.onShuffleColors,
-            selectAllState = uiState.selectAllState,
+            selectAllState = selectAllState,
             onToggleSelectAll = actions.onToggleSelectAll,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
-            filteredPrs = uiState.filteredPrs,
-            selectedPrIds = uiState.selectedPrIds,
-            selectedPath = uiState.selectedPath,
-            prColorMap = uiState.prColorMap,
+            filteredPrs = filteredPrs,
+            selectedPrIds = selectedPrIds,
+            selectedPath = selectedPath,
+            prColorMap = prColorMap,
             onTogglePr = actions.onTogglePr,
             onOpenPr = actions.onOpenPr,
             onCyclePrColor = actions.onCyclePrColor,
