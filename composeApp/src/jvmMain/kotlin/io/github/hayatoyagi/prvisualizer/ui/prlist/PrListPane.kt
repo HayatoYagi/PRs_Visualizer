@@ -46,7 +46,6 @@ fun PrListPane(
     prColorMap: Map<String, Color>,
     showDrafts: Boolean,
     onlyMine: Boolean,
-    visiblePrCount: Int,
     selectAllState: ToggleableState,
     actions: PrListActions,
     modifier: Modifier = Modifier,
@@ -60,7 +59,7 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
-            visiblePrCount = visiblePrCount,
+            visiblePrCount = selectedPrIds.size,
             showDrafts = showDrafts,
             onlyMine = onlyMine,
             onShowDraftsChange = actions.onShowDraftsChange,

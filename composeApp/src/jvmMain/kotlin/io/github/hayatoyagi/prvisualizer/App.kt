@@ -171,7 +171,6 @@ private fun AppMainRow(
             prColorMap = ready.colorState.prColorMap,
             showDrafts = ready.filterState.showDrafts,
             onlyMine = ready.filterState.onlyMine,
-            visiblePrCount = ready.selectedPrIds.size,
             selectAllState = ready.filterState.prSelection.triState(ready.filteredPrIds),
             actions = PrListActions(
                 onShowDraftsChange = { vm.updateShowDrafts(it) },
