@@ -51,7 +51,7 @@ fun DeviceFlowDialog(
                     Spacer(Modifier.width(8.dp))
                     Text("Open Sign-in Page")
                 }
-                Text("2. Enter this code on the GitHub page.")
+                Text("2. Enter this code on the GitHub page. (It has already been copied to your clipboard.)")
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -74,11 +74,6 @@ fun DeviceFlowDialog(
                         Text("Copy Code")
                     }
                 }
-                Text(
-                    "The code has already been copied to your clipboard. " +
-                        "If needed, use the button above to copy it again.",
-                    color = AppColors.textBodyMuted,
-                )
                 Text(
                     "3. Authorize the app in your browser. " +
                         "This app will continue automatically after GitHub completes sign-in.",
