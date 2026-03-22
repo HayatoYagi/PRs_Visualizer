@@ -1,68 +1,23 @@
-package io.github.hayatoyagi.prvisualizer.ui.shared
+package io.github.hayatoyagi.prvisualizer.state
 
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.filetree.totalLines
 
-fun findDirectory(
-    root: FileNode.Directory,
-    path: String,
-): FileNode.Directory? {
-    if (path.isBlank()) return root
-    if (root.path == path) return root
-    root.children.forEach { child ->
-        if (child is FileNode.Directory) {
-            val found = findDirectory(child, path)
-            if (found != null) return found
-        }
-    }
-    return null
-}
+data class FileOverlay(
+    val prs: List<PullRequest>,
+    val dominantType: ChangeType,
+    val density: Float,
+)
 
-fun findFileNode(
-    root: FileNode.Directory,
-    path: String,
-): FileNode.File? {
-    root.children.forEach { child ->
-        when (child) {
-            is FileNode.File -> {
-                if (child.path == path) return child
-            }
-            is FileNode.Directory -> {
-                val found = findFileNode(child, path)
-                if (found != null) return found
-            }
-        }
-    }
-    return null
-}
+data class DirectoryOverlay(
+    val prs: List<PullRequest>,
+    val dominantType: ChangeType?,
+    val density: Float,
+)
 
-fun parentPathOf(path: String): String {
-    if (path.isBlank()) return ""
-    return path.substringBeforeLast('/', missingDelimiterValue = "")
-}
-
-// Total lines for overlay density calculation (distinct from TreemapLayoutEngine's private version used for layout weights)
-fun totalLines(node: FileNode): Int = when (node) {
-    is FileNode.File -> node.totalLines
-    is FileNode.Directory -> node.children.sumOf(::totalLines)
-}
-
-fun computeConflictedDirs(fileOverlayByPath: Map<String, FileOverlay>): Set<String> {
-    val conflictedDirectories = mutableSetOf<String>()
-    fileOverlayByPath.forEach { (filePath, overlay) ->
-        if (overlay.prs.size <= 1) return@forEach
-        val segments = filePath.split('/')
-        var current = ""
-        for (i in 0 until segments.lastIndex) {
-            current = if (current.isEmpty()) segments[i] else "$current/${segments[i]}"
-            conflictedDirectories += current
-        }
-    }
-    return conflictedDirectories
-}
-
-fun computeFileOverlayByPath(
+internal fun computeFileOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleFiles: List<FileNode.File>,
 ): Map<String, FileOverlay> {
@@ -85,7 +40,7 @@ fun computeFileOverlayByPath(
         }
 }
 
-fun computeDirectoryOverlayByPath(
+internal fun computeDirectoryOverlayByPath(
     visiblePrs: List<PullRequest>,
     visibleDirectories: List<FileNode.Directory>,
 ): Map<String, DirectoryOverlay> = visibleDirectories.associate { dir ->

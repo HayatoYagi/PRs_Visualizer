@@ -7,14 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.AppError
-import io.github.hayatoyagi.prvisualizer.VisualizerUiState
+import io.github.hayatoyagi.prvisualizer.filetree.findFileNode
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.state.DialogState
 import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
+import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.file.FileDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrDetailsDialog
 import io.github.hayatoyagi.prvisualizer.ui.repo.RepoPickerDialog
-import io.github.hayatoyagi.prvisualizer.ui.shared.findFileNode
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 /**
@@ -30,7 +30,7 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 fun DialogHost(
     dialogState: DialogState,
     selectedRepo: RepoState.Selected?,
-    uiState: VisualizerUiState,
+    ready: SnapshotFetchState.Ready?,
     prColorMap: Map<String, Color>,
     repoSelectionState: RepoSelectionState,
     onReloadRepoOptions: () -> Unit,
@@ -54,14 +54,16 @@ fun DialogHost(
                 onRefresh()
             },
         )
-        is DialogState.FileDetails -> FileDetailsDialogHost(
-            dialogState = dialogState,
-            uiState = uiState,
-            selectedRepo = selectedRepo,
-            prColorMap = prColorMap,
-            onRetryLoadCommits = onRetryLoadCommits,
-            onDismiss = onDismissDialog,
-        )
+        is DialogState.FileDetails -> if (ready != null) {
+            FileDetailsDialogHost(
+                dialogState = dialogState,
+                ready = ready,
+                selectedRepo = selectedRepo,
+                prColorMap = prColorMap,
+                onRetryLoadCommits = onRetryLoadCommits,
+                onDismiss = onDismissDialog,
+            )
+        }
         is DialogState.PrDetails -> PrDetailsDialog(
             pr = dialogState.pr,
             onDismiss = onDismissDialog,
@@ -118,19 +120,19 @@ private fun errorDialogMessage(error: AppError): String = when (error) {
 @Composable
 private fun FileDetailsDialogHost(
     dialogState: DialogState.FileDetails,
-    uiState: VisualizerUiState,
+    ready: SnapshotFetchState.Ready,
     selectedRepo: RepoState.Selected?,
     prColorMap: Map<String, Color>,
     onRetryLoadCommits: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val filePath = dialogState.filePath
-    val fileNode = remember(uiState.focusRoot, filePath) { findFileNode(uiState.focusRoot, filePath) } ?: return
+    val fileNode = remember(ready.focusRoot, filePath) { findFileNode(ready.focusRoot, filePath) } ?: return
     FileDetailsDialog(
         filePath = filePath,
         fileName = filePath.substringAfterLast('/'),
         totalLines = fileNode.totalLines,
-        fileOverlay = uiState.fileOverlayByPath[filePath],
+        fileOverlay = ready.fileOverlayByPath[filePath],
         repoFullName = "${selectedRepo?.owner.orEmpty().trim()}/${selectedRepo?.repo.orEmpty().trim()}",
         defaultBranch = dialogState.defaultBranch,
         prColorMap = prColorMap,

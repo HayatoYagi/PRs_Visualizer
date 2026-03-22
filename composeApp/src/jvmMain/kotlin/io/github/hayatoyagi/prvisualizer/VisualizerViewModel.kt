@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.state.ToggleableState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hayatoyagi.prvisualizer.color.ColorManager
@@ -13,15 +14,19 @@ import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.state.AuthState
+import io.github.hayatoyagi.prvisualizer.state.ColorState
 import io.github.hayatoyagi.prvisualizer.state.DialogState
+import io.github.hayatoyagi.prvisualizer.state.NavigationState
 import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
 import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
+import io.github.hayatoyagi.prvisualizer.state.togglePrSelection
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore,
     private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
@@ -40,17 +45,15 @@ class VisualizerViewModel(
 
     // Delegate color management to ColorManager
     private val colorManager = ColorManager(
-        colorState = state.colorState,
         onStateChanged = { newColorState ->
-            state = state.copy(colorState = newColorState)
+            updateReady { copy(colorState = newColorState) }
         },
     )
 
     // Delegate navigation management to NavigationManager
     private val navigationManager = NavigationManager(
-        navigationState = state.navigationState,
         onStateChanged = { newNavigationState ->
-            state = state.copy(navigationState = newNavigationState)
+            updateReady { copy(navigationState = newNavigationState) }
         },
     )
 
@@ -83,12 +86,20 @@ class VisualizerViewModel(
         getRepoSelectionState = { state.repoSelectionState },
         setRepoSelectionState = { state = state.copy(repoSelectionState = it) },
         onSnapshotLoaded = {
-            resetNavigation()
-            resetViewport()
+            navigationManager.resetNavigation()
+            navigationManager.resetViewport()
         },
         selectRepo = ::selectRepo,
         unselectRepo = { selectedRepositoryStore.unselect() },
     )
+
+    /**
+     * Updates the [SnapshotFetchState.Ready] state. No-op when snapshot is not ready.
+     */
+    private inline fun updateReady(block: SnapshotFetchState.Ready.() -> SnapshotFetchState.Ready) {
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
+        state = state.copy(snapshotFetchState = ready.block())
+    }
 
     /**
      * Applies UI state changes for a repository transition.
@@ -101,9 +112,9 @@ class VisualizerViewModel(
         when (repoState) {
             is RepoState.Selected -> {
                 state = state.resetForRepositoryChange()
-                // Sync managers with the reset state
-                colorManager.updateState(state.colorState)
-                navigationManager.updateState(state.navigationState)
+                // Sync managers with reset state (Idle has no filter/nav/color)
+                colorManager.updateState(ColorState())
+                navigationManager.updateState(NavigationState())
             }
             RepoState.Unselected -> {
                 state = state.copy(
@@ -147,13 +158,13 @@ class VisualizerViewModel(
 
     fun openFileDetailsDialog(filePath: String) {
         fileDetailsJob?.cancel()
-        val snapshotFetchState = checkNotNull(state.snapshotFetchState as? SnapshotFetchState.Ready) {
+        val ready = checkNotNull(state.snapshotFetchState as? SnapshotFetchState.Ready) {
             "File details requires a ready snapshot."
         }
         state = state.copy(
             dialogState = DialogState.FileDetails(
                 filePath = filePath,
-                defaultBranch = snapshotFetchState.snapshot.defaultBranch,
+                defaultBranch = ready.snapshot.defaultBranch,
                 commitsState = DialogState.FileDetails.CommitsState.Loading,
             ),
         )
@@ -228,43 +239,42 @@ class VisualizerViewModel(
 
     // region: PR フィルタ
     fun updateShowDrafts(value: Boolean) {
-        state = state.copy(
-            filterState = state.filterState.copy(showDrafts = value),
-        )
+        updateReady { copy(filterState = filterState.copy(showDrafts = value)) }
     }
 
     fun updateOnlyMine(value: Boolean) {
-        state = state.copy(
-            filterState = state.filterState.copy(onlyMine = value),
-        )
+        updateReady { copy(filterState = filterState.copy(onlyMine = value)) }
     }
 
-    fun togglePr(
-        prId: String,
-        checked: Boolean,
-        visibleIds: Set<String>,
-    ) {
-        state = state.copy(
-            filterState = state.filterState.copy(
-                prSelection = state.filterState.prSelection.toggle(
-                    prId = prId,
-                    checked = checked,
-                    visibleIds = visibleIds,
+    fun togglePr(prId: String, checked: Boolean) {
+        updateReady {
+            copy(
+                filterState = filterState.copy(
+                    prSelection = togglePrSelection(
+                        prId = prId,
+                        checked = checked,
+                    ),
                 ),
-            ),
-        )
+            )
+        }
+    }
+
+    fun toggleSelectAll() {
+        updateReady {
+            val newSelection = when (selectAllState) {
+                ToggleableState.On -> PrSelection.none()
+                ToggleableState.Off, ToggleableState.Indeterminate -> PrSelection.allVisible()
+            }
+            copy(filterState = filterState.copy(prSelection = newSelection))
+        }
     }
 
     fun selectAllPrs() {
-        state = state.copy(
-            filterState = state.filterState.copy(prSelection = PrSelection.allVisible()),
-        )
+        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.allVisible())) }
     }
 
     fun deselectAllPrs() {
-        state = state.copy(
-            filterState = state.filterState.copy(prSelection = PrSelection.none()),
-        )
+        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.none())) }
     }
 
     // region: ナビゲーション
@@ -295,7 +305,10 @@ class VisualizerViewModel(
     // region: 色管理
     fun ensurePrColors(prs: List<PullRequest>) = colorManager.ensurePrColors(prs)
 
-    fun shufflePrColors(prs: List<PullRequest>) = colorManager.shufflePrColors(prs)
+    fun shufflePrColors() {
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
+        colorManager.shufflePrColors(ready.snapshot.pullRequests)
+    }
 
     fun cyclePrColor(prId: String) = colorManager.cyclePrColor(prId)
 }

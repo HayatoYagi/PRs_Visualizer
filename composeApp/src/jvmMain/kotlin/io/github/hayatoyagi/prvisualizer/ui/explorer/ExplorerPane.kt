@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,11 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
@@ -64,7 +63,6 @@ fun ExplorerPane(
     onSelectFile: (String) -> Unit,
     onToggleExpanded: (String) -> Unit,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
 ) {
     val rows = remember(root, fileOverlayByPath, directoryOverlayByPath, expandedPaths) {
         root?.let {
@@ -94,7 +92,6 @@ fun ExplorerPane(
             onSelectDirectory = onSelectDirectory,
             onSelectFile = onSelectFile,
             onToggleExpanded = onToggleExpanded,
-            isLoading = isLoading,
             contentModifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -153,19 +150,8 @@ private fun ExplorerBody(
     onSelectDirectory: (String) -> Unit,
     onSelectFile: (String) -> Unit,
     onToggleExpanded: (String) -> Unit,
-    isLoading: Boolean,
     contentModifier: Modifier,
 ) {
-    if (isLoading) {
-        Box(
-            modifier = contentModifier,
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator(color = AppColors.textPrimary)
-        }
-        return
-    }
-
     LazyColumn(
         modifier = contentModifier.background(AppColors.backgroundPaneList),
         verticalArrangement = Arrangement.spacedBy(2.dp),

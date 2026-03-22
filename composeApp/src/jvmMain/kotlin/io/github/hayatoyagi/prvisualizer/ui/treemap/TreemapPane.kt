@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.treemap.components.TreemapViewport
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.INITIAL_ZOOM
 import io.github.hayatoyagi.prvisualizer.ui.treemap.handlers.MAX_ZOOM
@@ -45,7 +45,6 @@ fun TreemapPane(
     onSelectedPathChange: (String?) -> Unit,
     onFileDoubleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
 ) {
     var zoom by remember { mutableStateOf(INITIAL_ZOOM) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -101,7 +100,6 @@ fun TreemapPane(
                 pan = pan,
                 pointerPos = pointerPos,
             ),
-            isLoading = isLoading,
             canZoomOut = zoom > MIN_ZOOM,
             canZoomIn = zoom < MAX_ZOOM,
             onZoomOut = {
