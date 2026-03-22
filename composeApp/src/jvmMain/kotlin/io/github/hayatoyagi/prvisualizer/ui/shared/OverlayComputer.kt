@@ -107,3 +107,23 @@ fun computeDirectoryOverlayByPath(
         density = density,
     )
 }
+
+fun collectAllFiles(root: FileNode.Directory): List<FileNode.File> = buildList {
+    fun collectFiles(node: FileNode) {
+        when (node) {
+            is FileNode.File -> add(node)
+            is FileNode.Directory -> node.children.forEach(::collectFiles)
+        }
+    }
+    collectFiles(root)
+}
+
+fun collectAllDirectories(root: FileNode.Directory): List<FileNode.Directory> = buildList {
+    fun collectDirectories(dir: FileNode.Directory) {
+        add(dir)
+        dir.children.forEach { child ->
+            if (child is FileNode.Directory) collectDirectories(child)
+        }
+    }
+    collectDirectories(root)
+}
