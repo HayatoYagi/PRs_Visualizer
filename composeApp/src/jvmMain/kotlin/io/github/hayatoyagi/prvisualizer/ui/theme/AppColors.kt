@@ -58,6 +58,7 @@ object AppColors {
     val treemapFallbackBorderDir = Color(0xFF2F4A5F)
     val treemapFallbackBorderFile = Color(0xFF2A3D4E)
     val treemapActivePrDot = Color(0xFFFFB800)
+    val starFavorite = treemapActivePrDot
     val treemapConflictStripe = Color(0xAAFFE082)
 
     // Tooltip chrome

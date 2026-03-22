@@ -12,6 +12,8 @@ import io.github.hayatoyagi.prvisualizer.github.session.FileCommitsServiceImpl
 import io.github.hayatoyagi.prvisualizer.github.session.GitHubSessionManager
 import io.github.hayatoyagi.prvisualizer.navigation.NavigationManager
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
+import io.github.hayatoyagi.prvisualizer.repository.store.FavoriteReposStore
+import io.github.hayatoyagi.prvisualizer.repository.store.PersistedFavoriteReposStore
 import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStore
 import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.ColorState
@@ -29,11 +31,15 @@ import kotlinx.coroutines.launch
 @Suppress("TooManyFunctions")
 class VisualizerViewModel(
     private val selectedRepositoryStore: SelectedRepositoryStore,
+    private val favoriteReposStore: FavoriteReposStore = PersistedFavoriteReposStore(),
     private val fileCommitsService: FileCommitsService = FileCommitsServiceImpl(),
     initialState: VisualizerState = VisualizerState(),
 ) : ViewModel() {
     val repoState: StateFlow<RepoState>
         get() = selectedRepositoryStore.repoState
+
+    val favoriteRepos: StateFlow<Set<String>>
+        get() = favoriteReposStore.favorites
 
     private var lastAppliedRepoState: RepoState = selectedRepositoryStore.repoState.value
 
@@ -254,6 +260,10 @@ class VisualizerViewModel(
         val newRepo = fullName.substringAfter('/', fullName)
         selectedRepositoryStore.select(owner = newOwner, repo = newRepo)
         applyRepositoryState(selectedRepositoryStore.repoState.value)
+    }
+
+    fun toggleFavorite(fullName: String) {
+        favoriteReposStore.toggleFavorite(fullName)
     }
 
     // region: PR フィルタ
