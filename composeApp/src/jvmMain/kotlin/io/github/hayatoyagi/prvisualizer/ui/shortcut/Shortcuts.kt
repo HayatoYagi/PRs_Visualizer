@@ -31,7 +31,10 @@ private fun RegisterResetViewportShortcut(vm: VisualizerViewModel) {
     }
 }
 
-private fun KeyEvent.isViewportResetShortcut(shortcutMask: Int): Boolean {
+private fun KeyEvent.isViewportResetShortcut(shortcutMask: Int): Boolean =
+    isViewportResetShortcut(id, keyCode, modifiersEx, shortcutMask)
+
+internal fun isViewportResetShortcut(id: Int, keyCode: Int, modifiersEx: Int, shortcutMask: Int): Boolean {
     if (id != KeyEvent.KEY_PRESSED) return false
     if (keyCode != KeyEvent.VK_R) return false
     if (modifiersEx and shortcutMask == 0) return false
