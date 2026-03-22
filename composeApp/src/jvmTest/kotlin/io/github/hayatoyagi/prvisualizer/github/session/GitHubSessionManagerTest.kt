@@ -11,12 +11,14 @@ import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -108,6 +110,63 @@ class GitHubSessionManagerTest {
         }
 
     @Test
+    fun `loginAndConnect should keep manual device flow prompt reachable when browser auto-open fails`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Unauthenticated
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
+            val authStates = mutableListOf<AuthState>()
+
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = {
+                    authState = it
+                    authStates += it
+                },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                unselectRepo = {},
+                authService = object : AuthService {
+                    override suspend fun restoreToken(fallbackToken: String): String = ""
+
+                    override suspend fun login(
+                        clientId: String,
+                        onDeviceFlowStart: (GitHubOAuthDesktopAuthenticator.DeviceFlowPrompt) -> Unit,
+                    ): Result<String> {
+                        onDeviceFlowStart(
+                            GitHubOAuthDesktopAuthenticator.DeviceFlowPrompt(
+                                userCode = "ABCD-EFGH",
+                                verificationUri = "https://github.com/login/device",
+                                verificationUriComplete = null,
+                            ),
+                        )
+                        return Result.failure(IllegalStateException("stop after prompt"))
+                    }
+
+                    override suspend fun clearToken() = Unit
+                },
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
+            )
+
+            manager.loginAndConnect()
+
+            val promptState = authStates
+                .filterIsInstance<AuthState.Authorizing>()
+                .lastOrNull { it.deviceUserCode != null }
+            assertNotNull(promptState)
+            assertEquals("ABCD-EFGH", promptState.deviceUserCode)
+            assertEquals("https://github.com/login/device", promptState.deviceVerificationUrl)
+        }
+
+    @Test
     fun `refresh should not fetch when repository remains unselected`() =
         runTest(UnconfinedTestDispatcher()) {
             var authState: AuthState = AuthState.Authenticated("token")
@@ -140,6 +199,57 @@ class GitHubSessionManagerTest {
 
             assertFalse(snapshotService.fetchCalled)
             assertIs<SnapshotFetchState.Idle>(snapshotFetchState)
+        }
+
+    @Test
+    fun `cancelAuthorization should reset authorizing state to unauthenticated`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var authState: AuthState = AuthState.Unauthenticated
+            var snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle
+            var repoState: RepoState = RepoState.Selected("owner", "repo")
+            var repoSelectionState: RepoSelectionState = RepoSelectionState.Idle
+
+            val manager = GitHubSessionManager(
+                scope = CoroutineScope(coroutineContext),
+                getAuthState = { authState },
+                setAuthState = { authState = it },
+                getSnapshotFetchState = { snapshotFetchState },
+                setSnapshotFetchState = { snapshotFetchState = it },
+                getRepoState = { repoState },
+                getRepoSelectionState = { repoSelectionState },
+                setRepoSelectionState = { repoSelectionState = it },
+                onSnapshotLoaded = {},
+                selectRepo = {},
+                unselectRepo = {},
+                authService = object : AuthService {
+                    override suspend fun restoreToken(fallbackToken: String): String = ""
+
+                    override suspend fun login(
+                        clientId: String,
+                        onDeviceFlowStart: (GitHubOAuthDesktopAuthenticator.DeviceFlowPrompt) -> Unit,
+                    ): Result<String> {
+                        onDeviceFlowStart(
+                            GitHubOAuthDesktopAuthenticator.DeviceFlowPrompt(
+                                userCode = "ABCD-EFGH",
+                                verificationUri = "https://github.com/login/device",
+                                verificationUriComplete = null,
+                            ),
+                        )
+                        awaitCancellation()
+                    }
+
+                    override suspend fun clearToken() = Unit
+                },
+                repoSelectionService = FakeRepoSelectionService(Result.success(emptyList())),
+                snapshotFetchService = FakeSnapshotFetchService(Result.success(snapshot())),
+            )
+
+            manager.loginAndConnect()
+            assertIs<AuthState.Authorizing>(authState)
+
+            manager.cancelAuthorization()
+
+            assertEquals(AuthState.Unauthenticated, authState)
         }
 
     @Test

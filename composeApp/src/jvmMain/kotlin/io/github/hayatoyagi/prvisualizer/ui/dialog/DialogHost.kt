@@ -84,6 +84,11 @@ fun DialogHost(
             error = dialogState.error,
             onDismiss = onDismissErrorDialog,
         )
+        is DialogState.DeviceFlowPrompt -> DeviceFlowDialog(
+            userCode = dialogState.userCode,
+            verificationUrl = dialogState.verificationUrl,
+            onDismiss = onDismissDialog,
+        )
         is DialogState.None -> Unit
     }
 }
