@@ -64,7 +64,9 @@ class VisualizerViewModel(
         getAuthState = { state.authState },
         setAuthState = { authState ->
             val newDialogState = when {
-                authState is AuthState.Failed -> DialogState.AuthError(authState.error)
+                authState is AuthState.Failed -> {
+                    DialogState.AuthError(authState.error)
+                }
                 authState is AuthState.Authorizing &&
                     authState.deviceUserCode != null &&
                     authState.deviceVerificationUrl != null -> {
@@ -75,9 +77,12 @@ class VisualizerViewModel(
                         browserOpenedAutomatically = authState.browserOpenedAutomatically,
                     )
                 }
-                authState is AuthState.Authenticated && state.dialogState is DialogState.DeviceFlowPrompt ->
+                authState is AuthState.Authenticated && state.dialogState is DialogState.DeviceFlowPrompt -> {
                     DialogState.None
-                else -> state.dialogState
+                }
+                else -> {
+                    state.dialogState
+                }
             }
             state = state.copy(
                 authState = authState,

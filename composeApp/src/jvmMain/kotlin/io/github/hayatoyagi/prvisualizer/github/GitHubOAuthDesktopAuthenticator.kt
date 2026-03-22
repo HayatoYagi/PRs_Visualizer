@@ -52,7 +52,7 @@ class GitHubOAuthDesktopAuthenticator(
             ),
         )
 
-        var pollInterval = start.intervalSeconds.seconds.coerceAtLeast(MIN_POLL_INTERVAL)
+        var pollInterval = start.intervalSeconds.seconds
         val deadline = TimeSource.Monotonic.markNow() + start.expiresInSeconds.seconds
 
         while (deadline.hasNotPassedNow()) {
@@ -66,7 +66,7 @@ class GitHubOAuthDesktopAuthenticator(
             when (errorType) {
                 "authorization_pending" -> {}
                 "slow_down" -> {
-                    pollInterval += MIN_POLL_INTERVAL
+                    pollInterval += DEFAULT_POLL_INTERVAL_STEP
                 }
                 "expired_token" -> {
                     error("Device code expired. Please click Login with GitHub again.")
@@ -133,7 +133,7 @@ class GitHubOAuthDesktopAuthenticator(
             intervalSeconds = if (deviceCodeResponse.interval > 0) {
                 deviceCodeResponse.interval
             } else {
-                MIN_POLL_INTERVAL.inWholeSeconds.toInt()
+                DEFAULT_POLL_INTERVAL_STEP.inWholeSeconds.toInt()
             },
         )
     }
@@ -165,15 +165,15 @@ class GitHubOAuthDesktopAuthenticator(
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
 
     private companion object {
+        private val DEFAULT_POLL_INTERVAL_STEP = 5.seconds
+        private val DEFAULT_EXPIRES_IN = 15.minutes
+
         private fun openVerificationPage(url: String) {
             if (!Desktop.isDesktopSupported()) {
                 error("Desktop browser is not supported in this environment. Open this URL manually: $url")
             }
             Desktop.getDesktop().browse(URI(url))
         }
-
-        private val MIN_POLL_INTERVAL = 5.seconds
-        private val DEFAULT_EXPIRES_IN = 15.minutes
     }
 
     data class DeviceFlowPrompt(
