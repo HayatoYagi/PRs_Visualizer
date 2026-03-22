@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -146,7 +146,7 @@ fun RepoPickerDialog(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.Outlined.StarOutline,
+                                        imageVector = Icons.Filled.StarBorder,
                                         contentDescription = "Add to favorites",
                                         tint = AppColors.textSecondary,
                                     )
