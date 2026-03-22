@@ -22,6 +22,7 @@ import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
 import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
 import io.github.hayatoyagi.prvisualizer.state.togglePrSelection
+import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -62,13 +63,24 @@ class VisualizerViewModel(
         scope = viewModelScope,
         getAuthState = { state.authState },
         setAuthState = { authState ->
+            val newDialogState = when {
+                authState is AuthState.Failed -> DialogState.AuthError(authState.error)
+                authState is AuthState.Authorizing &&
+                    authState.deviceUserCode != null &&
+                    authState.deviceVerificationUrl != null -> {
+                    copyToClipboard(authState.deviceUserCode)
+                    DialogState.DeviceFlowPrompt(
+                        userCode = authState.deviceUserCode,
+                        verificationUrl = authState.deviceVerificationUrl,
+                    )
+                }
+                authState is AuthState.Authenticated && state.dialogState is DialogState.DeviceFlowPrompt ->
+                    DialogState.None
+                else -> state.dialogState
+            }
             state = state.copy(
                 authState = authState,
-                dialogState = if (authState is AuthState.Failed) {
-                    DialogState.AuthError(authState.error)
-                } else {
-                    state.dialogState
-                },
+                dialogState = newDialogState,
             )
         },
         getSnapshotFetchState = { state.snapshotFetchState },

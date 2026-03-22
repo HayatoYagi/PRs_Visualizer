@@ -131,6 +131,11 @@ sealed interface DialogState {
     data class PrDetails(
         val pr: PullRequest,
     ) : DialogState
+
+    data class DeviceFlowPrompt(
+        val userCode: String,
+        val verificationUrl: String,
+    ) : DialogState
 }
 
 data class FilterState(
