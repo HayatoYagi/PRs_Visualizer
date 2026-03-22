@@ -47,7 +47,13 @@ fun PrListPane(
     showDrafts: Boolean,
     onlyMine: Boolean,
     selectAllState: ToggleableState,
-    actions: PrListActions,
+    onShowDraftsChange: (Boolean) -> Unit,
+    onOnlyMineChange: (Boolean) -> Unit,
+    onTogglePr: (prId: String, checked: Boolean) -> Unit,
+    onOpenPr: (PullRequest) -> Unit,
+    onCyclePrColor: (String) -> Unit,
+    onShuffleColors: () -> Unit,
+    onToggleSelectAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -62,12 +68,12 @@ fun PrListPane(
             visiblePrCount = selectedPrIds.size,
             showDrafts = showDrafts,
             onlyMine = onlyMine,
-            onShowDraftsChange = actions.onShowDraftsChange,
-            onOnlyMineChange = actions.onOnlyMineChange,
+            onShowDraftsChange = onShowDraftsChange,
+            onOnlyMineChange = onOnlyMineChange,
             canShuffleColors = prColorMap.isNotEmpty(),
-            onShuffleColors = actions.onShuffleColors,
+            onShuffleColors = onShuffleColors,
             selectAllState = selectAllState,
-            onToggleSelectAll = actions.onToggleSelectAll,
+            onToggleSelectAll = onToggleSelectAll,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
@@ -75,9 +81,9 @@ fun PrListPane(
             selectedPrIds = selectedPrIds,
             selectedPath = selectedPath,
             prColorMap = prColorMap,
-            onTogglePr = actions.onTogglePr,
-            onOpenPr = actions.onOpenPr,
-            onCyclePrColor = actions.onCyclePrColor,
+            onTogglePr = onTogglePr,
+            onOpenPr = onOpenPr,
+            onCyclePrColor = onCyclePrColor,
             contentModifier = Modifier.weight(1f),
         )
         Text(

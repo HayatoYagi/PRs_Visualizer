@@ -263,9 +263,8 @@ class VisualizerViewModel(
 
     fun toggleSelectAll() {
         val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
-        val visibleIds = ready.filteredPrs.map { it.id }.toSet()
         updateReady {
-            val newSelection = when (filterState.prSelection.triState(visibleIds)) {
+            val newSelection = when (ready.selectAllState) {
                 ToggleableState.On -> PrSelection.none()
                 ToggleableState.Off, ToggleableState.Indeterminate -> PrSelection.allVisible()
             }

@@ -77,6 +77,7 @@ sealed interface SnapshotFetchState {
          * This is always a subset of [filteredPrs].
          */
         val selectedPrIds = filterState.prSelection.resolve(filteredPrIds)
+        val selectAllState = filterState.prSelection.triState(filteredPrIds)
 
         /**
          * Filtered PRs that are currently selected and therefore contribute to overlays and treemap coloring.

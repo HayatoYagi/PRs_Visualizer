@@ -28,7 +28,6 @@ import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.dialog.DialogHost
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
-import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListActions
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.shortcut.RegisterShortcuts
@@ -171,16 +170,14 @@ private fun AppMainRow(
             prColorMap = ready.colorState.prColorMap,
             showDrafts = ready.filterState.showDrafts,
             onlyMine = ready.filterState.onlyMine,
-            selectAllState = ready.filterState.prSelection.triState(ready.filteredPrIds),
-            actions = PrListActions(
-                onShowDraftsChange = { vm.updateShowDrafts(it) },
-                onOnlyMineChange = { vm.updateOnlyMine(it) },
-                onTogglePr = { prId, checked -> vm.togglePr(prId, checked) },
-                onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
-                onCyclePrColor = { vm.cyclePrColor(it) },
-                onShuffleColors = { vm.shufflePrColors() },
-                onToggleSelectAll = { vm.toggleSelectAll() },
-            ),
+            selectAllState = ready.selectAllState,
+            onShowDraftsChange = { vm.updateShowDrafts(it) },
+            onOnlyMineChange = { vm.updateOnlyMine(it) },
+            onTogglePr = { prId, checked -> vm.togglePr(prId, checked) },
+            onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
+            onCyclePrColor = { vm.cyclePrColor(it) },
+            onShuffleColors = { vm.shufflePrColors() },
+            onToggleSelectAll = { vm.toggleSelectAll() },
         )
     }
 }
