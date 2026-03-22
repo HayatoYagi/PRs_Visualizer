@@ -33,9 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
-import io.github.hayatoyagi.prvisualizer.ui.shortcut.viewportResetShortcutHint
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipContainer
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
+import io.github.hayatoyagi.prvisualizer.ui.shortcut.viewportResetShortcutHint
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 

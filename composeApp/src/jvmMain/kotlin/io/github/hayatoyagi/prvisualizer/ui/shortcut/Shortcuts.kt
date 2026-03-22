@@ -37,6 +37,7 @@ private fun KeyEvent.isViewportResetShortcut(shortcutMask: Int): Boolean =
 
 internal fun viewportResetShortcutHint(shortcutMask: Int = defaultShortcutMask()): String =
     "${shortcutModifierLabel(shortcutMask)}+R: reset view"
+
 internal fun isViewportResetShortcut(id: Int, keyCode: Int, modifiersEx: Int, shortcutMask: Int): Boolean {
     if (id != KeyEvent.KEY_PRESSED) return false
     if (keyCode != KeyEvent.VK_R) return false
@@ -46,9 +47,7 @@ internal fun isViewportResetShortcut(id: Int, keyCode: Int, modifiersEx: Int, sh
 
 private fun defaultShortcutMask(): Int = Toolkit.getDefaultToolkit().menuShortcutKeyMaskEx
 
-private fun shortcutModifierLabel(shortcutMask: Int): String = when {
-    shortcutMask and InputEvent.META_DOWN_MASK != 0 -> "Cmd"
-    else -> "Ctrl"
-}
+private fun shortcutModifierLabel(shortcutMask: Int): String =
+    if (shortcutMask and InputEvent.META_DOWN_MASK != 0) "Cmd" else "Ctrl"
 
 private fun KeyboardFocusManager.hasActiveWindow(): Boolean = activeWindow != null
