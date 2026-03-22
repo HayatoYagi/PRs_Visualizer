@@ -3,8 +3,14 @@ package io.github.hayatoyagi.prvisualizer.state
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.FileCommit
+import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
+import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListUiState
+import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
+import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 
 sealed interface RepoSelectionState {
     data object Idle : RepoSelectionState
@@ -48,7 +54,21 @@ sealed interface SnapshotFetchState {
         val filterState: FilterState = FilterState(),
         val navigationState: NavigationState = NavigationState(),
         val colorState: ColorState = ColorState(),
-    ) : SnapshotFetchState
+    ) : SnapshotFetchState {
+        val prListUiState = buildPrListUiState(
+            allPrs = snapshot.pullRequests,
+            filterState = filterState,
+            currentUser = snapshot.viewerLogin.orEmpty(),
+            selectedPath = navigationState.selectedPath,
+            prColorMap = colorState.prColorMap,
+        )
+        val focusRoot = findDirectory(snapshot.rootNode, navigationState.focusPath) ?: snapshot.rootNode
+        val fileOverlayByPath = computeFileOverlayByPath(prListUiState.visiblePrs, collectAllFiles(snapshot.rootNode))
+        val directoryOverlayByPath = computeDirectoryOverlayByPath(
+            prListUiState.visiblePrs,
+            collectAllDirectories(snapshot.rootNode),
+        )
+    }
 
     data class Failed(
         val error: AppError,
@@ -147,6 +167,50 @@ fun NavigationState.resetNavigation(): NavigationState = copy(
     focusPath = "",
     selectedPath = null,
 )
+
+private fun buildPrListUiState(
+    allPrs: List<PullRequest>,
+    filterState: FilterState,
+    currentUser: String,
+    selectedPath: String?,
+    prColorMap: Map<String, Color>,
+): PrListUiState {
+    val filteredPrs = filterPrs(allPrs, filterState.showDrafts, filterState.onlyMine, currentUser)
+    val visibleIds = filteredPrs.map { it.id }.toSet()
+    val selectedPrIds = filterState.prSelection.resolve(visibleIds)
+    val visiblePrs = filteredPrs.filter { selectedPrIds.contains(it.id) }
+    return PrListUiState(
+        filteredPrs = filteredPrs,
+        selectedPrIds = selectedPrIds,
+        visiblePrs = visiblePrs,
+        selectedPath = selectedPath,
+        prColorMap = prColorMap,
+        showDrafts = filterState.showDrafts,
+        onlyMine = filterState.onlyMine,
+        visiblePrCount = selectedPrIds.size,
+        selectAllState = filterState.prSelection.triState(visibleIds),
+    )
+}
+
+private fun collectAllFiles(root: FileNode.Directory): List<FileNode.File> = buildList {
+    fun collectFiles(node: FileNode) {
+        when (node) {
+            is FileNode.File -> add(node)
+            is FileNode.Directory -> node.children.forEach(::collectFiles)
+        }
+    }
+    collectFiles(root)
+}
+
+private fun collectAllDirectories(root: FileNode.Directory): List<FileNode.Directory> = buildList {
+    fun collectDirectories(dir: FileNode.Directory) {
+        add(dir)
+        dir.children.forEach { child ->
+            if (child is FileNode.Directory) collectDirectories(child)
+        }
+    }
+    collectDirectories(root)
+}
 
 fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 
