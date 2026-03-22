@@ -1,8 +1,8 @@
 package io.github.hayatoyagi.prvisualizer.ui.explorer
 
 import io.github.hayatoyagi.prvisualizer.FileNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 
 fun buildExplorerRows(

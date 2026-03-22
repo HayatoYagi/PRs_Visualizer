@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.state.DialogState
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor

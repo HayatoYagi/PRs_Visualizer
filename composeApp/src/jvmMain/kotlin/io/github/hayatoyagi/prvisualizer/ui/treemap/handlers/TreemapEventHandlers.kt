@@ -10,30 +10,25 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun Modifier.treemapMoveHandler(
-    isLoading: Boolean,
     onMoveEvent: (position: Offset, dragging: Boolean) -> Unit,
 ): Modifier = onPointerEvent(PointerEventType.Move) { event ->
-    if (isLoading) return@onPointerEvent
     val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
     onMoveEvent(position, event.buttons.isPrimaryPressed)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun Modifier.treemapScrollHandler(
-    isLoading: Boolean,
     onScrollEvent: (scrollY: Float) -> Unit,
 ): Modifier = onPointerEvent(PointerEventType.Scroll) { event ->
-    if (isLoading) return@onPointerEvent
     val scrollY = event.changes.firstOrNull()?.scrollDelta?.y ?: return@onPointerEvent
     onScrollEvent(scrollY)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun Modifier.treemapReleaseHandler(
-    isLoading: Boolean,
     onReleaseEvent: (position: Offset, uptimeMillis: Long) -> Unit,
 ): Modifier = onPointerEvent(PointerEventType.Release) { event ->
-    if (isLoading || event.button != PointerButton.Primary) return@onPointerEvent
+    if (event.button != PointerButton.Primary) return@onPointerEvent
     val change = event.changes.firstOrNull() ?: return@onPointerEvent
     onReleaseEvent(change.position, change.uptimeMillis)
 }

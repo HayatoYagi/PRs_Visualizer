@@ -1,8 +1,9 @@
 package io.github.hayatoyagi.prvisualizer.state
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
 import io.github.hayatoyagi.prvisualizer.AppError
+import io.github.hayatoyagi.prvisualizer.FileNode
+import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,46 +27,59 @@ class VisualizerStateTest {
 
     @Test
     fun `PrSelection fromExplicit should canonicalize full visible selection to AllVisible`() {
-        val visibleIds = setOf("pr1", "pr2")
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
 
-        val selection = PrSelection.fromExplicit(ids = visibleIds, visibleIds = visibleIds)
-
-        assertIs<PrSelection.AllVisible>(selection)
+        assertEquals(setOf("pr1", "pr2"), ready.selectedPrIds)
+        assertEquals(ToggleableState.On, ready.selectAllState)
     }
 
     @Test
     fun `PrSelection toggle should canonicalize explicit full selection back to AllVisible`() {
-        val visibleIds = setOf("pr1", "pr2")
-        val partiallySelected = PrSelection.fromExplicit(ids = setOf("pr1"), visibleIds = visibleIds)
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1")),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
 
-        val selection = partiallySelected.toggle(prId = "pr2", checked = true, visibleIds = visibleIds)
+        val selection = ready.togglePrSelection(
+            prId = "pr2",
+            checked = true,
+        )
 
         assertIs<PrSelection.AllVisible>(selection)
     }
 
     @Test
     fun `PrSelection resolve should intersect explicit selection with visible ids`() {
-        val selection = PrSelection.fromExplicit(
-            ids = setOf("pr1", "pr3"),
-            visibleIds = setOf("pr1", "pr2"),
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr3")),
+            pullRequestIds = setOf("pr1", "pr2"),
         )
 
-        assertEquals(setOf("pr1"), selection.resolve(setOf("pr1", "pr2")))
+        assertEquals(setOf("pr1"), ready.resolveSelectedPrIds())
     }
 
     @Test
     fun `PrSelection fromExplicit should drop stale non-visible ids before canonicalizing`() {
-        val selection = PrSelection.fromExplicit(
-            ids = setOf("pr1", "pr2", "stale"),
-            visibleIds = setOf("pr1", "pr2"),
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2", "stale")),
+            pullRequestIds = setOf("pr1", "pr2"),
         )
 
-        assertIs<PrSelection.AllVisible>(selection)
+        assertEquals(setOf("pr1", "pr2"), ready.selectedPrIds)
+        assertEquals(ToggleableState.On, ready.selectAllState)
     }
 
     @Test
     fun `PrSelection triState should report On for AllVisible`() {
-        val triState = PrSelection.allVisible().triState(setOf("pr1", "pr2"))
+        val ready = createReady(
+            prSelection = PrSelection.allVisible(),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
+
+        val triState = ready.resolveSelectAllState()
 
         assertEquals(ToggleableState.On, triState)
     }
@@ -100,46 +114,94 @@ class VisualizerStateTest {
     fun `VisualizerState defaults should be correct`() {
         val state = VisualizerState()
         assertIs<DialogState.None>(state.dialogState)
-        assertTrue(state.filterState.showDrafts)
-        assertFalse(state.filterState.onlyMine)
-        assertEquals("", state.navigationState.focusPath)
-        assertTrue(state.colorState.prColorMap.isEmpty())
+        assertIs<SnapshotFetchState.Idle>(state.snapshotFetchState)
     }
 
     @Test
-    fun `VisualizerState resetForRepositoryChange should preserve toggles and clear selection state`() {
+    fun `SnapshotFetchState Ready should contain filter, navigation, and color state with defaults`() {
+        val snapshot = GitHubSnapshot(
+            rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+            pullRequests = emptyList(),
+            viewerLogin = null,
+            defaultBranch = "main",
+        )
+        val ready = SnapshotFetchState.Ready(snapshot = snapshot)
+
+        assertTrue(ready.filterState.showDrafts)
+        assertFalse(ready.filterState.onlyMine)
+        assertIs<PrSelection.AllVisible>(ready.filterState.prSelection)
+        assertEquals("", ready.navigationState.focusPath)
+        assertNull(ready.navigationState.selectedPath)
+        assertTrue(ready.colorState.prColorMap.isEmpty())
+    }
+
+    @Test
+    fun `VisualizerState resetForRepositoryChange should clear snapshot and dialog`() {
+        val snapshot = GitHubSnapshot(
+            rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+            pullRequests = emptyList(),
+            viewerLogin = null,
+            defaultBranch = "main",
+        )
         val state = VisualizerState(
             dialogState = DialogState.FileDetails(filePath = "test.kt", defaultBranch = "main"),
-            filterState = FilterState(
-                showDrafts = false,
-                onlyMine = true,
-                prSelection = PrSelection.fromExplicit(
-                    ids = setOf("pr1", "pr2"),
-                    visibleIds = setOf("other"),
+            snapshotFetchState = SnapshotFetchState.Ready(
+                snapshot = snapshot,
+                filterState = FilterState(
+                    showDrafts = false,
+                    onlyMine = true,
+                    prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
+                ),
+                navigationState = NavigationState(
+                    focusPath = "old/path",
+                    selectedPath = "old/file.kt",
+                    viewportResetToken = 10,
+                ),
+                colorState = ColorState(
+                    prColorMap = mapOf("pr1" to androidx.compose.ui.graphics.Color.Red),
                 ),
             ),
-            navigationState = NavigationState(
-                focusPath = "old/path",
-                selectedPath = "old/file.kt",
-                viewportResetToken = 10,
-            ),
-            colorState = ColorState(
-                prColorMap = mapOf("pr1" to Color.Red, "pr2" to Color.Blue),
-            ),
             authState = AuthState.Failed(AppError.Network("error")),
-            snapshotFetchState = SnapshotFetchState.Failed(AppError.Unknown("snapshot error")),
         )
 
         val reset = state.resetForRepositoryChange()
         assertIs<DialogState.None>(reset.dialogState)
-        assertFalse(reset.filterState.showDrafts)
-        assertTrue(reset.filterState.onlyMine)
-        assertIs<PrSelection.AllVisible>(reset.filterState.prSelection)
-        assertEquals("", reset.navigationState.focusPath)
-        assertNull(reset.navigationState.selectedPath)
-        assertEquals(0, reset.navigationState.viewportResetToken)
-        assertTrue(reset.colorState.prColorMap.isEmpty())
-        assertIs<AuthState.Unauthenticated>(reset.authState)
+        // Snapshot resets to Idle — filter, navigation, and color are gone
         assertIs<SnapshotFetchState.Idle>(reset.snapshotFetchState)
+        // Auth error is cleared
+        assertIs<AuthState.Unauthenticated>(reset.authState)
+    }
+
+    @Test
+    fun `VisualizerState resetForRepositoryChange should preserve non-failed auth`() {
+        val state = VisualizerState(
+            authState = AuthState.Authenticated(oauthToken = "token"),
+        )
+
+        val reset = state.resetForRepositoryChange()
+        assertIs<AuthState.Authenticated>(reset.authState)
     }
 }
+
+private fun createReady(
+    prSelection: PrSelection,
+    pullRequestIds: Set<String>,
+): SnapshotFetchState.Ready = SnapshotFetchState.Ready(
+    snapshot = GitHubSnapshot(
+        rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+        pullRequests = pullRequestIds.map { prId ->
+            io.github.hayatoyagi.prvisualizer.PullRequest(
+                id = prId,
+                number = prId.removePrefix("pr").toIntOrNull() ?: 1,
+                title = prId,
+                author = "author",
+                isDraft = false,
+                url = "https://example.com/$prId",
+                files = emptyList(),
+            )
+        },
+        viewerLogin = null,
+        defaultBranch = "main",
+    ),
+    filterState = FilterState(prSelection = prSelection),
+)

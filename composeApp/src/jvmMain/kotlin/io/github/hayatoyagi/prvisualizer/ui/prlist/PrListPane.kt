@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,8 +40,20 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
 @Composable
 fun PrListPane(
-    uiState: PrListUiState,
-    actions: PrListActions,
+    filteredPrs: List<PullRequest>,
+    selectedPrIds: Set<String>,
+    selectedPath: String?,
+    prColorMap: Map<String, Color>,
+    showDrafts: Boolean,
+    onlyMine: Boolean,
+    selectAllState: ToggleableState,
+    onShowDraftsChange: (Boolean) -> Unit,
+    onOnlyMineChange: (Boolean) -> Unit,
+    onTogglePr: (prId: String, checked: Boolean) -> Unit,
+    onOpenPr: (PullRequest) -> Unit,
+    onCyclePrColor: (String) -> Unit,
+    onShuffleColors: () -> Unit,
+    onToggleSelectAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -54,26 +65,25 @@ fun PrListPane(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrListHeader(
-            visiblePrCount = uiState.visiblePrCount,
-            showDrafts = uiState.showDrafts,
-            onlyMine = uiState.onlyMine,
-            onShowDraftsChange = actions.onShowDraftsChange,
-            onOnlyMineChange = actions.onOnlyMineChange,
-            canShuffleColors = uiState.prColorMap.isNotEmpty(),
-            onShuffleColors = actions.onShuffleColors,
-            selectAllState = uiState.selectAllState,
-            onToggleSelectAll = actions.onToggleSelectAll,
+            visiblePrCount = selectedPrIds.size,
+            showDrafts = showDrafts,
+            onlyMine = onlyMine,
+            onShowDraftsChange = onShowDraftsChange,
+            onOnlyMineChange = onOnlyMineChange,
+            canShuffleColors = prColorMap.isNotEmpty(),
+            onShuffleColors = onShuffleColors,
+            selectAllState = selectAllState,
+            onToggleSelectAll = onToggleSelectAll,
         )
         HorizontalDivider(color = AppColors.prListDivider)
         PrListBody(
-            filteredPrs = uiState.filteredPrs,
-            selectedPrIds = uiState.selectedPrIds,
-            selectedPath = uiState.selectedPath,
-            prColorMap = uiState.prColorMap,
-            onTogglePr = actions.onTogglePr,
-            onOpenPr = actions.onOpenPr,
-            onCyclePrColor = actions.onCyclePrColor,
-            isLoading = uiState.isLoading,
+            filteredPrs = filteredPrs,
+            selectedPrIds = selectedPrIds,
+            selectedPath = selectedPath,
+            prColorMap = prColorMap,
+            onTogglePr = onTogglePr,
+            onOpenPr = onOpenPr,
+            onCyclePrColor = onCyclePrColor,
             contentModifier = Modifier.weight(1f),
         )
         Text(
@@ -160,18 +170,8 @@ private fun PrListBody(
     onTogglePr: (prId: String, checked: Boolean) -> Unit,
     onOpenPr: (PullRequest) -> Unit,
     onCyclePrColor: (String) -> Unit,
-    isLoading: Boolean,
     contentModifier: Modifier,
 ) {
-    if (isLoading) {
-        Box(
-            modifier = contentModifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator(color = AppColors.textPrimary)
-        }
-        return
-    }
     LazyColumn(
         modifier = contentModifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),

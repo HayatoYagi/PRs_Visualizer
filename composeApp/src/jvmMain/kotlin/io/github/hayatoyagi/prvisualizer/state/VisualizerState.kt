@@ -1,9 +1,13 @@
 package io.github.hayatoyagi.prvisualizer.state
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.state.ToggleableState
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.filetree.collectAllDirectories
+import io.github.hayatoyagi.prvisualizer.filetree.collectAllFiles
+import io.github.hayatoyagi.prvisualizer.filetree.findDirectory
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 
 sealed interface RepoSelectionState {
@@ -45,7 +49,45 @@ sealed interface SnapshotFetchState {
 
     data class Ready(
         val snapshot: GitHubSnapshot,
-    ) : SnapshotFetchState
+        val filterState: FilterState = FilterState(),
+        val navigationState: NavigationState = NavigationState(),
+        val colorState: ColorState = ColorState(),
+    ) : SnapshotFetchState {
+        /**
+         * All PRs contained in the loaded snapshot before any user-applied filtering.
+         */
+        val allPrs = snapshot.pullRequests
+
+        /**
+         * PRs that remain after applying the current draft and owner filters.
+         */
+        val filteredPrs = filterPrs(
+            allPrs = allPrs,
+            showDrafts = filterState.showDrafts,
+            onlyMine = filterState.onlyMine,
+            currentUser = snapshot.viewerLogin.orEmpty(),
+        )
+
+        val filteredPrIds = filteredPrs.map { it.id }.toSet()
+
+        /**
+         * Selected PR IDs normalized to the current filtered set.
+         * This is always a subset of [filteredPrs].
+         */
+        val selectedPrIds = resolveSelectedPrIds()
+        val selectAllState = resolveSelectAllState()
+
+        /**
+         * Filtered PRs that are currently selected and therefore contribute to overlays and treemap coloring.
+         */
+        val selectedPrs = filteredPrs.filter { selectedPrIds.contains(it.id) }
+        val focusRoot = findDirectory(snapshot.rootNode, navigationState.focusPath) ?: snapshot.rootNode
+        val fileOverlayByPath = computeFileOverlayByPath(selectedPrs, collectAllFiles(snapshot.rootNode))
+        val directoryOverlayByPath = computeDirectoryOverlayByPath(
+            selectedPrs,
+            collectAllDirectories(snapshot.rootNode),
+        )
+    }
 
     data class Failed(
         val error: AppError,
@@ -123,13 +165,13 @@ data class ColorState(
 
 /**
  * Main state container for the VisualizerViewModel.
+ *
+ * FilterState, NavigationState, and ColorState are scoped to [SnapshotFetchState.Ready]
+ * because they only have meaning when a snapshot is loaded.
  */
 data class VisualizerState(
     val repoSelectionState: RepoSelectionState = RepoSelectionState.Idle,
     val dialogState: DialogState = DialogState.None,
-    val filterState: FilterState = FilterState(),
-    val navigationState: NavigationState = NavigationState(),
-    val colorState: ColorState = ColorState(),
     val authState: AuthState = AuthState.Unauthenticated,
     val snapshotFetchState: SnapshotFetchState = SnapshotFetchState.Idle,
 ) {
@@ -145,18 +187,52 @@ fun NavigationState.resetNavigation(): NavigationState = copy(
     selectedPath = null,
 )
 
+internal fun SnapshotFetchState.Ready.resolveSelectedPrIds(): Set<String> = when (val prSelection = filterState.prSelection) {
+    PrSelection.AllVisible -> filteredPrIds
+    is PrSelection.Explicit -> prSelection.ids.intersect(filteredPrIds)
+}
+
+private fun canonicalizeSelection(
+    ids: Set<String>,
+    visibleIds: Set<String>,
+): PrSelection {
+    val normalizedIds = ids.intersect(visibleIds)
+    return if (normalizedIds == visibleIds) PrSelection.allVisible() else PrSelection.Explicit.create(normalizedIds)
+}
+
+internal fun SnapshotFetchState.Ready.togglePrSelection(
+    prId: String,
+    checked: Boolean,
+): PrSelection {
+    val baseSelection = resolveSelectedPrIds()
+    val updatedIds = if (checked) {
+        baseSelection + prId
+    } else {
+        baseSelection - prId
+    }
+    return canonicalizeSelection(updatedIds, filteredPrIds)
+}
+
+internal fun SnapshotFetchState.Ready.resolveSelectAllState(): ToggleableState {
+    if (filteredPrIds.isEmpty()) return ToggleableState.Off
+
+    val resolvedSelection = resolveSelectedPrIds()
+    return when {
+        resolvedSelection.isEmpty() -> ToggleableState.Off
+        resolvedSelection.size == filteredPrIds.size -> ToggleableState.On
+        else -> ToggleableState.Indeterminate
+    }
+}
+
 fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 
 /**
  * Resets state when changing repositories.
- * Keeps toggle filters while clearing selection, colors, and navigation.
- * Clears fetched snapshot/error; auth errors are cleared back to unauthenticated.
+ * Clears snapshot (which includes filter, navigation, and color state).
+ * Auth errors are cleared back to unauthenticated.
  */
 fun VisualizerState.resetForRepositoryChange(): VisualizerState = copy(
     dialogState = DialogState.None,
-    filterState = filterState.copy(prSelection = PrSelection.allVisible()),
-    navigationState = NavigationState(),
-    colorState = ColorState(),
     snapshotFetchState = SnapshotFetchState.Idle,
     authState = if (authState is AuthState.Failed) AuthState.Unauthenticated else authState,
 )

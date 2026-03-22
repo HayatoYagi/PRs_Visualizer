@@ -1,24 +1,26 @@
-@file:Suppress("MatchingDeclarationName") // VisualizerUiState is used by App() composable; keeping them together for cohesion
-
 package io.github.hayatoyagi.prvisualizer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.PersistedSelectedRepositoryStore
@@ -26,62 +28,12 @@ import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.dialog.DialogHost
 import io.github.hayatoyagi.prvisualizer.ui.explorer.ExplorerPane
-import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListActions
 import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListPane
-import io.github.hayatoyagi.prvisualizer.ui.prlist.PrListUiState
-import io.github.hayatoyagi.prvisualizer.ui.prlist.rememberPrListUiState
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeFileOverlayByPath
-import io.github.hayatoyagi.prvisualizer.ui.shared.findDirectory
 import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import io.github.hayatoyagi.prvisualizer.ui.shortcut.RegisterShortcuts
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.ToolbarRow
 import io.github.hayatoyagi.prvisualizer.ui.treemap.TreemapPane
-
-data class VisualizerUiState(
-    val allPrs: List<PullRequest>,
-    val prList: PrListUiState,
-    val focusRoot: FileNode.Directory,
-    val fileOverlayByPath: Map<String, FileOverlay>,
-    val directoryOverlayByPath: Map<String, DirectoryOverlay>,
-)
-
-@Composable
-private fun rememberVisualizerUiState(vm: VisualizerViewModel): VisualizerUiState {
-    val snapshot = snapshotOrNull(vm.state.snapshotFetchState)
-    val emptyRoot = remember { FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0) }
-    val root = snapshot?.rootNode ?: emptyRoot
-    val allPrs = snapshot?.pullRequests ?: emptyList()
-    val prListUiState = rememberPrListUiState(
-        allPrs = allPrs,
-        filterState = vm.state.filterState,
-        currentUser = vm.state.currentUser,
-        selectedPath = vm.state.navigationState.selectedPath,
-        prColorMap = vm.state.colorState.prColorMap,
-        isLoading = vm.state.snapshotFetchState is SnapshotFetchState.Fetching,
-    )
-    val focusRoot = remember(root, vm.state.navigationState.focusPath) {
-        findDirectory(root, vm.state.navigationState.focusPath) ?: root
-    }
-    val allFiles = remember(root) { collectAllFiles(root) }
-    val allDirectories = remember(root) { collectAllDirectories(root) }
-    val fileOverlayByPath = remember(prListUiState.visiblePrs, allFiles) {
-        computeFileOverlayByPath(prListUiState.visiblePrs, allFiles)
-    }
-    val directoryOverlayByPath = remember(prListUiState.visiblePrs, allDirectories) {
-        computeDirectoryOverlayByPath(prListUiState.visiblePrs, allDirectories)
-    }
-    return VisualizerUiState(
-        allPrs = allPrs,
-        prList = prListUiState,
-        focusRoot = focusRoot,
-        fileOverlayByPath = fileOverlayByPath,
-        directoryOverlayByPath = directoryOverlayByPath,
-    )
-}
 
 @Composable
 @Preview
@@ -91,12 +43,10 @@ fun App() {
             selectedRepositoryStore = PersistedSelectedRepositoryStore(),
         )
     }
-    val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
-    val uiState = rememberVisualizerUiState(vm)
 
-    AppEffects(vm = vm, authState = authState, allPrs = uiState.allPrs)
+    AppEffects(vm = vm)
 
     MaterialTheme {
         Column(
@@ -105,7 +55,7 @@ fun App() {
             ToolbarRow(
                 owner = selectedRepo?.owner.orEmpty(),
                 repo = selectedRepo?.repo.orEmpty(),
-                authState = authState,
+                authState = vm.state.authState,
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
                 onLogin = { vm.loginAndConnect() },
@@ -113,11 +63,12 @@ fun App() {
                 onRefresh = { vm.refresh() },
                 onOpenRepoDialog = { vm.openRepoDialog() },
             )
+            val ready = snapshotFetchState as? SnapshotFetchState.Ready
             DialogHost(
                 dialogState = vm.state.dialogState,
                 selectedRepo = selectedRepo,
-                uiState = uiState,
-                prColorMap = vm.state.colorState.prColorMap,
+                ready = ready,
+                prColorMap = ready?.colorState?.prColorMap ?: emptyMap(),
                 repoSelectionState = vm.state.repoSelectionState,
                 onReloadRepoOptions = { vm.loadRepositoryOptions() },
                 onDismissRepoDialog = { vm.closeRepoDialog() },
@@ -135,12 +86,14 @@ fun App() {
                     vm.closeDialog()
                 },
             )
-            AppMainRow(
-                vm = vm,
-                uiState = uiState,
-                snapshotFetchState = snapshotFetchState,
-                isConnecting = uiState.prList.isLoading,
-            )
+            when {
+                ready != null -> AppMainRow(
+                    vm = vm,
+                    ready = ready,
+                )
+                snapshotFetchState is SnapshotFetchState.Fetching -> AppLoadingState()
+                else -> Unit
+            }
         }
     }
 }
@@ -148,9 +101,10 @@ fun App() {
 @Composable
 private fun AppEffects(
     vm: VisualizerViewModel,
-    authState: AuthState,
-    allPrs: List<PullRequest>,
 ) {
+    val authState = vm.state.authState
+    val snapshotFetchState = vm.state.snapshotFetchState
+    val ready = snapshotFetchState as? SnapshotFetchState.Ready
     RegisterShortcuts(vm)
     LaunchedEffect(Unit) {
         vm.initializeSession()
@@ -158,8 +112,10 @@ private fun AppEffects(
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) vm.ensureRepositoryOptions()
     }
-    LaunchedEffect(allPrs) {
-        vm.ensurePrColors(allPrs)
+    LaunchedEffect(ready?.snapshot) {
+        ready?.let {
+            vm.ensurePrColors(it.snapshot.pullRequests)
+        }
     }
 }
 
@@ -178,90 +134,70 @@ private fun appRootModifier(vm: VisualizerViewModel): Modifier = Modifier
 @Composable
 private fun AppMainRow(
     vm: VisualizerViewModel,
-    uiState: VisualizerUiState,
-    snapshotFetchState: SnapshotFetchState,
-    isConnecting: Boolean,
+    ready: SnapshotFetchState.Ready,
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
-        if (snapshotFetchState is SnapshotFetchState.Ready) {
-            ExplorerPane(
-                root = snapshotFetchState.snapshot.rootNode,
-                fileOverlayByPath = uiState.fileOverlayByPath,
-                directoryOverlayByPath = uiState.directoryOverlayByPath,
-                focusPath = vm.state.navigationState.focusPath,
-                selectedPath = vm.state.navigationState.selectedPath,
-                expandedPaths = vm.state.navigationState.explorerState.expandedPaths,
-                onSelectDirectory = { vm.selectDirectory(it) },
-                onSelectFile = { vm.selectFile(it) },
-                onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
-                isLoading = isConnecting,
-            )
-        }
+        ExplorerPane(
+            root = ready.snapshot.rootNode,
+            fileOverlayByPath = ready.fileOverlayByPath,
+            directoryOverlayByPath = ready.directoryOverlayByPath,
+            focusPath = ready.navigationState.focusPath,
+            selectedPath = ready.navigationState.selectedPath,
+            expandedPaths = ready.navigationState.explorerState.expandedPaths,
+            onSelectDirectory = { vm.selectDirectory(it) },
+            onSelectFile = { vm.selectFile(it) },
+            onToggleExpanded = { vm.toggleDirectoryExpanded(it) },
+        )
         TreemapPane(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
-            focusPath = vm.state.navigationState.focusPath,
-            focusRoot = uiState.focusRoot,
-            selectedPath = vm.state.navigationState.selectedPath,
-            fileOverlayByPath = uiState.fileOverlayByPath,
-            directoryOverlayByPath = uiState.directoryOverlayByPath,
-            prColorMap = vm.state.colorState.prColorMap,
-            viewportResetToken = vm.state.navigationState.viewportResetToken,
+            focusPath = ready.navigationState.focusPath,
+            focusRoot = ready.focusRoot,
+            selectedPath = ready.navigationState.selectedPath,
+            fileOverlayByPath = ready.fileOverlayByPath,
+            directoryOverlayByPath = ready.directoryOverlayByPath,
+            prColorMap = ready.colorState.prColorMap,
+            viewportResetToken = ready.navigationState.viewportResetToken,
             onFocusPathChange = { vm.changeFocusPath(it) },
             onSelectedPathChange = { vm.updateSelectedPath(it) },
             onFileDoubleClick = { vm.openFileDetailsDialog(it) },
-            isLoading = isConnecting,
         )
         PrListPane(
-            uiState = uiState.prList,
-            actions = PrListActions(
-                onShowDraftsChange = { vm.updateShowDrafts(it) },
-                onOnlyMineChange = { vm.updateOnlyMine(it) },
-                onTogglePr = { prId, checked ->
-                    vm.togglePr(
-                        prId = prId,
-                        checked = checked,
-                        visibleIds = uiState.prList.visibleIds,
-                    )
-                },
-                onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
-                onCyclePrColor = { vm.cyclePrColor(it) },
-                onShuffleColors = { vm.shufflePrColors(uiState.allPrs) },
-                onToggleSelectAll = {
-                    when (uiState.prList.selectAllState) {
-                        ToggleableState.On -> vm.deselectAllPrs()
-                        ToggleableState.Off,
-                        ToggleableState.Indeterminate,
-                        -> vm.selectAllPrs()
-                    }
-                },
-            ),
+            filteredPrs = ready.filteredPrs,
+            selectedPrIds = ready.selectedPrIds,
+            selectedPath = ready.navigationState.selectedPath,
+            prColorMap = ready.colorState.prColorMap,
+            showDrafts = ready.filterState.showDrafts,
+            onlyMine = ready.filterState.onlyMine,
+            selectAllState = ready.selectAllState,
+            onShowDraftsChange = { vm.updateShowDrafts(it) },
+            onOnlyMineChange = { vm.updateOnlyMine(it) },
+            onTogglePr = { prId, checked -> vm.togglePr(prId, checked) },
+            onOpenPr = { pr -> vm.openPrDetailsDialog(pr) },
+            onCyclePrColor = { vm.cyclePrColor(it) },
+            onShuffleColors = { vm.shufflePrColors() },
+            onToggleSelectAll = { vm.toggleSelectAll() },
         )
     }
 }
 
-private fun snapshotOrNull(fetchState: SnapshotFetchState) = when (fetchState) {
-    is SnapshotFetchState.Ready -> fetchState.snapshot
-    SnapshotFetchState.Fetching, SnapshotFetchState.Idle, is SnapshotFetchState.Failed -> null
-}
-
-private fun collectAllFiles(root: FileNode.Directory): List<FileNode.File> = buildList {
-    fun collectFiles(node: FileNode) {
-        when (node) {
-            is FileNode.File -> add(node)
-            is FileNode.Directory -> node.children.forEach(::collectFiles)
+@Composable
+private fun AppLoadingState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = AppColors.textPrimary)
+            Text(
+                text = "Loading snapshot...",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 12.dp),
+            )
         }
     }
-    collectFiles(root)
-}
-
-private fun collectAllDirectories(root: FileNode.Directory): List<FileNode.Directory> = buildList {
-    fun collectDirectories(dir: FileNode.Directory) {
-        add(dir)
-        dir.children.forEach { child ->
-            if (child is FileNode.Directory) collectDirectories(child)
-        }
-    }
-    collectDirectories(root)
 }

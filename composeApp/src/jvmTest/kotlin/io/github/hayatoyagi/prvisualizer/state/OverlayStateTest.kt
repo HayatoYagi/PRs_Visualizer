@@ -1,15 +1,16 @@
-package io.github.hayatoyagi.prvisualizer.ui.shared
+package io.github.hayatoyagi.prvisualizer.state
 
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.PrFileChange
 import io.github.hayatoyagi.prvisualizer.PullRequest
+import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class VisualizerSupportTest {
+class OverlayStateTest {
     @Test
     fun `computeFileOverlayByPath ignores paths not present in visible files`() {
         val visibleFiles = listOf(

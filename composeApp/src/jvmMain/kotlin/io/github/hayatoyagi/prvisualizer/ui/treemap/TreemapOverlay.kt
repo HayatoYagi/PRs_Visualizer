@@ -17,8 +17,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val MIN_NODE_LABEL_WIDTH_PX = 90f

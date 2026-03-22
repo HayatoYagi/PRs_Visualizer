@@ -3,8 +3,8 @@ package io.github.hayatoyagi.prvisualizer.ui.treemap.models
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 
 internal data class TreemapViewportModel(
     val visibleNodes: List<TreemapNode>,
