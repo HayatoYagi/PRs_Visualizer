@@ -45,6 +45,7 @@ fun App() {
     }
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
+    val favoriteRepos = vm.favoriteRepos.collectAsState().value
 
     AppEffects(vm = vm)
 
@@ -70,9 +71,11 @@ fun App() {
                 ready = ready,
                 prColorMap = ready?.colorState?.prColorMap ?: emptyMap(),
                 repoSelectionState = vm.state.repoSelectionState,
+                favoriteRepos = favoriteRepos,
                 onReloadRepoOptions = { vm.loadRepositoryOptions() },
                 onDismissRepoDialog = { vm.closeRepoDialog() },
                 onSelectRepo = { vm.selectRepo(it) },
+                onToggleFavorite = { vm.toggleFavorite(it) },
                 onRefresh = { vm.refresh() },
                 onRetryLoadCommits = { vm.reloadFileDetailsCommits() },
                 onDismissDialog = { vm.closeDialog() },

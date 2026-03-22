@@ -11,8 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -23,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
@@ -32,9 +38,11 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 fun RepoPickerDialog(
     initialQuery: String,
     repoSelectionState: RepoSelectionState,
+    favoriteRepos: Set<String>,
     onReload: () -> Unit,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
 ) {
     val options = when (repoSelectionState) {
         RepoSelectionState.Idle,
@@ -47,8 +55,8 @@ fun RepoPickerDialog(
     val loadingError = (repoSelectionState as? RepoSelectionState.Error)?.error
 
     var query by rememberSaveable { mutableStateOf(initialQuery) }
-    val filteredOptions = remember(options, query) {
-        filterRepoOptions(options, query)
+    val filteredOptions = remember(options, query, favoriteRepos) {
+        filterRepoOptions(options, query, favoriteRepos)
     }
 
     // Check if query is a valid owner/repo format and not already in the list
@@ -116,14 +124,35 @@ fun RepoPickerDialog(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     items(displayOptions) { fullName ->
-                        Text(
-                            text = fullName,
-                            color = AppColors.textRepoOption,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(fullName) }
-                                .padding(vertical = 8.dp),
-                        )
+                        val isFavorite = fullName in favoriteRepos
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = fullName,
+                                color = AppColors.textRepoOption,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onSelect(fullName) }
+                                    .padding(vertical = 8.dp),
+                            )
+                            IconButton(onClick = { onToggleFavorite(fullName) }) {
+                                if (isFavorite) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Star,
+                                        contentDescription = "Remove from favorites",
+                                        tint = AppColors.starFavorite,
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Outlined.StarOutline,
+                                        contentDescription = "Add to favorites",
+                                        tint = AppColors.textSecondary,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

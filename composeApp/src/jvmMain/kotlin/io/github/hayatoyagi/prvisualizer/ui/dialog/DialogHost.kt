@@ -33,9 +33,11 @@ fun DialogHost(
     ready: SnapshotFetchState.Ready?,
     prColorMap: Map<String, Color>,
     repoSelectionState: RepoSelectionState,
+    favoriteRepos: Set<String>,
     onReloadRepoOptions: () -> Unit,
     onDismissRepoDialog: () -> Unit,
     onSelectRepo: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
     onRefresh: () -> Unit,
     onRetryLoadCommits: () -> Unit,
     onDismissDialog: () -> Unit,
@@ -47,12 +49,14 @@ fun DialogHost(
         is DialogState.RepoPicker -> RepoPickerDialog(
             initialQuery = "${selectedRepo?.owner.orEmpty()}/${selectedRepo?.repo.orEmpty()}".trim().trim('/'),
             repoSelectionState = repoSelectionState,
+            favoriteRepos = favoriteRepos,
             onReload = onReloadRepoOptions,
             onDismiss = onDismissRepoDialog,
             onSelect = { fullName ->
                 onSelectRepo(fullName)
                 onRefresh()
             },
+            onToggleFavorite = onToggleFavorite,
         )
         is DialogState.FileDetails -> if (ready != null) {
             FileDetailsDialogHost(
