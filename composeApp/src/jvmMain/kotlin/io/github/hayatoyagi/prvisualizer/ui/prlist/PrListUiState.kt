@@ -3,12 +3,11 @@ package io.github.hayatoyagi.prvisualizer.ui.prlist
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
 import io.github.hayatoyagi.prvisualizer.PullRequest
-import io.github.hayatoyagi.prvisualizer.state.FilterState
 
 data class PrListUiState(
     val filteredPrs: List<PullRequest>,
     val selectedPrIds: Set<String>,
-    val visiblePrs: List<PullRequest>,
+    val selectedPrs: List<PullRequest>,
     val selectedPath: String?,
     val prColorMap: Map<String, Color>,
     val showDrafts: Boolean,
@@ -28,25 +27,22 @@ data class PrListActions(
 )
 
 fun buildPrListUiState(
-    allPrs: List<PullRequest>,
-    filterState: FilterState,
-    currentUser: String,
+    filteredPrs: List<PullRequest>,
+    selectedPrIds: Set<String>,
+    selectedPrs: List<PullRequest>,
     selectedPath: String?,
     prColorMap: Map<String, Color>,
-): PrListUiState {
-    val filteredPrs = filterPrs(allPrs, filterState.showDrafts, filterState.onlyMine, currentUser)
-    val visibleIds = filteredPrs.map { it.id }.toSet()
-    val selectedPrIds = filterState.prSelection.resolve(visibleIds)
-    val visiblePrs = filteredPrs.filter { selectedPrIds.contains(it.id) }
-    return PrListUiState(
-        filteredPrs = filteredPrs,
-        selectedPrIds = selectedPrIds,
-        visiblePrs = visiblePrs,
-        selectedPath = selectedPath,
-        prColorMap = prColorMap,
-        showDrafts = filterState.showDrafts,
-        onlyMine = filterState.onlyMine,
-        visiblePrCount = selectedPrIds.size,
-        selectAllState = filterState.prSelection.triState(visibleIds),
-    )
-}
+    showDrafts: Boolean,
+    onlyMine: Boolean,
+    selectAllState: ToggleableState,
+): PrListUiState = PrListUiState(
+    filteredPrs = filteredPrs,
+    selectedPrIds = selectedPrIds,
+    selectedPrs = selectedPrs,
+    selectedPath = selectedPath,
+    prColorMap = prColorMap,
+    showDrafts = showDrafts,
+    onlyMine = onlyMine,
+    visiblePrCount = selectedPrIds.size,
+    selectAllState = selectAllState,
+)

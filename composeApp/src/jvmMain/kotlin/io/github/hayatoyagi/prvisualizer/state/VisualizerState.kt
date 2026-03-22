@@ -6,6 +6,7 @@ import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.ui.prlist.buildPrListUiState
+import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import io.github.hayatoyagi.prvisualizer.ui.shared.collectAllDirectories
 import io.github.hayatoyagi.prvisualizer.ui.shared.collectAllFiles
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeDirectoryOverlayByPath
@@ -55,17 +56,48 @@ sealed interface SnapshotFetchState {
         val navigationState: NavigationState = NavigationState(),
         val colorState: ColorState = ColorState(),
     ) : SnapshotFetchState {
-        val prListUiState = buildPrListUiState(
-            allPrs = snapshot.pullRequests,
-            filterState = filterState,
+        /**
+         * All PRs contained in the loaded snapshot before any user-applied filtering.
+         */
+        val allPrs = snapshot.pullRequests
+
+        /**
+         * PRs that remain after applying the current draft and owner filters.
+         */
+        val filteredPrs = filterPrs(
+            allPrs = allPrs,
+            showDrafts = filterState.showDrafts,
+            onlyMine = filterState.onlyMine,
             currentUser = snapshot.viewerLogin.orEmpty(),
+        )
+
+        val filteredPrIds = filteredPrs.map { it.id }.toSet()
+
+        /**
+         * Selected PR IDs normalized to the current filtered set.
+         * This is always a subset of [filteredPrs].
+         */
+        val selectedPrIds = filterState.prSelection.resolve(filteredPrIds)
+
+        /**
+         * Filtered PRs that are currently selected and therefore contribute to overlays and treemap coloring.
+         */
+        val selectedPrs = filteredPrs.filter { selectedPrIds.contains(it.id) }
+
+        val prListUiState = buildPrListUiState(
+            filteredPrs = filteredPrs,
+            selectedPrIds = selectedPrIds,
+            selectedPrs = selectedPrs,
             selectedPath = navigationState.selectedPath,
             prColorMap = colorState.prColorMap,
+            showDrafts = filterState.showDrafts,
+            onlyMine = filterState.onlyMine,
+            selectAllState = filterState.prSelection.triState(filteredPrIds),
         )
         val focusRoot = findDirectory(snapshot.rootNode, navigationState.focusPath) ?: snapshot.rootNode
-        val fileOverlayByPath = computeFileOverlayByPath(prListUiState.visiblePrs, collectAllFiles(snapshot.rootNode))
+        val fileOverlayByPath = computeFileOverlayByPath(selectedPrs, collectAllFiles(snapshot.rootNode))
         val directoryOverlayByPath = computeDirectoryOverlayByPath(
-            prListUiState.visiblePrs,
+            selectedPrs,
             collectAllDirectories(snapshot.rootNode),
         )
     }

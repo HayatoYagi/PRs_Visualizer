@@ -21,7 +21,6 @@ import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
 import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
-import io.github.hayatoyagi.prvisualizer.ui.prlist.filterPrs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -99,20 +98,6 @@ class VisualizerViewModel(
     private inline fun updateReady(block: SnapshotFetchState.Ready.() -> SnapshotFetchState.Ready) {
         val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
         state = state.copy(snapshotFetchState = ready.block())
-    }
-
-    /**
-     * Computes the set of currently visible PR IDs from the Ready state.
-     * Returns empty set when snapshot is not ready.
-     */
-    private fun computeVisibleIds(): Set<String> {
-        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return emptySet()
-        return filterPrs(
-            allPrs = ready.snapshot.pullRequests,
-            showDrafts = ready.filterState.showDrafts,
-            onlyMine = ready.filterState.onlyMine,
-            currentUser = state.currentUser,
-        ).map { it.id }.toSet()
     }
 
     /**
@@ -261,7 +246,8 @@ class VisualizerViewModel(
     }
 
     fun togglePr(prId: String, checked: Boolean) {
-        val visibleIds = computeVisibleIds()
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
+        val visibleIds = ready.filteredPrs.map { it.id }.toSet()
         updateReady {
             copy(
                 filterState = filterState.copy(
@@ -276,7 +262,8 @@ class VisualizerViewModel(
     }
 
     fun toggleSelectAll() {
-        val visibleIds = computeVisibleIds()
+        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
+        val visibleIds = ready.filteredPrs.map { it.id }.toSet()
         updateReady {
             val newSelection = when (filterState.prSelection.triState(visibleIds)) {
                 ToggleableState.On -> PrSelection.none()
