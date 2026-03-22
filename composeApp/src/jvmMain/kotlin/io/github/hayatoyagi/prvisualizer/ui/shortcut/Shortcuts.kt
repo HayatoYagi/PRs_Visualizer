@@ -37,7 +37,6 @@ private fun KeyEvent.isViewportResetShortcut(shortcutMask: Int): Boolean =
 
 internal fun viewportResetShortcutHint(shortcutMask: Int = defaultShortcutMask()): String =
     "${shortcutModifierLabel(shortcutMask)}+R: reset view"
-
 internal fun isViewportResetShortcut(id: Int, keyCode: Int, modifiersEx: Int, shortcutMask: Int): Boolean {
     if (id != KeyEvent.KEY_PRESSED) return false
     if (keyCode != KeyEvent.VK_R) return false
