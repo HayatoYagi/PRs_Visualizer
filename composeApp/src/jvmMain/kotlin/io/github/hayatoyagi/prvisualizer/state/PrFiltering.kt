@@ -1,8 +1,8 @@
-package io.github.hayatoyagi.prvisualizer.ui.prlist
+package io.github.hayatoyagi.prvisualizer.state
 
 import io.github.hayatoyagi.prvisualizer.PullRequest
 
-fun filterPrs(
+internal fun filterPrs(
     allPrs: List<PullRequest>,
     showDrafts: Boolean,
     onlyMine: Boolean,

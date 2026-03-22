@@ -27,11 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.FileNode
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerBadgeSize
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusBadge
 import io.github.hayatoyagi.prvisualizer.ui.explorer.badge.ExplorerStatusKind
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
 import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors

@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import io.github.hayatoyagi.prvisualizer.ChangeType
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
-import io.github.hayatoyagi.prvisualizer.ui.shared.DirectoryOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.FileOverlay
+import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
+import io.github.hayatoyagi.prvisualizer.state.FileOverlay
 import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
