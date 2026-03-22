@@ -72,6 +72,7 @@ class VisualizerViewModel(
                     DialogState.DeviceFlowPrompt(
                         userCode = authState.deviceUserCode,
                         verificationUrl = authState.deviceVerificationUrl,
+                        browserOpenedAutomatically = authState.browserOpenedAutomatically,
                     )
                 }
                 authState is AuthState.Authenticated && state.dialogState is DialogState.DeviceFlowPrompt ->
@@ -191,6 +192,9 @@ class VisualizerViewModel(
 
     fun closeDialog() {
         fileDetailsJob?.cancel()
+        if (state.dialogState is DialogState.DeviceFlowPrompt) {
+            sessionManager.cancelAuthorization()
+        }
         state = state.copy(
             dialogState = DialogState.None,
         )

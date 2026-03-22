@@ -16,7 +16,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-class GitHubOAuthDesktopAuthenticator {
+class GitHubOAuthDesktopAuthenticator(
+    private val browserOpener: (String) -> Unit = ::openVerificationPage,
+) {
     private val client = HttpClient.newHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -37,15 +39,18 @@ class GitHubOAuthDesktopAuthenticator {
         val start = requestDeviceCode(clientId = clientId, scope = scope)
         val autoVerificationUrl = start.verificationUriComplete
             ?: "${start.verificationUri}?user_code=${enc(start.userCode)}"
+        val browserOpenedAutomatically = runCatching {
+            browserOpener(autoVerificationUrl)
+        }.isSuccess
         onDeviceFlowStart?.invoke(
             DeviceFlowPrompt(
                 userCode = start.userCode,
                 verificationUri = start.verificationUri,
                 verificationUriComplete = start.verificationUriComplete,
                 openedUrl = autoVerificationUrl,
+                browserOpenedAutomatically = browserOpenedAutomatically,
             ),
         )
-        openVerificationPage(autoVerificationUrl)
 
         var pollInterval = start.intervalSeconds.seconds.coerceAtLeast(MIN_POLL_INTERVAL)
         val deadline = TimeSource.Monotonic.markNow() + start.expiresInSeconds.seconds
@@ -159,11 +164,16 @@ class GitHubOAuthDesktopAuthenticator {
 
     private fun enc(raw: String): String = URLEncoder.encode(raw, StandardCharsets.UTF_8)
 
-    private fun openVerificationPage(url: String) {
-        if (!Desktop.isDesktopSupported()) {
-            error("Desktop browser is not supported in this environment. Open this URL manually: $url")
+    private companion object {
+        private fun openVerificationPage(url: String) {
+            if (!Desktop.isDesktopSupported()) {
+                error("Desktop browser is not supported in this environment. Open this URL manually: $url")
+            }
+            Desktop.getDesktop().browse(URI(url))
         }
-        Desktop.getDesktop().browse(URI(url))
+
+        private val MIN_POLL_INTERVAL = 5.seconds
+        private val DEFAULT_EXPIRES_IN = 15.minutes
     }
 
     data class DeviceFlowPrompt(
@@ -171,6 +181,7 @@ class GitHubOAuthDesktopAuthenticator {
         val verificationUri: String,
         val verificationUriComplete: String?,
         val openedUrl: String,
+        val browserOpenedAutomatically: Boolean,
     )
 
     private data class DeviceFlowStart(
@@ -181,9 +192,4 @@ class GitHubOAuthDesktopAuthenticator {
         val expiresInSeconds: Int,
         val intervalSeconds: Int,
     )
-
-    private companion object {
-        private val MIN_POLL_INTERVAL = 5.seconds
-        private val DEFAULT_EXPIRES_IN = 15.minutes
-    }
 }

@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer
 import io.github.hayatoyagi.prvisualizer.github.GitHubSnapshot
 import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.repository.store.InMemorySelectedRepositoryStore
+import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.DialogState
 import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
@@ -116,6 +117,30 @@ class VisualizerViewModelTest {
         assertIs<DialogState.RepoPicker>(vm.state.dialogState)
 
         vm.closeDialog()
+        assertIs<DialogState.None>(vm.state.dialogState)
+    }
+
+    @Test
+    fun `closeDialog should reset auth state when dismissing device flow prompt`() {
+        val vm = VisualizerViewModel(
+            selectedRepositoryStore = InMemorySelectedRepositoryStore(),
+            initialState = VisualizerState(
+                authState = AuthState.Authorizing(
+                    deviceUserCode = "ABCD-EFGH",
+                    deviceVerificationUrl = "https://github.com/login/device",
+                    browserOpenedAutomatically = false,
+                ),
+                dialogState = DialogState.DeviceFlowPrompt(
+                    userCode = "ABCD-EFGH",
+                    verificationUrl = "https://github.com/login/device",
+                    browserOpenedAutomatically = false,
+                ),
+            ),
+        )
+
+        vm.closeDialog()
+
+        assertEquals(AuthState.Unauthenticated, vm.state.authState)
         assertIs<DialogState.None>(vm.state.dialogState)
     }
 

@@ -31,6 +31,7 @@ sealed interface AuthState {
     data class Authorizing(
         val deviceUserCode: String? = null,
         val deviceVerificationUrl: String? = null,
+        val browserOpenedAutomatically: Boolean = true,
     ) : AuthState
 
     data class Authenticated(
@@ -135,6 +136,7 @@ sealed interface DialogState {
     data class DeviceFlowPrompt(
         val userCode: String,
         val verificationUrl: String,
+        val browserOpenedAutomatically: Boolean,
     ) : DialogState
 }
 

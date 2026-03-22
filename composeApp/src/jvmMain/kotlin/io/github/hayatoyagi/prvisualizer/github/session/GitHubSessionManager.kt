@@ -7,7 +7,9 @@ import io.github.hayatoyagi.prvisualizer.repository.RepoState
 import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.RepoSelectionState
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -31,13 +33,21 @@ class GitHubSessionManager(
     private val snapshotFetchService: SnapshotFetchService = SnapshotFetchServiceImpl(),
 ) {
     private var restoreAttempted = false
+    private var loginJob: Job? = null
 
     fun initializeSession() {
         scope.launch { restoreTokenAndConnectIfNeeded() }
     }
 
     fun loginAndConnect() {
-        scope.launch { loginAndConnectInternal() }
+        loginJob?.cancel()
+        loginJob = scope.launch {
+            try {
+                loginAndConnectInternal()
+            } finally {
+                loginJob = null
+            }
+        }
     }
 
     fun refresh() {
@@ -62,12 +72,22 @@ class GitHubSessionManager(
     }
 
     fun logout() {
+        loginJob?.cancel()
+        loginJob = null
         scope.launch {
             authService.clearToken()
             setAuthState(AuthState.Unauthenticated)
             setSnapshotFetchState(SnapshotFetchState.Idle)
             setRepoSelectionState(RepoSelectionState.Idle)
             unselectRepo()
+        }
+    }
+
+    fun cancelAuthorization() {
+        loginJob?.cancel()
+        loginJob = null
+        if (getAuthState() is AuthState.Authorizing) {
+            setAuthState(AuthState.Unauthenticated)
         }
     }
 
@@ -95,6 +115,7 @@ class GitHubSessionManager(
                     AuthState.Authorizing(
                         deviceUserCode = prompt.userCode,
                         deviceVerificationUrl = prompt.verificationUriComplete ?: prompt.verificationUri,
+                        browserOpenedAutomatically = prompt.browserOpenedAutomatically,
                     ),
                 )
             },
@@ -102,6 +123,7 @@ class GitHubSessionManager(
             setAuthState(AuthState.Authenticated(token))
             connectWithResolvedRepository()
         }.onFailure { error ->
+            if (error is CancellationException) return
             setAuthState(AuthState.Failed(AppError.OAuthFailed(error.message ?: "OAuth failed")))
         }
     }
