@@ -109,7 +109,7 @@ object GitHubTokenStore {
         val path = windowsTokenFilePath()
         val script =
             """
-                |if (!(Test-Path ${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
+                |if ([string]::IsNullOrWhiteSpace(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)) { exit 1 }
                 |${'$'}dir = [IO.Path]::GetDirectoryName(${'$'}env:$WINDOWS_TOKEN_ENV_PATH)
                 |if (!(Test-Path ${'$'}dir)) { New-Item -Path ${'$'}dir -ItemType Directory | Out-Null }
                 |${'$'}secure = ConvertTo-SecureString -String ${'$'}env:$WINDOWS_TOKEN_ENV_VALUE -AsPlainText -Force
