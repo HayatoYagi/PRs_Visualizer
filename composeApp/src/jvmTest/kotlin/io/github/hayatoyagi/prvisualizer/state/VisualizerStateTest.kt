@@ -22,7 +22,6 @@ class VisualizerStateTest {
         val filterState = FilterState()
         assertTrue(filterState.showDrafts)
         assertFalse(filterState.onlyMine)
-        assertIs<PrSelection.AllVisible>(filterState.prSelection)
     }
 
     @Test
@@ -129,7 +128,7 @@ class VisualizerStateTest {
 
         assertTrue(ready.filterState.showDrafts)
         assertFalse(ready.filterState.onlyMine)
-        assertIs<PrSelection.AllVisible>(ready.filterState.prSelection)
+        assertIs<PrSelection.AllVisible>(ready.prSelection)
         assertEquals("", ready.navigationState.focusPath)
         assertNull(ready.navigationState.selectedPath)
         assertTrue(ready.colorState.prColorMap.isEmpty())
@@ -150,8 +149,8 @@ class VisualizerStateTest {
                 filterState = FilterState(
                     showDrafts = false,
                     onlyMine = true,
-                    prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
                 ),
+                prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
                 navigationState = NavigationState(
                     focusPath = "old/path",
                     selectedPath = "old/file.kt",
@@ -203,5 +202,6 @@ private fun createReady(
         viewerLogin = null,
         defaultBranch = "main",
     ),
-    filterState = FilterState(prSelection = prSelection),
+    filterState = FilterState(),
+    prSelection = prSelection,
 )

@@ -3,16 +3,15 @@ package io.github.hayatoyagi.prvisualizer.ui.explorer
 import io.github.hayatoyagi.prvisualizer.FileNode
 import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.state.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 
 fun buildExplorerRows(
     root: FileNode.Directory,
     fileOverlayByPath: Map<String, FileOverlay>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    conflictedDirs: Set<String>,
     expandedPaths: Set<String> = setOf(""),
 ): List<ExplorerRow> {
     val rows = mutableListOf<ExplorerRow>()
-    val conflictedDirectoryPaths = computeConflictedDirs(fileOverlayByPath)
 
     fun visit(
         node: FileNode,
@@ -21,7 +20,7 @@ fun buildExplorerRows(
         val (dominantType, hasConflict) = when (node) {
             is FileNode.Directory -> {
                 val overlay = directoryOverlayByPath[node.path]
-                Pair(overlay?.dominantType, conflictedDirectoryPaths.contains(node.path))
+                Pair(overlay?.dominantType, conflictedDirs.contains(node.path))
             }
             is FileNode.File -> {
                 val overlay = fileOverlayByPath[node.path]

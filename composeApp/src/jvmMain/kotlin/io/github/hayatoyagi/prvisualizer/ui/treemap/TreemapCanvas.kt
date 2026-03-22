@@ -3,7 +3,6 @@ package io.github.hayatoyagi.prvisualizer.ui.treemap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -17,7 +16,6 @@ import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.TreemapNode
 import io.github.hayatoyagi.prvisualizer.state.DirectoryOverlay
 import io.github.hayatoyagi.prvisualizer.state.FileOverlay
-import io.github.hayatoyagi.prvisualizer.ui.shared.computeConflictedDirs
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 
 private const val MIN_DIRECTORY_RENDER_SIZE_PX = 1f
@@ -41,6 +39,7 @@ fun TreemapCanvas(
     visibleFiles: List<TreemapNode>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
     fileOverlayByPath: Map<String, FileOverlay>,
+    conflictedDirs: Set<String>,
     prColorMap: Map<String, Color>,
     hoveredNode: TreemapNode?,
     selectedPath: String?,
@@ -48,14 +47,11 @@ fun TreemapCanvas(
     pan: Offset,
     modifier: Modifier = Modifier,
 ) {
-    val conflictedDirectoryPaths = remember(fileOverlayByPath) {
-        computeConflictedDirs(fileOverlayByPath)
-    }
     Canvas(modifier = modifier.fillMaxSize()) {
         drawDirectoryLayer(
             visibleDirectories = visibleDirectories,
             directoryOverlayByPath = directoryOverlayByPath,
-            conflictedDirectoryPaths = conflictedDirectoryPaths,
+            conflictedDirectoryPaths = conflictedDirs,
             prColorMap = prColorMap,
             hoveredNode = hoveredNode,
             zoom = zoom,

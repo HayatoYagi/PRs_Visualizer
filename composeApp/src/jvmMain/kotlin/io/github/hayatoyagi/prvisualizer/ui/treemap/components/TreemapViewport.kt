@@ -68,6 +68,7 @@ internal fun TreemapViewport(
             visibleFiles = model.visibleFiles,
             directoryOverlayByPath = model.directoryOverlayByPath,
             fileOverlayByPath = model.fileOverlayByPath,
+            conflictedDirs = model.conflictedDirs,
             prColorMap = model.prColorMap,
             hoveredNode = model.hoveredNode,
             selectedPath = model.selectedPath,

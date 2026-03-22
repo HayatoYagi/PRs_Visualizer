@@ -56,6 +56,7 @@ fun ExplorerPane(
     root: FileNode.Directory?,
     fileOverlayByPath: Map<String, FileOverlay>,
     directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    conflictedDirs: Set<String>,
     focusPath: String,
     selectedPath: String?,
     expandedPaths: Set<String>,
@@ -64,12 +65,13 @@ fun ExplorerPane(
     onToggleExpanded: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = remember(root, fileOverlayByPath, directoryOverlayByPath, expandedPaths) {
+    val rows = remember(root, fileOverlayByPath, directoryOverlayByPath, conflictedDirs, expandedPaths) {
         root?.let {
             buildExplorerRows(
                 root = it,
                 fileOverlayByPath = fileOverlayByPath,
                 directoryOverlayByPath = directoryOverlayByPath,
+                conflictedDirs = conflictedDirs,
                 expandedPaths = expandedPaths,
             )
         } ?: emptyList()
