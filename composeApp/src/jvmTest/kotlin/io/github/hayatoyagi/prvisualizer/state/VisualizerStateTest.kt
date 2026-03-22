@@ -27,46 +27,59 @@ class VisualizerStateTest {
 
     @Test
     fun `PrSelection fromExplicit should canonicalize full visible selection to AllVisible`() {
-        val visibleIds = setOf("pr1", "pr2")
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
 
-        val selection = PrSelection.fromExplicit(ids = visibleIds, visibleIds = visibleIds)
-
-        assertIs<PrSelection.AllVisible>(selection)
+        assertEquals(setOf("pr1", "pr2"), ready.selectedPrIds)
+        assertEquals(ToggleableState.On, ready.selectAllState)
     }
 
     @Test
     fun `PrSelection toggle should canonicalize explicit full selection back to AllVisible`() {
-        val visibleIds = setOf("pr1", "pr2")
-        val partiallySelected = PrSelection.fromExplicit(ids = setOf("pr1"), visibleIds = visibleIds)
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1")),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
 
-        val selection = partiallySelected.toggle(prId = "pr2", checked = true, visibleIds = visibleIds)
+        val selection = ready.togglePrSelection(
+            prId = "pr2",
+            checked = true,
+        )
 
         assertIs<PrSelection.AllVisible>(selection)
     }
 
     @Test
     fun `PrSelection resolve should intersect explicit selection with visible ids`() {
-        val selection = PrSelection.fromExplicit(
-            ids = setOf("pr1", "pr3"),
-            visibleIds = setOf("pr1", "pr2"),
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr3")),
+            pullRequestIds = setOf("pr1", "pr2"),
         )
 
-        assertEquals(setOf("pr1"), selection.resolve(setOf("pr1", "pr2")))
+        assertEquals(setOf("pr1"), ready.resolveSelectedPrIds())
     }
 
     @Test
     fun `PrSelection fromExplicit should drop stale non-visible ids before canonicalizing`() {
-        val selection = PrSelection.fromExplicit(
-            ids = setOf("pr1", "pr2", "stale"),
-            visibleIds = setOf("pr1", "pr2"),
+        val ready = createReady(
+            prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2", "stale")),
+            pullRequestIds = setOf("pr1", "pr2"),
         )
 
-        assertIs<PrSelection.AllVisible>(selection)
+        assertEquals(setOf("pr1", "pr2"), ready.selectedPrIds)
+        assertEquals(ToggleableState.On, ready.selectAllState)
     }
 
     @Test
     fun `PrSelection triState should report On for AllVisible`() {
-        val triState = PrSelection.allVisible().triState(setOf("pr1", "pr2"))
+        val ready = createReady(
+            prSelection = PrSelection.allVisible(),
+            pullRequestIds = setOf("pr1", "pr2"),
+        )
+
+        val triState = ready.resolveSelectAllState()
 
         assertEquals(ToggleableState.On, triState)
     }
@@ -137,10 +150,7 @@ class VisualizerStateTest {
                 filterState = FilterState(
                     showDrafts = false,
                     onlyMine = true,
-                    prSelection = PrSelection.fromExplicit(
-                        ids = setOf("pr1", "pr2"),
-                        visibleIds = setOf("other"),
-                    ),
+                    prSelection = PrSelection.Explicit.create(ids = setOf("pr1", "pr2")),
                 ),
                 navigationState = NavigationState(
                     focusPath = "old/path",
@@ -172,3 +182,26 @@ class VisualizerStateTest {
         assertIs<AuthState.Authenticated>(reset.authState)
     }
 }
+
+private fun createReady(
+    prSelection: PrSelection,
+    pullRequestIds: Set<String>,
+): SnapshotFetchState.Ready = SnapshotFetchState.Ready(
+    snapshot = GitHubSnapshot(
+        rootNode = FileNode.Directory(path = "", name = "repo", children = emptyList(), weight = 1.0),
+        pullRequests = pullRequestIds.map { prId ->
+            io.github.hayatoyagi.prvisualizer.PullRequest(
+                id = prId,
+                number = prId.removePrefix("pr").toIntOrNull() ?: 1,
+                title = prId,
+                author = "author",
+                isDraft = false,
+                url = "https://example.com/$prId",
+                files = emptyList(),
+            )
+        },
+        viewerLogin = null,
+        defaultBranch = "main",
+    ),
+    filterState = FilterState(prSelection = prSelection),
+)

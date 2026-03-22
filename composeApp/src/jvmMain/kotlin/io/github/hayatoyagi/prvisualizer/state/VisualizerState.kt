@@ -1,6 +1,7 @@
 package io.github.hayatoyagi.prvisualizer.state
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.state.ToggleableState
 import io.github.hayatoyagi.prvisualizer.AppError
 import io.github.hayatoyagi.prvisualizer.FileCommit
 import io.github.hayatoyagi.prvisualizer.PullRequest
@@ -76,8 +77,8 @@ sealed interface SnapshotFetchState {
          * Selected PR IDs normalized to the current filtered set.
          * This is always a subset of [filteredPrs].
          */
-        val selectedPrIds = filterState.prSelection.resolve(filteredPrIds)
-        val selectAllState = filterState.prSelection.triState(filteredPrIds)
+        val selectedPrIds = resolveSelectedPrIds()
+        val selectAllState = resolveSelectAllState()
 
         /**
          * Filtered PRs that are currently selected and therefore contribute to overlays and treemap coloring.
@@ -188,6 +189,43 @@ fun NavigationState.resetNavigation(): NavigationState = copy(
     focusPath = "",
     selectedPath = null,
 )
+
+internal fun SnapshotFetchState.Ready.resolveSelectedPrIds(): Set<String> = when (val prSelection = filterState.prSelection) {
+    PrSelection.AllVisible -> filteredPrIds
+    is PrSelection.Explicit -> prSelection.ids.intersect(filteredPrIds)
+}
+
+private fun canonicalizeSelection(
+    ids: Set<String>,
+    visibleIds: Set<String>,
+): PrSelection {
+    val normalizedIds = ids.intersect(visibleIds)
+    return if (normalizedIds == visibleIds) PrSelection.allVisible() else PrSelection.Explicit.create(normalizedIds)
+}
+
+internal fun SnapshotFetchState.Ready.togglePrSelection(
+    prId: String,
+    checked: Boolean,
+): PrSelection {
+    val baseSelection = resolveSelectedPrIds()
+    val updatedIds = if (checked) {
+        baseSelection + prId
+    } else {
+        baseSelection - prId
+    }
+    return canonicalizeSelection(updatedIds, filteredPrIds)
+}
+
+internal fun SnapshotFetchState.Ready.resolveSelectAllState(): ToggleableState {
+    if (filteredPrIds.isEmpty()) return ToggleableState.Off
+
+    val resolvedSelection = resolveSelectedPrIds()
+    return when {
+        resolvedSelection.isEmpty() -> ToggleableState.Off
+        resolvedSelection.size == filteredPrIds.size -> ToggleableState.On
+        else -> ToggleableState.Indeterminate
+    }
+}
 
 fun NavigationState.resetViewport(): NavigationState = copy(viewportResetToken = viewportResetToken + 1)
 
