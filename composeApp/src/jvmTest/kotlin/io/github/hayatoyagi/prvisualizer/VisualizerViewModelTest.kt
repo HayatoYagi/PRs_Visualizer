@@ -200,17 +200,17 @@ class VisualizerViewModelTest {
             selectedRepositoryStore = InMemorySelectedRepositoryStore(),
             initialState = readyState(snapshotWithPrs(pr("pr1"), pr("pr2"))),
         )
-        assertIs<PrSelection.AllVisible>(vm.readyState.filterState.prSelection)
+        assertIs<PrSelection.AllVisible>(vm.readyState.prSelection)
 
         vm.deselectAllPrs()
         vm.togglePr("pr1", checked = true)
-        assertEquals(setOf("pr1"), assertIs<PrSelection.Explicit>(vm.readyState.filterState.prSelection).ids)
+        assertEquals(setOf("pr1"), assertIs<PrSelection.Explicit>(vm.readyState.prSelection).ids)
 
         vm.togglePr("pr2", checked = true)
-        assertIs<PrSelection.AllVisible>(vm.readyState.filterState.prSelection)
+        assertIs<PrSelection.AllVisible>(vm.readyState.prSelection)
 
         vm.togglePr("pr1", checked = false)
-        assertEquals(setOf("pr2"), assertIs<PrSelection.Explicit>(vm.readyState.filterState.prSelection).ids)
+        assertEquals(setOf("pr2"), assertIs<PrSelection.Explicit>(vm.readyState.prSelection).ids)
     }
 
     @Test
@@ -222,12 +222,12 @@ class VisualizerViewModelTest {
 
         // Initially AllVisible → toggleSelectAll should deselect all
         vm.toggleSelectAll()
-        val explicit = assertIs<PrSelection.Explicit>(vm.readyState.filterState.prSelection)
+        val explicit = assertIs<PrSelection.Explicit>(vm.readyState.prSelection)
         assertEquals(emptySet(), explicit.ids)
 
         // Now none selected → toggleSelectAll should select all
         vm.toggleSelectAll()
-        assertIs<PrSelection.AllVisible>(vm.readyState.filterState.prSelection)
+        assertIs<PrSelection.AllVisible>(vm.readyState.prSelection)
     }
 
     @Test
@@ -239,7 +239,7 @@ class VisualizerViewModelTest {
 
         vm.deselectAllPrs()
         vm.selectAllPrs()
-        assertIs<PrSelection.AllVisible>(vm.readyState.filterState.prSelection)
+        assertIs<PrSelection.AllVisible>(vm.readyState.prSelection)
     }
 
     @Test
@@ -251,7 +251,7 @@ class VisualizerViewModelTest {
         vm.selectAllPrs()
 
         vm.deselectAllPrs()
-        assertEquals(emptySet(), assertIs<PrSelection.Explicit>(vm.readyState.filterState.prSelection).ids)
+        assertEquals(emptySet(), assertIs<PrSelection.Explicit>(vm.readyState.prSelection).ids)
     }
 
     @Test
