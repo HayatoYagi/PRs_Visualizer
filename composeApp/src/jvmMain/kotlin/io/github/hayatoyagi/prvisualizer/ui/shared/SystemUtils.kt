@@ -5,17 +5,13 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.net.URI
 
-fun openUrl(url: String) {
-    runCatching {
-        if (Desktop.isDesktopSupported()) {
-            Desktop.getDesktop().browse(URI(url))
-        }
+fun openUrl(url: String): Result<Unit> = runCatching {
+    if (Desktop.isDesktopSupported()) {
+        Desktop.getDesktop().browse(URI(url))
     }
 }
 
-fun copyToClipboard(text: String) {
-    runCatching {
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(StringSelection(text), null)
-    }
+fun copyToClipboard(text: String): Result<Unit> = runCatching {
+    val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+    clipboard.setContents(StringSelection(text), null)
 }

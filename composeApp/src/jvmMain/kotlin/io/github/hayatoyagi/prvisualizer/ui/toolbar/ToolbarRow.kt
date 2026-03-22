@@ -16,7 +16,6 @@ import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.AuthSection
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.ConnectionSection
-import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.DevicePromptSection
 import io.github.hayatoyagi.prvisualizer.ui.toolbar.sections.RepositorySection
 
 private data class ToolbarModel(
@@ -24,7 +23,6 @@ private data class ToolbarModel(
     val isConnecting: Boolean,
     val isLoggedIn: Boolean,
     val hasSnapshot: Boolean,
-    val devicePrompt: AuthState.Authorizing?,
 )
 
 @Composable
@@ -58,10 +56,6 @@ fun ToolbarRow(
             onLogin = onLogin,
             onLogout = onLogout,
         )
-        DevicePromptSection(
-            devicePrompt = model.devicePrompt,
-            toolbarTextStyle = toolbarTextStyle,
-        )
         ConnectionSection(
             statusText = statusText(model = model, currentUser = currentUser),
             toolbarTextStyle = toolbarTextStyle,
@@ -86,8 +80,6 @@ private fun toolbarModel(
     isConnecting = snapshotFetchState is SnapshotFetchState.Fetching,
     isLoggedIn = authState is AuthState.Authenticated,
     hasSnapshot = snapshotFetchState is SnapshotFetchState.Ready,
-    devicePrompt = (authState as? AuthState.Authorizing)
-        ?.takeIf { !it.deviceUserCode.isNullOrBlank() && !it.deviceVerificationUrl.isNullOrBlank() },
 )
 
 private fun statusText(
