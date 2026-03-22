@@ -22,7 +22,6 @@ import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
 import io.github.hayatoyagi.prvisualizer.state.VisualizerState
 import io.github.hayatoyagi.prvisualizer.state.resetForRepositoryChange
 import io.github.hayatoyagi.prvisualizer.state.togglePrSelection
-import io.github.hayatoyagi.prvisualizer.ui.shared.copyToClipboard
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -70,14 +69,14 @@ class VisualizerViewModel(
                 authState is AuthState.Authorizing &&
                     authState.deviceUserCode != null &&
                     authState.deviceVerificationUrl != null -> {
-                    copyToClipboard(authState.deviceUserCode)
                     DialogState.DeviceFlowPrompt(
                         userCode = authState.deviceUserCode,
                         verificationUrl = authState.deviceVerificationUrl,
                         browserOpenedAutomatically = authState.browserOpenedAutomatically,
                     )
                 }
-                authState is AuthState.Authenticated && state.dialogState is DialogState.DeviceFlowPrompt -> {
+                authState is AuthState.Authenticated &&
+                    state.dialogState is DialogState.DeviceFlowPrompt -> {
                     DialogState.None
                 }
                 else -> {

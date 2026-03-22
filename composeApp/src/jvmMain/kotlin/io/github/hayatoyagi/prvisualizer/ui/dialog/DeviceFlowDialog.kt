@@ -15,6 +15,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -32,6 +36,12 @@ fun DeviceFlowDialog(
     browserOpenedAutomatically: Boolean,
     onDismiss: () -> Unit,
 ) {
+    var userCodeCopiedToClipboard by mutableStateOf(false)
+
+    LaunchedEffect(userCode) {
+        userCodeCopiedToClipboard = copyToClipboard(userCode).isSuccess
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = AppColors.backgroundPane,
@@ -51,7 +61,13 @@ fun DeviceFlowDialog(
                     Spacer(Modifier.width(8.dp))
                     Text("Open Sign-in Page")
                 }
-                Text("2. Enter this code on the GitHub page. (It has already been copied to your clipboard.)")
+                Text(
+                    if (userCodeCopiedToClipboard) {
+                        "2. Enter this code on the GitHub page. (It has already been copied to your clipboard.)"
+                    } else {
+                        "2. Enter this code on the GitHub page. (Use Copy Code if needed.)"
+                    },
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
