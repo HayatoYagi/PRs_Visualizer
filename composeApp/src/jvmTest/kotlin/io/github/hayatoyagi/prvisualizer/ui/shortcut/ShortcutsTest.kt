@@ -3,6 +3,7 @@ package io.github.hayatoyagi.prvisualizer.ui.shortcut
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -77,5 +78,15 @@ class ShortcutsTest {
                 shortcutMask = InputEvent.CTRL_DOWN_MASK,
             ),
         )
+    }
+
+    @Test
+    fun `viewport reset hint uses Ctrl label on Windows`() {
+        assertEquals("Ctrl+R: reset view", viewportResetShortcutHint(InputEvent.CTRL_DOWN_MASK))
+    }
+
+    @Test
+    fun `viewport reset hint uses Cmd label on macOS`() {
+        assertEquals("Cmd+R: reset view", viewportResetShortcutHint(InputEvent.META_DOWN_MASK))
     }
 }
