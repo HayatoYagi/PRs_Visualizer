@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import io.github.hayatoyagi.prvisualizer.PullRequest
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipContainer
 import io.github.hayatoyagi.prvisualizer.ui.shared.TooltipIconButton
+import io.github.hayatoyagi.prvisualizer.ui.shortcut.viewportResetShortcutHint
 import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 import io.github.hayatoyagi.prvisualizer.ui.theme.prColor
 
@@ -87,7 +88,7 @@ fun PrListPane(
             contentModifier = Modifier.weight(1f),
         )
         Text(
-            text = "Cmd+R: reset view",
+            text = viewportResetShortcutHint(),
             color = AppColors.textHint,
             style = MaterialTheme.typography.bodySmall,
         )
