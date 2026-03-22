@@ -43,11 +43,10 @@ fun App() {
             selectedRepositoryStore = PersistedSelectedRepositoryStore(),
         )
     }
-    val authState = vm.state.authState
     val snapshotFetchState = vm.state.snapshotFetchState
     val selectedRepo = vm.repoState.collectAsState().value as? RepoState.Selected
 
-    AppEffects(vm = vm, authState = authState, snapshotFetchState = snapshotFetchState)
+    AppEffects(vm = vm)
 
     MaterialTheme {
         Column(
@@ -56,7 +55,7 @@ fun App() {
             ToolbarRow(
                 owner = selectedRepo?.owner.orEmpty(),
                 repo = selectedRepo?.repo.orEmpty(),
-                authState = authState,
+                authState = vm.state.authState,
                 snapshotFetchState = snapshotFetchState,
                 currentUser = vm.state.currentUser,
                 onLogin = { vm.loginAndConnect() },
@@ -102,9 +101,10 @@ fun App() {
 @Composable
 private fun AppEffects(
     vm: VisualizerViewModel,
-    authState: AuthState,
-    snapshotFetchState: SnapshotFetchState,
 ) {
+    val authState = vm.state.authState
+    val snapshotFetchState = vm.state.snapshotFetchState
+    val ready = snapshotFetchState as? SnapshotFetchState.Ready
     RegisterShortcuts(vm)
     LaunchedEffect(Unit) {
         vm.initializeSession()
@@ -112,9 +112,9 @@ private fun AppEffects(
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) vm.ensureRepositoryOptions()
     }
-    LaunchedEffect(snapshotFetchState) {
-        if (snapshotFetchState is SnapshotFetchState.Ready) {
-            vm.ensurePrColors(snapshotFetchState.snapshot.pullRequests)
+    LaunchedEffect(ready?.snapshot) {
+        ready?.let {
+            vm.ensurePrColors(it.snapshot.pullRequests)
         }
     }
 }

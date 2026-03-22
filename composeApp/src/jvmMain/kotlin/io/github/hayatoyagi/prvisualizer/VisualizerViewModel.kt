@@ -247,11 +247,10 @@ class VisualizerViewModel(
     }
 
     fun togglePr(prId: String, checked: Boolean) {
-        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
         updateReady {
             copy(
                 filterState = filterState.copy(
-                    prSelection = ready.togglePrSelection(
+                    prSelection = togglePrSelection(
                         prId = prId,
                         checked = checked,
                     ),
@@ -261,9 +260,8 @@ class VisualizerViewModel(
     }
 
     fun toggleSelectAll() {
-        val ready = state.snapshotFetchState as? SnapshotFetchState.Ready ?: return
         updateReady {
-            val newSelection = when (ready.selectAllState) {
+            val newSelection = when (selectAllState) {
                 ToggleableState.On -> PrSelection.none()
                 ToggleableState.Off, ToggleableState.Indeterminate -> PrSelection.allVisible()
             }
