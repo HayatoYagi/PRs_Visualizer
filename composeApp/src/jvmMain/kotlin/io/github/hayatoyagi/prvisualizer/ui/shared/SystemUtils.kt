@@ -5,11 +5,9 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.net.URI
 
-fun openUrl(url: String) {
-    runCatching {
-        if (Desktop.isDesktopSupported()) {
-            Desktop.getDesktop().browse(URI(url))
-        }
+fun openUrl(url: String): Result<Unit> = runCatching {
+    if (Desktop.isDesktopSupported()) {
+        Desktop.getDesktop().browse(URI(url))
     }
 }
 

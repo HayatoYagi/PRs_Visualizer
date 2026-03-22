@@ -145,8 +145,6 @@ class GitHubSessionManagerTest {
                                 userCode = "ABCD-EFGH",
                                 verificationUri = "https://github.com/login/device",
                                 verificationUriComplete = null,
-                                openedUrl = "https://github.com/login/device?user_code=ABCD-EFGH",
-                                browserOpenedAutomatically = false,
                             ),
                         )
                         return Result.failure(IllegalStateException("stop after prompt"))
@@ -166,7 +164,6 @@ class GitHubSessionManagerTest {
             assertNotNull(promptState)
             assertEquals("ABCD-EFGH", promptState.deviceUserCode)
             assertEquals("https://github.com/login/device", promptState.deviceVerificationUrl)
-            assertFalse(promptState.browserOpenedAutomatically)
         }
 
     @Test
@@ -236,8 +233,6 @@ class GitHubSessionManagerTest {
                                 userCode = "ABCD-EFGH",
                                 verificationUri = "https://github.com/login/device",
                                 verificationUriComplete = null,
-                                openedUrl = "https://github.com/login/device?user_code=ABCD-EFGH",
-                                browserOpenedAutomatically = false,
                             ),
                         )
                         awaitCancellation()

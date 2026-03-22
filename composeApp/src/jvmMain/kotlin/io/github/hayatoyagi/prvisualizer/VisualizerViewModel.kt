@@ -72,7 +72,6 @@ class VisualizerViewModel(
                     DialogState.DeviceFlowPrompt(
                         userCode = authState.deviceUserCode,
                         verificationUrl = authState.deviceVerificationUrl,
-                        browserOpenedAutomatically = authState.browserOpenedAutomatically,
                     )
                 }
                 authState is AuthState.Authenticated &&

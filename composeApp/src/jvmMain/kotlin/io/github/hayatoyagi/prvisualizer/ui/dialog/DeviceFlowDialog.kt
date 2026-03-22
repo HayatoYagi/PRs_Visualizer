@@ -33,7 +33,6 @@ import io.github.hayatoyagi.prvisualizer.ui.theme.AppColors
 fun DeviceFlowDialog(
     userCode: String,
     verificationUrl: String,
-    browserOpenedAutomatically: Boolean,
     onDismiss: () -> Unit,
 ) {
     var userCodeCopiedToClipboard by mutableStateOf(false)
@@ -94,12 +93,6 @@ fun DeviceFlowDialog(
                     "3. Authorize the app in your browser. " +
                         "This app will continue automatically after GitHub completes sign-in.",
                 )
-                if (!browserOpenedAutomatically) {
-                    Text(
-                        "Your browser could not be opened automatically in this environment.",
-                        color = AppColors.textBodyMuted,
-                    )
-                }
             }
         },
         confirmButton = {

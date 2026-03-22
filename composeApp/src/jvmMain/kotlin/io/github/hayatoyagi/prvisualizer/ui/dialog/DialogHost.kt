@@ -87,7 +87,6 @@ fun DialogHost(
         is DialogState.DeviceFlowPrompt -> DeviceFlowDialog(
             userCode = dialogState.userCode,
             verificationUrl = dialogState.verificationUrl,
-            browserOpenedAutomatically = dialogState.browserOpenedAutomatically,
             onDismiss = onDismissDialog,
         )
         is DialogState.None -> Unit

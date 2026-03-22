@@ -128,12 +128,10 @@ class VisualizerViewModelTest {
                 authState = AuthState.Authorizing(
                     deviceUserCode = "ABCD-EFGH",
                     deviceVerificationUrl = "https://github.com/login/device",
-                    browserOpenedAutomatically = false,
                 ),
                 dialogState = DialogState.DeviceFlowPrompt(
                     userCode = "ABCD-EFGH",
                     verificationUrl = "https://github.com/login/device",
-                    browserOpenedAutomatically = false,
                 ),
             ),
         )

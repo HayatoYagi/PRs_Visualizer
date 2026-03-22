@@ -115,7 +115,6 @@ class GitHubSessionManager(
                     AuthState.Authorizing(
                         deviceUserCode = prompt.userCode,
                         deviceVerificationUrl = prompt.verificationUriComplete ?: prompt.verificationUri,
-                        browserOpenedAutomatically = prompt.browserOpenedAutomatically,
                     ),
                 )
             },

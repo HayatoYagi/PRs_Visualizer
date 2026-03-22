@@ -1,10 +1,10 @@
 package io.github.hayatoyagi.prvisualizer.github
 
+import io.github.hayatoyagi.prvisualizer.ui.shared.openUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import java.awt.Desktop
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
@@ -16,9 +16,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-class GitHubOAuthDesktopAuthenticator(
-    private val browserOpener: (String) -> Unit = ::openVerificationPage,
-) {
+class GitHubOAuthDesktopAuthenticator {
     private val client = HttpClient.newHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -39,16 +37,12 @@ class GitHubOAuthDesktopAuthenticator(
         val start = requestDeviceCode(clientId = clientId, scope = scope)
         val autoVerificationUrl = start.verificationUriComplete
             ?: "${start.verificationUri}?user_code=${enc(start.userCode)}"
-        val browserOpenedAutomatically = runCatching {
-            browserOpener(autoVerificationUrl)
-        }.isSuccess
+        openUrl(autoVerificationUrl)
         onDeviceFlowStart?.invoke(
             DeviceFlowPrompt(
                 userCode = start.userCode,
                 verificationUri = start.verificationUri,
                 verificationUriComplete = start.verificationUriComplete,
-                openedUrl = autoVerificationUrl,
-                browserOpenedAutomatically = browserOpenedAutomatically,
             ),
         )
 
@@ -167,21 +161,12 @@ class GitHubOAuthDesktopAuthenticator(
     private companion object {
         private val DEFAULT_POLL_INTERVAL_STEP = 5.seconds
         private val DEFAULT_EXPIRES_IN = 15.minutes
-
-        private fun openVerificationPage(url: String) {
-            if (!Desktop.isDesktopSupported()) {
-                error("Desktop browser is not supported in this environment. Open this URL manually: $url")
-            }
-            Desktop.getDesktop().browse(URI(url))
-        }
     }
 
     data class DeviceFlowPrompt(
         val userCode: String,
         val verificationUri: String,
         val verificationUriComplete: String?,
-        val openedUrl: String,
-        val browserOpenedAutomatically: Boolean,
     )
 
     private data class DeviceFlowStart(
