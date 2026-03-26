@@ -49,10 +49,27 @@ sealed interface SnapshotFetchState {
 
     data class Ready(
         val snapshot: GitHubSnapshot,
+        val filteredView: FilteredView,
         val filterState: FilterState = FilterState(),
+        val prSelection: PrSelection = PrSelection.allVisible(),
         val navigationState: NavigationState = NavigationState(),
         val colorState: ColorState = ColorState(),
     ) : SnapshotFetchState {
+        constructor(
+            snapshot: GitHubSnapshot,
+            filterState: FilterState = FilterState(),
+            prSelection: PrSelection = PrSelection.allVisible(),
+            navigationState: NavigationState = NavigationState(),
+            colorState: ColorState = ColorState(),
+        ) : this(
+            snapshot = snapshot,
+            filteredView = FilteredView.create(snapshot, filterState),
+            filterState = filterState,
+            prSelection = prSelection,
+            navigationState = navigationState,
+            colorState = colorState,
+        )
+
         /**
          * All PRs contained in the loaded snapshot before any user-applied filtering.
          */
@@ -60,15 +77,12 @@ sealed interface SnapshotFetchState {
 
         /**
          * PRs that remain after applying the current draft and owner filters.
+         * Delegates to [filteredView] so that operations changing only [prSelection]
+         * do not trigger recomputation of the filter logic.
          */
-        val filteredPrs = filterPrs(
-            allPrs = allPrs,
-            showDrafts = filterState.showDrafts,
-            onlyMine = filterState.onlyMine,
-            currentUser = snapshot.viewerLogin.orEmpty(),
-        )
+        val filteredPrs: List<PullRequest> get() = filteredView.filteredPrs
 
-        val filteredPrIds = filteredPrs.map { it.id }.toSet()
+        val filteredPrIds: Set<String> get() = filteredView.filteredPrIds
 
         /**
          * Selected PR IDs normalized to the current filtered set.
@@ -87,6 +101,12 @@ sealed interface SnapshotFetchState {
             selectedPrs,
             collectAllDirectories(snapshot.rootNode),
         )
+
+        /**
+         * Directories that contain files touched by more than one selected PR.
+         * Stored as state so all consumers share the same computed result.
+         */
+        val conflictedDirs: Set<String> = computeConflictedDirs(fileOverlayByPath)
     }
 
     data class Failed(
@@ -141,7 +161,6 @@ sealed interface DialogState {
 data class FilterState(
     val showDrafts: Boolean = true,
     val onlyMine: Boolean = false,
-    val prSelection: PrSelection = PrSelection.allVisible(),
 )
 
 /**
@@ -192,7 +211,7 @@ fun NavigationState.resetNavigation(): NavigationState = copy(
     selectedPath = null,
 )
 
-internal fun SnapshotFetchState.Ready.resolveSelectedPrIds(): Set<String> = when (val prSelection = filterState.prSelection) {
+internal fun SnapshotFetchState.Ready.resolveSelectedPrIds(): Set<String> = when (prSelection) {
     PrSelection.AllVisible -> filteredPrIds
     is PrSelection.Explicit -> prSelection.ids.intersect(filteredPrIds)
 }

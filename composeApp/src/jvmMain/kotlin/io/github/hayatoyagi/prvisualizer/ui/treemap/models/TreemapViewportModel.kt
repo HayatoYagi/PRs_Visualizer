@@ -12,6 +12,7 @@ internal data class TreemapViewportModel(
     val visibleFiles: List<TreemapNode>,
     val fileOverlayByPath: Map<String, FileOverlay>,
     val directoryOverlayByPath: Map<String, DirectoryOverlay>,
+    val conflictedDirs: Set<String>,
     val prColorMap: Map<String, Color>,
     val selectedPath: String?,
     val hoveredNode: TreemapNode?,

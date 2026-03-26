@@ -16,6 +16,7 @@ import io.github.hayatoyagi.prvisualizer.repository.store.SelectedRepositoryStor
 import io.github.hayatoyagi.prvisualizer.state.AuthState
 import io.github.hayatoyagi.prvisualizer.state.ColorState
 import io.github.hayatoyagi.prvisualizer.state.DialogState
+import io.github.hayatoyagi.prvisualizer.state.FilteredView
 import io.github.hayatoyagi.prvisualizer.state.NavigationState
 import io.github.hayatoyagi.prvisualizer.state.PrSelection
 import io.github.hayatoyagi.prvisualizer.state.SnapshotFetchState
@@ -258,23 +259,28 @@ class VisualizerViewModel(
 
     // region: PR フィルタ
     fun updateShowDrafts(value: Boolean) {
-        updateReady { copy(filterState = filterState.copy(showDrafts = value)) }
+        updateReady {
+            val newFilterState = filterState.copy(showDrafts = value)
+            copy(
+                filterState = newFilterState,
+                filteredView = FilteredView.create(snapshot, newFilterState),
+            )
+        }
     }
 
     fun updateOnlyMine(value: Boolean) {
-        updateReady { copy(filterState = filterState.copy(onlyMine = value)) }
+        updateReady {
+            val newFilterState = filterState.copy(onlyMine = value)
+            copy(
+                filterState = newFilterState,
+                filteredView = FilteredView.create(snapshot, newFilterState),
+            )
+        }
     }
 
     fun togglePr(prId: String, checked: Boolean) {
         updateReady {
-            copy(
-                filterState = filterState.copy(
-                    prSelection = togglePrSelection(
-                        prId = prId,
-                        checked = checked,
-                    ),
-                ),
-            )
+            copy(prSelection = togglePrSelection(prId = prId, checked = checked))
         }
     }
 
@@ -284,16 +290,16 @@ class VisualizerViewModel(
                 ToggleableState.On -> PrSelection.none()
                 ToggleableState.Off, ToggleableState.Indeterminate -> PrSelection.allVisible()
             }
-            copy(filterState = filterState.copy(prSelection = newSelection))
+            copy(prSelection = newSelection)
         }
     }
 
     fun selectAllPrs() {
-        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.allVisible())) }
+        updateReady { copy(prSelection = PrSelection.allVisible()) }
     }
 
     fun deselectAllPrs() {
-        updateReady { copy(filterState = filterState.copy(prSelection = PrSelection.none())) }
+        updateReady { copy(prSelection = PrSelection.none()) }
     }
 
     // region: ナビゲーション
